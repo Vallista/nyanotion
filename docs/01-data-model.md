@@ -7,7 +7,7 @@
 
 ---
 
-## 1. 인증 · 조직 — Better Auth 관리
+## 1. 인증 · 가족(조직) — Better Auth 관리
 
 Better Auth 와 organization 플러그인이 만드는 테이블. 스키마를 직접 바꾸지 말고 플러그인 설정으로 확장한다.
 
@@ -21,15 +21,20 @@ Better Auth 와 organization 플러그인이 만드는 테이블. 스키마를 �
 | `member` | `id, organization_id, user_id, role, created_at` |
 | `invitation` | `id, organization_id, email, role, status, expires_at, inviter_id` |
 
-조직 역할: `owner | admin | member | guest`.
-→ **조직 수준 행위에만 쓴다** (멤버 초대, 조직 설정, space 생성). 문서 권한과 섞지 않는다.
+`organization` 은 이 앱에서 **가족**이다 (UI 문구는 "가족" 또는 "묘연", 스키마는 Better Auth 의 이름을 그대로 둔다).
+
+가족 역할: `owner | admin | member | guest`.
+→ **가족 수준 행위에만 쓴다** (멤버 초대, 가족 설정, space 생성). 문서 권한과 섞지 않는다.
+
+**가입은 초대 전용이다.** `invitation` 에 유효한 토큰이 없으면 `user` 행이 생기지 않는다.
+`ALLOW_PUBLIC_SIGNUP=false` 가 기본이고, 이 값을 true 로 만드는 코드 경로를 두지 않는다.
 
 ---
 
 ## 2. 공간 · 문서
 
 ### `space`
-문서가 사는 최상위 컨테이너. 개인과 조직을 하나의 개념으로 묶는다.
+문서가 사는 최상위 컨테이너. 개인과 가족을 하나의 개념으로 묶는다.
 
 ```
 id              text pk
@@ -46,7 +51,7 @@ unique(owner_user_id) where kind='personal'
 ```
 
 - 회원가입 훅에서 personal space 1개 자동 생성
-- 조직 생성 훅에서 org space 1개 자동 생성 (나중에 조직당 여러 space 허용 가능 — 스키마는 이미 열려 있음)
+- 가족 생성 훅에서 org space 1개 자동 생성 (나중에 가족당 여러 space 허용 가능 — 스키마는 이미 열려 있음)
 
 ### `document`
 페이지 하나. **`parent_id` 트리가 곧 그룹핑**이다.
@@ -60,8 +65,8 @@ type          text        'page' | 'collection'
 title         text
 icon          text null
 cover         text null
-content_json  jsonb       BlockNote 블록 트리 (M1~M5 원본)
-ydoc_state    bytea null  Yjs 상태 (M6~ 원본)
+content_json  jsonb       BlockNote 블록 트리 (M1 원본 → M2부터 파생값)
+ydoc_state    bytea null  Yjs 상태 (**M2부터 원본**)
 text_plain    text        블록을 펼친 평문 — FTS·LLM·청킹용 파생값
 search_tsv    tsvector    generated from text_plain + title
 created_by    text fk -> user
@@ -79,6 +84,11 @@ index (space_id) where archived_at is null
 - **삭제는 `archived_at` 로만** 한다. 하드 삭제는 휴지통 비우기에서만, 하위 트리 통째로.
 - `position` 은 fractional index (예: `"a0"`, `"a0V"`). 형제 사이로 끼워 넣을 때 다른 행을 안 건드리려고.
 - 트리 조회는 재귀 CTE. 한 space의 사이드바 전체는 `title/icon/parent_id/position` 만 뽑는다 (`content_json` 제외 — 무겁다).
+
+> **콘텐츠 원본이 언제 바뀌는지**
+> - **M1**: `content_json` 이 원본, `ydoc_state` 는 null.
+> - **M2**: `content_json → Y.Doc` 로 1회 변환해 `ydoc_state` 에 넣고 **원본을 옮긴다.** 이후 `content_json` 과 `text_plain` 은 저장 시마다 갱신하는 **파생값**이다.
+> - 파생값을 유지하는 이유: 검색·렌더·API·LLM 이 CRDT 를 몰라도 되게 하려고. 읽기 경로에서 Y.Doc 을 역직렬화하지 않는다.
 
 ### `document_version`
 수동/주기 스냅샷. 전체 이력이 아니라 복원 지점.
@@ -154,14 +164,14 @@ password_hash text null, expires_at timestamptz null, created_by, created_at
 ```
 effectiveRole(user, document) = max(
   document_share 중 subject=user 인 것,
-  document_share 중 subject ∈ user가 속한 org 인 것,
+  document_share 중 subject ∈ user가 속한 가족(org) 인 것,
   조상 문서들에 대해 위 둘을 반복한 것,
   spaceBaseRole(user, document.space)
 )
 
 spaceBaseRole:
   personal space → owner_user_id == user.id ? 'owner' : none
-  org space      → member.role 에 따라  owner/admin → 'owner', member → 'editor', guest → none
+  org space(가족) → member.role 에 따라  owner/admin → 'owner', member → 'editor', guest → none
 ```
 
 공개 링크로 들어온 세션은 위 계산을 건너뛰고 링크의 role 을 쓰되, **해당 문서와 그 하위 트리로만** 제한한다.
@@ -191,7 +201,7 @@ id, space_id, document_id null, storage_path text, mime, size_bytes, created_by,
 ```
 id, actor_id, organization_id null, action text, target_type, target_id, meta jsonb, created_at
 ```
-조직에서 "누가 뭘 공유했나" 추적용. 조직 기능(M3)부터 기록.
+가족 안에서 "누가 뭘 공유했나" 추적용. 우선순위 낮음 — M8.
 
 ---
 

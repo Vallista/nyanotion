@@ -7,7 +7,8 @@
 | PostgreSQL | Docker | 격리·백업·버전 고정이 쉽다 |
 | web / collab / worker | Docker (개발 중에는 호스트에서 `pnpm dev`) | 메모리·CPU 상한을 걸 수 있다 |
 | **Ollama** | **호스트에 직접 설치** | Windows에서 컨테이너에 GPU를 물리는 건 불안정하고, 게임 시 제어가 어렵다 |
-| Cloudflare Tunnel | Docker | 포트 개방 없이 외부 공개 |
+| Cloudflare Tunnel | Docker | 포트 개방 없이 외부 공개 — **PWA·푸시에 HTTPS 가 필수라 M2부터 필요하다** |
+| collab (Hocuspocus) | Docker (개발 중 호스트) | Yjs 동기화. 절대 멈추지 않는다 |
 
 확인된 로컬 도구: Node v24.19.0 · pnpm 9.7.0 · Docker 29.7.2.
 
@@ -45,9 +46,11 @@ docker compose -f infra\docker-compose.yml logs -f
 ## 환경 변수 (`infra/.env`)
 
 ```
-DATABASE_URL=postgres://mungchi:***@localhost:5432/mungchi
+DATABASE_URL=postgres://nyanotion:***@localhost:5432/nyanotion
 BETTER_AUTH_SECRET=***
 BETTER_AUTH_URL=http://localhost:3000
+ALLOW_PUBLIC_SIGNUP=false      # 가족만 — 초대 토큰 없이는 가입 불가
+COLLAB_URL=ws://localhost:1234 # apps/collab (Hocuspocus)
 
 OLLAMA_BASE_URL=http://host.docker.internal:11434
 AI_CHAT_MODEL=qwen3:8b
@@ -98,7 +101,7 @@ while ($true) {
 
 ```powershell
 # 일일 — 작업 스케줄러에 등록
-docker exec mungchi-postgres pg_dump -U mungchi mungchi | Out-File -Encoding utf8 D:\backup\mungchi_$(Get-Date -f yyyyMMdd).sql
+docker exec nyanotion-postgres pg_dump -U nyanotion nyanotion | Out-File -Encoding utf8 D:\backup\nyanotion_$(Get-Date -f yyyyMMdd).sql
 robocopy infra\data\attachments D:\backup\attachments /MIR
 ```
 30일치 보관, 월 1회는 외부(클라우드/외장)로. **복구를 실제로 한 번 해 보기 전에는 백업이 있다고 치지 않는다.**
@@ -112,3 +115,39 @@ robocopy infra\data\attachments D:\backup\attachments /MIR
 - **한국어 전문검색** — Postgres 기본에 한국어 분석기가 없다. `simple` + trigram 으로 시작하고, 부족해지면 그때 바꾼다. 미리 `pg_bigm` 빌드에 시간 쓰지 말 것.
 - **임베딩 차원** — 모델을 바꾸면 `vector(N)` 이 달라진다. `AI_EMBED_DIM` 을 바꿀 때는 마이그레이션으로 새 컬럼/테이블을 만들고 재임베딩한다.
 - **Ollama 동시 실행** — `AI_MAX_CONCURRENCY=1` 로 시작. 게임용 VRAM을 남겨야 한다.
+
+
+---
+
+## 폰(iOS)에서 테스트하기
+
+**Service Worker · 푸시 · Persistent Storage 는 전부 HTTPS 에서만 돈다.** `http://192.168.x.x:3000` 으로는 PWA 를 검증할 수 없다.
+
+두 가지 방법:
+
+```powershell
+# A) Next.js 로컬 HTTPS — 자체 서명 인증서. 빠르지만 iOS 가 인증서를 싫어할 수 있다
+pnpm dev --experimental-https
+
+# B) Cloudflare Tunnel (권장) — 진짜 인증서, 실제 도메인. 외부에서도 붙는다
+docker compose -f infra\docker-compose.yml up -d cloudflared
+# → https://nyanotion.<도메인> 을 아이폰 Safari 로 연다
+```
+
+**아이폰에 설치**: Safari 로 열고 → 공유 버튼 → **홈 화면에 추가**.
+이 경로는 메뉴에 숨어 있어서 말로 설명하면 가족이 반드시 실패한다 → **`/install` 안내 페이지를 만들어 스크린샷을 넣는다.**
+
+검증할 것:
+- [ ] 홈 화면 아이콘에서 열면 Safari UI 없이 독립 창으로 뜬다
+- [ ] **비행기 모드에서 문서를 편집할 수 있다** (IndexedDB)
+- [ ] 다시 온라인이 되면 서버와 자동 병합된다
+- [ ] 소프트 키보드가 올라와도 커서가 가려지지 않는다 (`100dvh`)
+- [ ] 알림 권한 수락 후 Persistent Storage 요청이 성공한다
+
+### iOS 네이티브 앱은 이 PC에서 못 만든다
+
+Capacitor·Tauri·React Native 어느 쪽이든 **iOS 바이너리는 macOS + Xcode 에서만 나온다.**
+이 집엔 Windows PC 뿐이므로 네이티브 셸(M7)을 만들려면 Mac 또는 클라우드 맥 빌드(GitHub Actions macOS 러너 / Codemagic)와 Apple Developer Program 연 $99 가 필요하다.
+→ `docs/05-clients.md` 의 체크리스트 중 하나가 실제로 아쉬워지기 전까지는 **PWA 로 간다.**
+
+데스크탑 셸(Electron)은 Windows 에서 그대로 빌드된다 — 필요하면 언제든.

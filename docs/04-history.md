@@ -10,6 +10,24 @@
 - GPU를 게임과 나눠 쓰는 문제를 아키텍처에 명시(`free | gaming` 모드). Ollama는 컨테이너가 아니라 호스트에 설치.
 
 ### 아직 안 정한 것
-- 프로젝트 정식 이름 (`mungchi` 는 코드네임)
-- 외부 공개 범위 — 완전 공개 도메인 vs 나/지인만 (Cloudflare Access 적용 여부)
+- (해결됨: 이름은 Nyanotion 으로 확정)
+- (해결됨: 가족만. 초대 전용 가입)
+- 모델 선택 — VRAM 실측 후 결정
+
+## 2026-09-23 — 이름 확정, 클라이언트 전략 결정
+- 프로젝트 이름 **Nyanotion** (고양이 + Notion). 패키지 스코프 `@nyanotion/*`. 코드네임 `mungchi` 폐기.
+  - 고양이 이름은 UI 문구에만: 냥이(AI) · 캣타워(홈) · 모래상자(휴지통) · 츄르(즐겨찾기). DB·코드 식별자는 평범한 영어.
+- 범위를 **가족만**으로 확정 → 공개 가입 없음(초대 전용), 레이트리밋·감사로그는 M8로. **App Store 심사가 필요 없다**는 점이 클라이언트 결정을 바꿨다.
+- **클라이언트는 PWA 우선.** 근거:
+  - BlockNote 는 ProseMirror(DOM) 위라 React Native 로 못 올린다 → 네이티브를 만들어도 에디터는 WebView. 그러면 "웹 앱 하나 + 얇은 셸"이 유일하게 합리적.
+  - iOS 바이너리는 macOS + Xcode 에서만 나온다. 이 집엔 Windows 뿐 → Mac + Apple Developer $99/년이 따라붙는다.
+  - iOS 26 기준 홈 화면 PWA 는 독립 창·오프라인 캐시·푸시(16.4+)·IndexedDB 가 전부 된다. 못 하는 건 Background Sync, 공유 시트, 위젯, 생체인증 잠금.
+  - → 네이티브 셸(Capacitor iOS / Electron 데스크탑)은 **M7 조건부**. `apps/shell-*` 은 UI 코드 없이 서버 URL 만 로드하도록 설계해 언제든 붙였다 뗄 수 있게 둔다.
+- **Yjs 를 M6 → M2 로 앞당김.** 집 서버가 게임·재부팅으로 자주 꺼지는데 폰에서 "서버 없음"이 뜨면 앱이 안 쓰인다. `y-indexeddb` 로컬 원본 + Hocuspocus 동기화가 오프라인 편집과 기기 간 동기화를 동시에 해결한다. 원래 목적이던 "가족 협업"보다 **내 기기 여러 대**를 위한 기능에 가깝다.
+- **Cloudflare Tunnel 도 M2 로 앞당김.** Service Worker·푸시·Persistent Storage 가 전부 HTTPS 필수라 운영 단계로 미룰 수 없다.
+- 저장소 축출 주의: Safari 는 오래 안 쓴 사이트 캐시를 지운다. Persistent Storage API 로 보호를 요청하되 **알림 권한이 있어야 동작**한다 → 설치 안내(`/install`)에서 알림 권한을 같이 받는다.
+
+### 아직 안 정한 것
+- 도메인 (`nyanotion.<무엇>`)
+- Cloudflare Access 2차 잠금을 걸 것인지 (초대 전용만으로 충분한지)
 - 모델 선택 — VRAM 실측 후 결정
