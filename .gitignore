@@ -6,7 +6,7 @@ out/
 .turbo/
 *.tsbuildinfo
 
-infra/.env
+.env
 infra/data/
 .env
 .env.local
@@ -21,3 +21,8 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# 생성물
+.next/
+next-env.d.ts
+.vs/

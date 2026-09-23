@@ -1,0 +1,17 @@
+{
+  "name": "nyanotion",
+  "private": true,
+  "packageManager": "pnpm@9.7.0",
+  "scripts": {
+    "dev": "pnpm --filter @nyanotion/web dev",
+    "build": "pnpm --filter @nyanotion/web build",
+    "start": "pnpm --filter @nyanotion/web start",
+    "db:generate": "pnpm --filter @nyanotion/db generate",
+    "db:migrate": "pnpm --filter @nyanotion/db migrate",
+    "db:studio": "pnpm --filter @nyanotion/db studio",
+    "db:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d postgres",
+    "db:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
+    "typecheck": "pnpm -r typecheck",
+    "db:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f postgres"
+  }
+}

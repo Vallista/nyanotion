@@ -1,0 +1,25 @@
+name: nyanotion
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: nyanotion-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-nyanotion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nyanotion_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-nyanotion}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nyanotion} -d ${POSTGRES_DB:-nyanotion}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # 게임과 공존: 메모리 상한을 걸어 둔다
+    deploy:
+      resources:
+        limits:
+          memory: 1g
