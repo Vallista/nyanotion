@@ -1,3 +1,6 @@
+export * from "./blocks";
+export * from "./position";
+
 /**
  * 서버·클라이언트·워커가 함께 쓰는 타입과 규칙.
  * 여기에는 런타임 의존이 거의 없어야 한다 (Next·Drizzle·DOM 모두 모르는 코드).

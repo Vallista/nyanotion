@@ -10,6 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@blocknote/ariakit": "^0.55.0",
+    "@blocknote/core": "^0.55.0",
+    "@blocknote/react": "^0.55.0",
     "@nyanotion/db": "workspace:*",
     "@nyanotion/shared": "workspace:*",
     "better-auth": "^1.2.7",

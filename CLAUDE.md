@@ -31,6 +31,12 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **형제 정렬은 fractional index(`position`).** 순번 재배열로 다른 행을 건드리지 말 것.
 - 사이드바 트리 조회에 `content_json`/`ydoc_state` 를 넣지 말 것 (무겁다). `title/icon/parent_id/position` 만.
 
+### 에디터
+- **BlockNote UI 는 Ariakit 판(`@blocknote/ariakit`)이다.** Mantine 판은 쓰지 않는다 — `@mantine/core` 가 React 에 아직 없는 `useEffectEvent` 를 불러 빌드가 깨진다.
+- **Ariakit 판 `BlockNoteView` 는 `theme` 을 `"light" | "dark"` 만 받는다.** 색은 `globals.css` 의 `--bn-*` 변수로 맞춘다. 메뉴·툴팁이 portal 로 나가므로 그 변수는 `:root` 에 둔다.
+- 에디터 파일(`components/editor.tsx`)은 항상 클라이언트이고 `next/dynamic` 의 `ssr: false` 로만 불러온다.
+- **`text_plain` 을 만드는 경로는 `setContent()` 하나뿐이다.** 다른 곳에서 저장하지 말 것.
+
 ### 클라이언트
 - **UI 코드는 `apps/web` 에만.** `apps/shell-*` 은 서버 URL 을 로드하는 설정 수준이어야 한다. 셸에 화면을 만들기 시작하면 설계가 무너진다.
 - **에디터는 DOM 기반(ProseMirror)이다.** React Native 로 에디터를 올리려는 시도를 하지 말 것 — `docs/05-clients.md` §1.

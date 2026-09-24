@@ -55,3 +55,24 @@
 - 도메인 (`nyanotion.<무엇>`)
 - Cloudflare Access 2차 잠금을 걸 것인지
 - 모델 선택 — VRAM 실측 후 결정
+
+## 2026-09-25 — M1 완료 (문서 트리와 에디터)
+- **M1 끝.** 문서 CRUD·중첩 트리·드래그 정렬·BlockNote 에디터·디바운스 자동 저장·모래상자까지 동작한다.
+  확인 항목은 `docs/02-roadmap.md` M1 에 적어 두었다.
+- **BlockNote UI 를 Mantine 판에서 Ariakit 판으로 바꿨다.** `@blocknote/mantine` → `@mantine/core@9.6.2` 가
+  `react` 에서 `useEffectEvent` 를 불러오는데 React 19.3.0 에는 없어서 `next build` 가 깨진다.
+  `@blocknote/ariakit` 로 바꾸니 빌드가 통과하고, Mantine 의존성 트리가 통째로 빠져 번들도 줄었다(첫 로드 111 kB).
+  - 대가: Ariakit 판 `BlockNoteView` 는 `theme` 객체를 받지 않고 `"light" | "dark"` 만 받는다.
+    그래서 색을 `globals.css` 의 `--bn-*` 변수로 맞췄다. 메뉴·툴팁이 portal 로 나가므로 `:root` 에 뒀다.
+- **정렬은 fractional index.** 한 번 옮길 때 그 행 하나만 UPDATE 한다. 순번(0,1,2…) 재배열이면 형제 전체를 써야 한다.
+- **정렬 키는 서버가 계산한다.** 클라이언트는 "누구 뒤로"(`afterId`)만 보낸다 — 키를 믿고 쓰면 조작할 수 있다.
+- **자기 하위로 옮기기는 서버에서 막는다** (재귀 CTE 로 조상을 확인). 트리가 끊기면 문서가 영구히 사라진 것처럼 보인다.
+- **모래상자는 하위 트리를 함께 내리고 함께 올린다.** 목록에는 직접 버린 것만 띄운다 — 하위까지 나열하면 무엇을
+  되돌려야 할지 알 수 없다. 하드 삭제는 "비우기" 한 곳뿐이고 FK cascade 가 하위를 지운다.
+- 스크립트 실행기로 `tsx` 를 넣었다. 소스가 확장자 없는 import 를 쓰는데 Node 의 ESM 해석기는 확장자를 요구한다.
+- 사이드바 접힘 상태는 `localStorage` 에 둔다 — 없어도 되는 편의라 읽기·쓰기를 try/catch 로 감싼다.
+
+### 다음
+M2 — 오프라인 동기화(Yjs + y-indexeddb + Hocuspocus) · PWA 설치 · Cloudflare Tunnel.
+**M2 에서 콘텐츠 원본이 `content_json` → `ydoc_state` 로 넘어간다.** 지금 `content_json` 이 원본이라는 가정에 의존하는
+코드는 `setContent()` 와 `components/editor.tsx` 두 곳뿐이다.

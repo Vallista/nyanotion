@@ -7,6 +7,8 @@ loadEnv();
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@nyanotion/db", "@nyanotion/shared"],
+  // BlockNote 는 ESM 으로만 배포된다.
+  experimental: { optimizePackageImports: ["@blocknote/core", "@blocknote/react", "@blocknote/ariakit"] },
   serverExternalPackages: ["postgres"],
 };
 
