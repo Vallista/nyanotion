@@ -5,14 +5,21 @@
 
 ---
 
-## M0 — 뼈대
+## M0 — 뼈대 ✅ (2026-09-25 완료)
 - pnpm workspace(`@nyanotion/*`), `apps/web`, `packages/{db,auth,ai,shared}`
-- `infra/docker-compose.yml` : postgres(pgvector) + web
+- PostgreSQL 17 (Windows 서비스) 에 `nyanotion` DB·역할 — Docker 는 이 PC 에서 안 뜬다 (`docs/03-dev-environment.md`)
 - Drizzle 연결, `0001_auth.sql` 적용
 - Better Auth: 이메일+비밀번호, 세션, **공개 가입 차단**(`ALLOW_PUBLIC_SIGNUP=false`)
 - 로그인하면 빈 캣타워(홈)가 뜬다
 
-**완료 기준** — `docker compose up -d` 후 `localhost:3000` 에서 로그인되고, 재시작해도 세션이 남는다. 초대 없이는 가입이 안 된다.
+**완료 기준** — `localhost:3000` 에서 로그인되고, 서버를 재시작해도 세션이 남는다. 초대 없이는 가입이 안 된다.
+
+확인한 것:
+- `pnpm -r typecheck` 통과
+- `/login` 200, `/` 는 세션 없으면 307 → `/login`
+- 첫 가입은 통과(계정 0개일 때), 두 번째 가입은 **403 “초대를 받은 주소만 가입할 수 있습니다.”**
+- 가입과 동시에 개인 space `내 문서` 생성됨
+- dev 서버를 껐다 켜도 같은 쿠키로 홈 200 (세션이 DB 에 있다)
 
 ## M1 — 문서와 에디터
 - 개인 `space` 자동 생성, `document` CRUD

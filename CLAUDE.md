@@ -57,13 +57,14 @@ pnpm db:generate         # 스키마 변경 → 마이그레이션 SQL 생성
 pnpm db:migrate
 pnpm db:studio
 pnpm test
-docker compose -f infra\docker-compose.yml up -d postgres
-docker compose -f infra\docker-compose.yml logs -f
-ollama list              # 호스트에 설치된 모델 (컨테이너 아님)
+ollama list              # 호스트에 설치된 모델 (M5 부터)
+
+# PostgreSQL 은 Windows 서비스로 직접 돈다 (Docker 아님 — 이 PC 엔 WSL2 가 없다)
+& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U nyanotion -h 127.0.0.1 -d nyanotion -c "\dt"
 ```
 
-- 개발 중에는 **DB만 컨테이너, 앱은 호스트에서 `pnpm dev`** — Windows 경로를 마운트하면 HMR 이 느리다.
-- Ollama base URL: 호스트 실행 시 `127.0.0.1:11434`, 컨테이너에서 `host.docker.internal:11434`.
+- **같은 PostgreSQL 인스턴스에 2DActionGames 의 `game` DB 가 같이 산다.** DB·역할이 분리돼 있어 서로 안 건드리지만, 서비스를 재시작·초기화할 때는 양쪽이 같이 영향을 받는다.
+- Ollama base URL 은 `127.0.0.1:11434` (호스트 직접 설치).
 - **폰에서 테스트하려면 HTTPS 가 필요하다** (Service Worker·푸시). 로컬은 Cloudflare Tunnel 또는 `next dev --experimental-https`.
 - 게임 중이면 GPU 모드가 `gaming` 일 수 있다 → AI 경로는 큐에 쌓인다. `/api/admin/gpu-mode` 로 확인.
 - 권한 관련 변경은 테스트부터. "다른 계정 문서가 안 보인다"를 증명하지 않고 넘어가지 않는다.

@@ -31,3 +31,27 @@
 - 도메인 (`nyanotion.<무엇>`)
 - Cloudflare Access 2차 잠금을 걸 것인지 (초대 전용만으로 충분한지)
 - 모델 선택 — VRAM 실측 후 결정
+
+## 2026-09-25 — M0 완료, 그리고 Docker 를 접은 이유
+- **M0 끝.** 로그인·초대 전용 가입·개인 space 자동 생성까지 동작한다. 확인한 항목은 `docs/02-roadmap.md` M0 에 적어 두었다.
+- **Docker 를 안 쓰기로 했다.** 이 PC 에는 WSL2 배포판이 없어 Docker Desktop 엔진이 뜨지 않는다(`docker info` 가 500).
+  켜려면 관리자 권한 `wsl --install --no-distribution` + 재부팅이 필요한데, 마침 **PostgreSQL 17 이 Windows 서비스로 이미 돌고 있었다.**
+  → `nyanotion` 역할·DB 를 따로 만들어 그걸 쓴다. `infra/docker-compose.yml` 은 지우지 않고 남겨 둔다.
+- **같은 인스턴스에 2DActionGames 의 `game` DB 가 같이 산다.** DB·역할이 분리돼 있어 서로 안 건드리지만, 서비스 재시작·초기화는
+  양쪽에 같이 영향을 준다. 손대기 전에 `pg_dump` 로 백업했다 (`Desktop/projects/game_backup_20260925_0529.sql`).
+- **M6 전에 해결할 것: 이 PostgreSQL 에는 pgvector 가 없다.** `pg_trgm` 은 있다. M5 까지는 문제없고, M6 에서 pgvector 를
+  따로 설치하거나 그때 Docker 로 옮긴다.
+- 인증 스키마는 손으로 쓰지 않고 `@better-auth/cli generate` 로 만든다. 순환을 피하려고 생성 전용 설정을
+  `apps/web/auth-schema.config.ts` 에 따로 뒀다 — **플러그인·옵션을 `src/lib/auth.ts` 와 항상 같게 유지할 것.**
+- 초대 전용 가입은 `databaseHooks.user.create.before` 한 곳에서 막는다. 통과 조건은 둘뿐:
+  살아 있는 초대가 있거나, **계정이 하나도 없는 첫 가입**이거나.
+- 콘텐츠 원본 전환(M2)을 대비해 `document` 는 아직 만들지 않았다 — M1 에서 `content_json` 과 함께 한 번에 만든다.
+
+### 게임 쪽 참고 (이 PC 의 다른 용도)
+- VBS/메모리 무결성이 켜져 있다(`VirtualizationBasedSecurityStatus=2`). 7800X3D 에서 프레임을 깎는 설정이다.
+  WSL2 와는 별개라 "WSL2 는 켜고 메모리 무결성은 끄는" 조합이 가능하다. 결정은 미뤄 둔다.
+
+### 아직 안 정한 것
+- 도메인 (`nyanotion.<무엇>`)
+- Cloudflare Access 2차 잠금을 걸 것인지
+- 모델 선택 — VRAM 실측 후 결정
