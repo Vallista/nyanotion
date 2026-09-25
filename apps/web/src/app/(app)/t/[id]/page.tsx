@@ -14,18 +14,18 @@ export default async function TagPage({ params }: { params: Promise<{ id: string
   const { id } = await params;
   const viewer = await requireViewer();
 
-  const tags = await listTags(viewer.spaceId);
+  const tags = await listTags(viewer.spaceIds);
   const tag = tags.find((item) => item.id === id);
   if (tag === undefined) notFound();
 
-  const docs = await documentsWithTag(viewer.spaceId, id);
+  const docs = await documentsWithTag(viewer.spaceIds, id);
   const tagMap = await tagsForDocuments(docs.map((doc) => doc.id));
 
   return (
     <>
       <TopBar
         crumbs={[
-          { id: null, title: viewer.spaceName },
+          { id: null, title: viewer.personalSpace.name },
           { id: null, title: tag.name },
         ]}
         right={

@@ -55,8 +55,8 @@ async function main(): Promise<void> {
     console.log("문서 준비");
     const a = await createDocument({ spaceId, userId, title: "SRCH 주말 장보기" });
     const b = await createDocument({ spaceId, userId, title: "SRCH 관리비 정리" });
-    await setContent(a, spaceId, [paragraph("쌀 10kg 과 고양이 모래 사기"), paragraph("마트는 10시 전이 한가하다")], userId);
-    await setContent(b, spaceId, [paragraph("수도요금과 전기요금 납부일 정리")], userId);
+    await setContent(a, [paragraph("쌀 10kg 과 고양이 모래 사기"), paragraph("마트는 10시 전이 한가하다")], userId);
+    await setContent(b, [paragraph("수도요금과 전기요금 납부일 정리")], userId);
     console.log("  문서 2개");
 
     console.log("\n태그");
@@ -69,13 +69,13 @@ async function main(): Promise<void> {
     await attachTag(b, chore);
     await attachTag(b, money);
     await attachTag(b, money); // 두 번 달아도 한 번
-    const withChore = await documentsWithTag(spaceId, chore);
+    const withChore = await documentsWithTag([spaceId], chore);
     check("태그로 문서를 찾는다", withChore.length === 2, withChore.map((d) => d.title));
 
     const tagMap = await tagsForDocuments([a, b]);
     check("문서별 태그를 한 번에 가져온다", (tagMap.get(b)?.length ?? 0) === 2, tagMap.get(b));
 
-    const counts = await listTags(spaceId);
+    const counts = await listTags([spaceId]);
     const choreCount = counts.find((t) => t.id === chore)?.count;
     check("태그별 문서 수가 맞는다", choreCount === 2, choreCount);
 
@@ -85,40 +85,40 @@ async function main(): Promise<void> {
 
     console.log("\n츄르 (즐겨찾기)");
     check("처음엔 꺼져 있다 → 켠다", (await toggleFavorite(userId, a)) === true);
-    const favs = await listFavorites(userId, spaceId);
+    const favs = await listFavorites(userId, [spaceId]);
     check("즐겨찾기 목록에 뜬다", favs.some((f) => f.id === a), favs.map((f) => f.title));
     check("다시 누르면 꺼진다", (await toggleFavorite(userId, a)) === false);
     check(
       "목록에서 빠진다",
-      !(await listFavorites(userId, spaceId)).some((f) => f.id === a),
+      !(await listFavorites(userId, [spaceId])).some((f) => f.id === a),
     );
 
     console.log("\n검색");
-    const byTitle = await searchDocuments(spaceId, "장보기");
+    const byTitle = await searchDocuments([spaceId], "장보기");
     check("제목으로 찾는다", byTitle.some((h) => h.id === a), byTitle.map((h) => h.title));
 
-    const byBody = await searchDocuments(spaceId, "고양이 모래");
+    const byBody = await searchDocuments([spaceId], "고양이 모래");
     check("본문으로 찾는다", byBody.some((h) => h.id === a), byBody.map((h) => h.title));
 
     // 한국어는 형태소 분석기가 없어 tsvector 만으로는 부분 단어를 못 잡는다 → trigram 이 받아야 한다.
-    const partial = await searchDocuments(spaceId, "장보");
+    const partial = await searchDocuments([spaceId], "장보");
     check("부분 단어도 찾는다 (trigram)", partial.some((h) => h.id === a), partial.map((h) => h.title));
 
-    const scoped = await searchDocuments(spaceId, "정리", { tagIds: [chore] });
+    const scoped = await searchDocuments([spaceId], "정리", { tagIds: [chore] });
     check("태그로 좁혀서 찾는다", scoped.every((h) => h.id !== a), scoped.map((h) => h.title));
 
     const hit = byBody.find((h) => h.id === a);
     check("찾은 말 주변을 잘라 준다", (hit?.snippet.length ?? 0) > 0 && hit!.snippet.includes("고양이"), hit?.snippet);
 
-    const nothing = await searchDocuments(spaceId, "존재하지않는말XYZ");
+    const nothing = await searchDocuments([spaceId], "존재하지않는말XYZ");
     check("없는 말은 아무것도 안 나온다", nothing.length === 0, nothing.length);
 
-    const browse = await searchDocuments(spaceId, "");
+    const browse = await searchDocuments([spaceId], "");
     check("검색어가 없으면 최근 문서를 준다", browse.length > 0, browse.length);
 
     console.log("\n태그 지우기");
     await deleteTag(money, spaceId);
-    const left = await listTags(spaceId);
+    const left = await listTags([spaceId]);
     check("태그가 사라진다", !left.some((t) => t.id === money));
     const docStillThere = await db.select({ id: document.id }).from(document).where(eq(document.id, b));
     check("문서는 남는다", docStillThere.length === 1);

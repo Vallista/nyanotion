@@ -8,7 +8,7 @@ import { displayTitle } from "@/lib/tree";
 /** 모래상자. 삭제는 여기서만 실제로 일어난다. */
 export default async function TrashPage() {
   const viewer = await requireViewer();
-  const archived = await listArchived(viewer.spaceId);
+  const archived = await listArchived(viewer.spaceIds);
 
   return (
     <>

@@ -10,15 +10,15 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const viewer = await requireViewer();
 
-  const saved = await getCollection(id, viewer.spaceId);
+  const saved = await getCollection(id, viewer.spaceIds);
   if (saved === null) notFound();
 
   const [hits, allTags] = await Promise.all([
-    searchDocuments(viewer.spaceId, saved.filter.query, {
+    searchDocuments(viewer.spaceIds, saved.filter.query, {
       tagIds: saved.filter.tagIds,
       limit: 200,
     }),
-    listTags(viewer.spaceId),
+    listTags(viewer.spaceIds),
   ]);
   const tagMap = await tagsForDocuments(hits.map((hit) => hit.id));
   const tagNames = new Map(allTags.map((tag) => [tag.id, tag.name]));
@@ -34,7 +34,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
     <>
       <TopBar
         crumbs={[
-          { id: null, title: viewer.spaceName },
+          { id: null, title: viewer.personalSpace.name },
           { id: null, title: saved.name },
         ]}
         right={<CollectionActions id={saved.id} name={saved.name} view={saved.view} />}

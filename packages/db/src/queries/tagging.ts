@@ -8,7 +8,8 @@ import { document, documentTag, favorite, tag } from "../schema/index";
 export type TagWithCount = { id: string; name: string; color: string | null; count: number };
 
 /** space 의 태그와 각각 달린 문서 수. 모래상자에 있는 문서는 세지 않는다. */
-export async function listTags(spaceId: string): Promise<TagWithCount[]> {
+export async function listTags(spaceIds: readonly string[]): Promise<TagWithCount[]> {
+  if (spaceIds.length === 0) return [];
   const rows = await db
     .select({
       id: tag.id,
@@ -19,7 +20,7 @@ export async function listTags(spaceId: string): Promise<TagWithCount[]> {
     .from(tag)
     .leftJoin(documentTag, eq(documentTag.tagId, tag.id))
     .leftJoin(document, eq(document.id, documentTag.documentId))
-    .where(eq(tag.spaceId, spaceId))
+    .where(inArray(tag.spaceId, [...spaceIds]))
     .groupBy(tag.id, tag.name, tag.color)
     .orderBy(asc(tag.name));
   return rows;
@@ -101,15 +102,20 @@ export async function tagsForDocuments(
 
 /** 이 태그가 달린 살아 있는 문서들. */
 export async function documentsWithTag(
-  spaceId: string,
+  spaceIds: readonly string[],
   tagId: string,
 ): Promise<{ id: string; title: string; updatedAt: Date }[]> {
+  if (spaceIds.length === 0) return [];
   return db
     .select({ id: document.id, title: document.title, updatedAt: document.updatedAt })
     .from(document)
     .innerJoin(documentTag, eq(documentTag.documentId, document.id))
     .where(
-      and(eq(document.spaceId, spaceId), eq(documentTag.tagId, tagId), isNull(document.archivedAt)),
+      and(
+        inArray(document.spaceId, [...spaceIds]),
+        eq(documentTag.tagId, tagId),
+        isNull(document.archivedAt),
+      ),
     )
     .orderBy(desc(document.updatedAt));
 }
@@ -118,14 +124,19 @@ export async function documentsWithTag(
 
 export async function listFavorites(
   userId: string,
-  spaceId: string,
+  spaceIds: readonly string[],
 ): Promise<{ id: string; title: string; icon: string | null }[]> {
+  if (spaceIds.length === 0) return [];
   return db
     .select({ id: document.id, title: document.title, icon: document.icon })
     .from(favorite)
     .innerJoin(document, eq(document.id, favorite.documentId))
     .where(
-      and(eq(favorite.userId, userId), eq(document.spaceId, spaceId), isNull(document.archivedAt)),
+      and(
+        eq(favorite.userId, userId),
+        inArray(document.spaceId, [...spaceIds]),
+        isNull(document.archivedAt),
+      ),
     )
     .orderBy(asc(favorite.position), asc(favorite.createdAt));
 }

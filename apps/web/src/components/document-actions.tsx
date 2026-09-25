@@ -5,7 +5,15 @@ import { archiveDocumentAction, createDocumentAction, toggleFavoriteAction } fro
 import { ChuruIcon, DotsIcon, LitterBoxIcon, PlusIcon } from "./icons";
 
 /** 상단 바 오른쪽. 공유는 M4, 댓글은 M6 에서 들어온다. */
-export function DocumentActions({ id, favorite }: { id: string; favorite: boolean }) {
+export function DocumentActions({
+  id,
+  favorite,
+  canWrite,
+}: {
+  id: string;
+  favorite: boolean;
+  canWrite: boolean;
+}) {
   const [, startTransition] = useTransition();
   const [menuOpen, setMenuOpen] = useState(false);
   const [starred, setStarred] = useState(favorite);

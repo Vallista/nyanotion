@@ -1,6 +1,7 @@
 import { ServerBlockNoteEditor } from "@blocknote/server-util";
 import { Server } from "@hocuspocus/server";
-import { documentForCollab, loadEnv, saveYdoc, type CollabDocument } from "@nyanotion/db";
+import { canWrite } from "@nyanotion/auth";
+import { getDocumentById, loadEnv, saveYdoc, type Document } from "@nyanotion/db";
 import { blocksToPlainText, guessTitle, verifyCollabTicket } from "@nyanotion/shared";
 import * as Y from "yjs";
 
@@ -45,7 +46,7 @@ function originAllowed(origin: string | null): boolean {
 }
 
 /** onAuthenticate 가 만들어 onLoadDocument·onStoreDocument 로 넘기는 값. */
-type Context = { userId: string; doc: CollabDocument };
+type Context = { userId: string; doc: Document };
 
 function isContext(value: unknown): value is Context {
   return (
@@ -76,10 +77,14 @@ const server = new Server<Context>({
     // 표는 문서 하나에만 쓴다 — 다른 문서로 돌려쓰지 못하게.
     if (ticket.documentId !== documentName) throw new Error("표가 이 문서의 것이 아닙니다.");
 
-    // 표가 있어도 소유권은 여기서 다시 확인한다 (그 사이 문서가 옮겨졌을 수 있다).
-    const doc = await documentForCollab(documentName, ticket.userId);
-    // 없는 문서와 권한 없는 문서를 구분하지 않는다 — 존재 여부를 알려주지 않기 위해.
-    if (doc === null) throw new Error("문서를 열 수 없습니다.");
+    // 표가 있어도 권한은 여기서 다시 판정한다 (그 사이 공유가 끊겼을 수 있다).
+    // **access.ts 가 유일한 판정자다** — 여기서 조건을 손으로 짜지 말 것.
+    if (!(await canWrite(ticket.userId, documentName))) {
+      // 없는 문서와 권한 없는 문서를 구분하지 않는다 — 존재 여부를 알려주지 않기 위해.
+      throw new Error("문서를 열 수 없습니다.");
+    }
+    const doc = await getDocumentById(documentName);
+    if (doc === null || doc.archivedAt !== null) throw new Error("문서를 열 수 없습니다.");
 
     return { userId: ticket.userId, doc };
   },

@@ -20,6 +20,9 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 
 ### 권한
 - **권한 판정은 `packages/auth/access.ts` 한 곳에서만.** 라우트·쿼리에 조건을 손으로 짜 넣지 말 것.
+- 웹에서 문서 하나에 닿는 경로는 `requireDocument()`(페이지) 와 `assertCanWrite()`(서버 액션) 둘뿐이다. 동기화 서버는 `onAuthenticate` 에서 `canWrite()` 를 부른다.
+- 목록 질의는 **`viewer.spaceIds`** 로 좁힌다 — 그 값 자체가 "내가 들어갈 수 있는 곳"이다. `packages/db` 의 목록 함수는 전부 `spaceIds: readonly string[]` 를 받는다.
+- **권한이 없으면 404 다.** 403 과 구분하면 "그 문서가 있긴 하다"를 알려 주게 된다.
 - **문서 조회는 전부 `readableDocumentIds()` 를 먼저 통과한다.** 특히 **벡터 검색은 권한으로 좁힌 뒤에** — 순서가 바뀌면 임베딩 유사도로 남의 문서가 샌다.
 - 가족 역할(`owner/admin/member/guest`)은 가족 수준 행위에만. 문서 권한(`viewer/commenter/editor/owner`)과 섞지 말 것.
 - **공개 가입 없음.** 가입은 초대 토큰이 있어야만. `ALLOW_PUBLIC_SIGNUP` 을 true 로 만드는 코드 경로를 만들지 말 것.

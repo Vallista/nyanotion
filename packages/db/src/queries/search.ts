@@ -54,10 +54,11 @@ function snippetAround(text: string, query: string, width = 90): string {
 }
 
 export async function searchDocuments(
-  spaceId: string,
+  spaceIds: readonly string[],
   query: string,
   options: { limit?: number; tagIds?: string[] } = {},
 ): Promise<SearchHit[]> {
+  if (spaceIds.length === 0) return [];
   const trimmed = query.trim();
   const limit = options.limit ?? 20;
   const tagIds = options.tagIds ?? [];
@@ -82,7 +83,7 @@ export async function searchDocuments(
                : sql`0`
            }::float8 as score
       from document d
-     where d.space_id = ${spaceId}
+     where d.space_id in ${[...spaceIds]}
        and d.archived_at is null
        ${
          hasQuery

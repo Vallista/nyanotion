@@ -22,6 +22,7 @@ export function DocumentView({
   user,
   tags,
   tagSuggestions,
+  canWrite,
 }: {
   id: string;
   initialTitle: string;
@@ -29,6 +30,8 @@ export function DocumentView({
   user: { name: string; color: string };
   tags: { id: string; name: string; color: string | null }[];
   tagSuggestions: { id: string; name: string }[];
+  /** 읽기 전용으로 받은 문서면 false — 제목·태그·본문이 전부 잠긴다. */
+  canWrite: boolean;
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [sync, setSync] = useState<SyncState>("opening");
@@ -42,8 +45,9 @@ export function DocumentView({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          readOnly={!canWrite}
           onBlur={() => {
-            if (title !== initialTitle) void renameDocumentAction(id, title);
+            if (canWrite && title !== initialTitle) void renameDocumentAction(id, title);
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") e.currentTarget.blur();
@@ -74,14 +78,24 @@ export function DocumentView({
             color: "var(--ink-3)",
           }}
         >
-          <DocumentTags documentId={id} tags={tags} suggestions={tagSuggestions} />
+          <DocumentTags
+            documentId={id}
+            tags={tags}
+            suggestions={tagSuggestions}
+            canWrite={canWrite}
+          />
           <span>{updatedAt}에 고침</span>
           <SyncBadge state={sync} />
         </div>
       </header>
 
       {/* 본문 저장은 Yjs 가 한다 — 여기서 따로 저장하지 않는다. */}
-      <Editor documentId={id} user={user} onSyncStateChange={onSyncStateChange} />
+      <Editor
+        documentId={id}
+        user={user}
+        onSyncStateChange={onSyncStateChange}
+        editable={canWrite}
+      />
     </article>
   );
 }

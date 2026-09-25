@@ -1,5 +1,5 @@
 import { blocksToPlainText, guessTitle, positionAfterLast, positionBetween } from "@nyanotion/shared";
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../client";
 import { newId } from "../id";
 import { document, space, type Document } from "../schema/index";
@@ -33,34 +33,39 @@ export async function personalSpaceOf(userId: string): Promise<{ id: string; nam
   return rows[0] ?? null;
 }
 
-/** 살아 있는 문서 전체 (모래상자 제외). 트리 조립은 호출자가 한다. */
-export async function listTree(spaceId: string): Promise<TreeNode[]> {
+/**
+ * 살아 있는 문서 전체 (모래상자 제외). 트리 조립은 호출자가 한다.
+ * **`spaceIds` 는 호출자가 `spacesForUser()` 로 받은 것** — 여기서 권한을 판정하지 않는다.
+ */
+export async function listTree(spaceIds: readonly string[]): Promise<(TreeNode & { spaceId: string })[]> {
+  if (spaceIds.length === 0) return [];
   return db
-    .select(treeColumns)
+    .select({ ...treeColumns, spaceId: document.spaceId })
     .from(document)
-    .where(and(eq(document.spaceId, spaceId), isNull(document.archivedAt)))
+    .where(and(inArray(document.spaceId, [...spaceIds]), isNull(document.archivedAt)))
     .orderBy(asc(document.position));
 }
 
 /** 캣타워(홈)의 "최근 고친 문서". 본문은 안 들고 온다. */
 export async function listRecent(
-  spaceId: string,
+  spaceIds: readonly string[],
   limit = 12,
 ): Promise<(TreeNode & { updatedAt: Date })[]> {
+  if (spaceIds.length === 0) return [];
   return db
     .select({ ...treeColumns, updatedAt: document.updatedAt })
     .from(document)
-    .where(and(eq(document.spaceId, spaceId), isNull(document.archivedAt)))
+    .where(and(inArray(document.spaceId, [...spaceIds]), isNull(document.archivedAt)))
     .orderBy(desc(document.updatedAt))
     .limit(limit);
 }
 
-export async function getDocument(id: string, spaceId: string): Promise<Document | null> {
-  const rows = await db
-    .select()
-    .from(document)
-    .where(and(eq(document.id, id), eq(document.spaceId, spaceId)))
-    .limit(1);
+/**
+ * 문서 하나. **권한을 보지 않는다** — 부르는 쪽이 `access.ts` 로 먼저 확인해야 한다.
+ * (apps/web 은 `requireDocument()`, apps/collab 은 onAuthenticate 가 그 자리다.)
+ */
+export async function getDocumentById(id: string): Promise<Document | null> {
+  const rows = await db.select().from(document).where(eq(document.id, id)).limit(1);
   return rows[0] ?? null;
 }
 
@@ -101,28 +106,18 @@ export async function createDocument(input: {
   return id;
 }
 
-export async function renameDocument(
-  id: string,
-  spaceId: string,
-  title: string,
-  userId: string,
-): Promise<void> {
+export async function renameDocument(id: string, title: string, userId: string): Promise<void> {
   await db
     .update(document)
     .set({ title, updatedBy: userId, updatedAt: new Date() })
-    .where(and(eq(document.id, id), eq(document.spaceId, spaceId)));
+    .where(eq(document.id, id));
 }
 
-export async function setIcon(
-  id: string,
-  spaceId: string,
-  icon: string | null,
-  userId: string,
-): Promise<void> {
+export async function setIcon(id: string, icon: string | null, userId: string): Promise<void> {
   await db
     .update(document)
     .set({ icon, updatedBy: userId, updatedAt: new Date() })
-    .where(and(eq(document.id, id), eq(document.spaceId, spaceId)));
+    .where(eq(document.id, id));
 }
 
 /**
@@ -131,7 +126,6 @@ export async function setIcon(
  */
 export async function setContent(
   id: string,
-  spaceId: string,
   contentJson: unknown,
   userId: string,
 ): Promise<{ title: string }> {
@@ -139,7 +133,7 @@ export async function setContent(
   const current = await db
     .select({ title: document.title })
     .from(document)
-    .where(and(eq(document.id, id), eq(document.spaceId, spaceId)))
+    .where(eq(document.id, id))
     .limit(1);
   const existing = current[0]?.title ?? "";
   const title = existing.trim() === "" ? guessTitle(contentJson) : existing;
@@ -147,17 +141,17 @@ export async function setContent(
   await db
     .update(document)
     .set({ contentJson, textPlain, title, updatedBy: userId, updatedAt: new Date() })
-    .where(and(eq(document.id, id), eq(document.spaceId, spaceId)));
+    .where(eq(document.id, id));
   return { title };
 }
 
 /** `id` 의 조상들. 자기 자신은 포함하지 않는다. */
-async function ancestorIds(id: string, spaceId: string): Promise<string[]> {
+async function ancestorIds(id: string): Promise<string[]> {
   const rows = await db.execute<{ id: string }>(sql`
     with recursive up as (
       select d.id, d.parent_id
         from ${document} d
-       where d.id = ${id} and d.space_id = ${spaceId}
+       where d.id = ${id}
       union all
       select p.id, p.parent_id
         from ${document} p join up on p.id = up.parent_id
@@ -173,18 +167,19 @@ async function ancestorIds(id: string, spaceId: string): Promise<string[]> {
  */
 export async function moveDocument(input: {
   id: string;
-  spaceId: string;
   parentId: string | null;
   afterId: string | null;
 }): Promise<{ ok: true } | { ok: false; reason: "cycle" | "not-found" }> {
-  const { id, spaceId } = input;
-  const target = await getDocument(id, spaceId);
+  const { id } = input;
+  const target = await getDocumentById(id);
   if (target === null) return { ok: false, reason: "not-found" };
+  // 문서는 자기 space 안에서만 움직인다 — 다른 space 로 옮기는 건 공유지 이동이 아니다.
+  const spaceId = target.spaceId;
 
   // 자기 자신이나 자기 하위로는 못 옮긴다 — 트리가 끊긴다.
   if (input.parentId === id) return { ok: false, reason: "cycle" };
   if (input.parentId !== null) {
-    const parentAncestors = await ancestorIds(input.parentId, spaceId);
+    const parentAncestors = await ancestorIds(input.parentId);
     if (parentAncestors.includes(id)) return { ok: false, reason: "cycle" };
   }
 
@@ -213,12 +208,12 @@ export async function moveDocument(input: {
 }
 
 /** 모래상자로. 삭제는 이것으로만 한다. 하위 트리도 같이 내려간다. */
-export async function archiveDocument(id: string, spaceId: string): Promise<void> {
+export async function archiveDocument(id: string): Promise<void> {
   await db.execute(sql`
     with recursive down as (
       select d.id
         from ${document} d
-       where d.id = ${id} and d.space_id = ${spaceId}
+       where d.id = ${id}
       union all
       select c.id from ${document} c join down on c.parent_id = down.id
     )
@@ -227,12 +222,12 @@ export async function archiveDocument(id: string, spaceId: string): Promise<void
   `);
 }
 
-export async function restoreDocument(id: string, spaceId: string): Promise<void> {
+export async function restoreDocument(id: string): Promise<void> {
   await db.execute(sql`
     with recursive down as (
       select d.id
         from ${document} d
-       where d.id = ${id} and d.space_id = ${spaceId}
+       where d.id = ${id}
       union all
       select c.id from ${document} c join down on c.parent_id = down.id
     )
@@ -241,11 +236,14 @@ export async function restoreDocument(id: string, spaceId: string): Promise<void
 }
 
 /** 모래상자 목록 — 직접 버려진 것만 (하위는 부모와 함께 복원된다). */
-export async function listArchived(spaceId: string): Promise<(TreeNode & { archivedAt: Date })[]> {
+export async function listArchived(
+  spaceIds: readonly string[],
+): Promise<(TreeNode & { archivedAt: Date })[]> {
+  if (spaceIds.length === 0) return [];
   const rows = await db
     .select({ ...treeColumns, archivedAt: document.archivedAt })
     .from(document)
-    .where(and(eq(document.spaceId, spaceId), sql`${document.archivedAt} is not null`))
+    .where(and(inArray(document.spaceId, [...spaceIds]), sql`${document.archivedAt} is not null`))
     .orderBy(asc(document.archivedAt));
   const archived = rows.filter(
     (r): r is TreeNode & { archivedAt: Date } => r.archivedAt !== null,
@@ -254,17 +252,19 @@ export async function listArchived(spaceId: string): Promise<(TreeNode & { archi
   return archived.filter((r) => r.parentId === null || !archived.some((o) => o.id === r.parentId));
 }
 
-export async function countArchived(spaceId: string): Promise<number> {
+export async function countArchived(spaceIds: readonly string[]): Promise<number> {
+  if (spaceIds.length === 0) return 0;
   const rows = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(document)
-    .where(and(eq(document.spaceId, spaceId), sql`${document.archivedAt} is not null`));
+    .where(and(inArray(document.spaceId, [...spaceIds]), sql`${document.archivedAt} is not null`));
   return rows[0]?.n ?? 0;
 }
 
 /** 모래상자 비우기 — 여기서만 하드 삭제한다. 하위는 FK cascade 로 함께 사라진다. */
-export async function emptyTrash(spaceId: string): Promise<void> {
+export async function emptyTrash(spaceIds: readonly string[]): Promise<void> {
+  if (spaceIds.length === 0) return;
   await db
     .delete(document)
-    .where(and(eq(document.spaceId, spaceId), sql`${document.archivedAt} is not null`));
+    .where(and(inArray(document.spaceId, [...spaceIds]), sql`${document.archivedAt} is not null`));
 }

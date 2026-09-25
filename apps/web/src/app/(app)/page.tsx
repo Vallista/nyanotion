@@ -11,7 +11,7 @@ import { displayTitle } from "@/lib/tree";
 /** 캣타워 — 대시보드 위젯을 늘어놓지 않는다. 조용한 시작 화면. */
 export default async function HomePage() {
   const viewer = await requireViewer();
-  const recent = await listRecent(viewer.spaceId, 12);
+  const recent = await listRecent(viewer.spaceIds, 12);
 
   return (
     <>
@@ -28,7 +28,7 @@ export default async function HomePage() {
           >
             {viewer.name.trim() === "" ? "안녕하세요" : `${viewer.name} 님, 안녕하세요`}
           </h1>
-          <p style={{ fontSize: 13.5, color: "var(--ink-3)" }}>{viewer.spaceName}</p>
+          <p style={{ fontSize: 13.5, color: "var(--ink-3)" }}>{viewer.personalSpace.name}</p>
 
           {recent.length === 0 ? (
             <EmptyState />

@@ -9,7 +9,7 @@ import {
   createDocument,
   db,
   document,
-  getDocument,
+  getDocumentById,
   loadEnv,
   personalSpaceOf,
   user,
@@ -88,7 +88,7 @@ function connect(documentId: string, token: string, ydoc: Y.Doc): HocuspocusProv
     name: documentId,
     document: ydoc,
     token,
-    WebSocketPolyfill: WebSocket,
+    // Node 24 에는 전역 WebSocket 이 있으므로 폴리필을 따로 넘기지 않는다.
     onAuthenticationFailed: () => {},
   });
 }
@@ -123,7 +123,7 @@ async function main(): Promise<void> {
 
     console.log("\n서버에 남는지 (debounce 뒤)");
     await sleep(4000);
-    const saved = await getDocument(docId, space.id);
+    const saved = await getDocumentById(docId);
     check(
       "ydoc_state 가 채워졌다",
       (saved?.ydocState?.byteLength ?? 0) > 0,

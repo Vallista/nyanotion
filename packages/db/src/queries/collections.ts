@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "../client";
 import { newId } from "../id";
 import { collection, type Collection } from "../schema/index";
@@ -41,20 +41,27 @@ function toSummary(row: Collection): CollectionSummary {
   };
 }
 
-export async function listCollections(spaceId: string): Promise<CollectionSummary[]> {
+export async function listCollections(
+  spaceIds: readonly string[],
+): Promise<CollectionSummary[]> {
+  if (spaceIds.length === 0) return [];
   const rows = await db
     .select()
     .from(collection)
-    .where(eq(collection.spaceId, spaceId))
+    .where(inArray(collection.spaceId, [...spaceIds]))
     .orderBy(asc(collection.createdAt));
   return rows.map(toSummary);
 }
 
-export async function getCollection(id: string, spaceId: string): Promise<CollectionSummary | null> {
+export async function getCollection(
+  id: string,
+  spaceIds: readonly string[],
+): Promise<CollectionSummary | null> {
+  if (spaceIds.length === 0) return null;
   const rows = await db
     .select()
     .from(collection)
-    .where(and(eq(collection.id, id), eq(collection.spaceId, spaceId)))
+    .where(and(eq(collection.id, id), inArray(collection.spaceId, [...spaceIds])))
     .limit(1);
   const row = rows[0];
   return row === undefined ? null : toSummary(row);
@@ -82,7 +89,7 @@ export async function createCollection(input: {
 
 export async function updateCollection(
   id: string,
-  spaceId: string,
+  spaceIds: readonly string[],
   patch: { name?: string; filter?: CollectionFilter; view?: CollectionView },
 ): Promise<void> {
   const values: Record<string, unknown> = {};
@@ -93,10 +100,13 @@ export async function updateCollection(
   await db
     .update(collection)
     .set(values)
-    .where(and(eq(collection.id, id), eq(collection.spaceId, spaceId)));
+    .where(and(eq(collection.id, id), inArray(collection.spaceId, [...spaceIds])));
 }
 
 /** 모음만 사라진다 — 문서는 건드리지 않는다. */
-export async function deleteCollection(id: string, spaceId: string): Promise<void> {
-  await db.delete(collection).where(and(eq(collection.id, id), eq(collection.spaceId, spaceId)));
+export async function deleteCollection(id: string, spaceIds: readonly string[]): Promise<void> {
+  if (spaceIds.length === 0) return;
+  await db
+    .delete(collection)
+    .where(and(eq(collection.id, id), inArray(collection.spaceId, [...spaceIds])));
 }

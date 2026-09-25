@@ -13,6 +13,7 @@
     "@blocknote/server-util": "^0.55.0",
     "@hocuspocus/provider": "^4.7.0",
     "@hocuspocus/server": "^4.7.0",
+    "@nyanotion/auth": "workspace:^",
     "@nyanotion/db": "workspace:*",
     "@nyanotion/shared": "workspace:*",
     "yjs": "^13.6.33"

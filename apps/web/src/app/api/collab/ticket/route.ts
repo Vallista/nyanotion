@@ -1,6 +1,6 @@
-import { getDocument } from "@nyanotion/db";
 import { COLLAB_TICKET_TTL_MS, signCollabTicket } from "@nyanotion/shared";
 import { NextResponse } from "next/server";
+import { canWrite } from "@nyanotion/auth";
 import { requireViewer } from "@/lib/session";
 
 /**
@@ -15,9 +15,8 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   const viewer = await requireViewer();
 
-  // 열 수 없는 문서면 표를 주지 않는다. 동기화 서버도 같은 확인을 한 번 더 한다.
-  const doc = await getDocument(documentId, viewer.spaceId);
-  if (doc === null || doc.archivedAt !== null) {
+  // 고칠 수 없는 문서면 표를 주지 않는다 — 동기화는 쓰기다. 서버도 같은 확인을 한 번 더 한다.
+  if (!(await canWrite(viewer.userId, documentId))) {
     return NextResponse.json({ error: "문서를 열 수 없습니다" }, { status: 404 });
   }
 

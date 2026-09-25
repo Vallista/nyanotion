@@ -8,11 +8,11 @@ import { requireViewer } from "@/lib/session";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
   const [nodes, archivedCount, favorites, tags, collections] = await Promise.all([
-    listTree(viewer.spaceId),
-    countArchived(viewer.spaceId),
-    listFavorites(viewer.userId, viewer.spaceId),
-    listTags(viewer.spaceId),
-    listCollections(viewer.spaceId),
+    listTree(viewer.spaceIds),
+    countArchived(viewer.spaceIds),
+    listFavorites(viewer.userId, viewer.spaceIds),
+    listTags(viewer.spaceIds),
+    listCollections(viewer.spaceIds),
   ]);
 
   return (
@@ -24,7 +24,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           favorites={favorites}
           tags={tags}
           collections={collections.map((c) => ({ id: c.id, name: c.name }))}
-          spaceName={viewer.spaceName}
+          spaceName={viewer.personalSpace.name}
           email={viewer.email}
         />
       }

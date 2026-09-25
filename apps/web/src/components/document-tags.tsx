@@ -15,10 +15,12 @@ export function DocumentTags({
   documentId,
   tags,
   suggestions,
+  canWrite,
 }: {
   documentId: string;
   tags: TagRef[];
   suggestions: { id: string; name: string }[];
+  canWrite: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
@@ -63,6 +65,7 @@ export function DocumentTags({
           >
             {tag.name}
           </Link>
+          {canWrite && (
           <button
             aria-label={`${tag.name} 떼기`}
             onClick={() => startTransition(() => void removeTagAction(documentId, tag.id))}
@@ -80,10 +83,11 @@ export function DocumentTags({
           >
             ×
           </button>
+          )}
         </span>
       ))}
 
-      {adding ? (
+      {!canWrite ? null : adding ? (
         <span style={{ position: "relative", display: "inline-flex" }}>
           <input
             ref={inputRef}

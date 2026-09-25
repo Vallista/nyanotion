@@ -1,5 +1,5 @@
 export { createPersonalSpace, hasOpenInvitation, isFirstUser } from "./accounts";
-export { documentForCollab, saveYdoc, type CollabDocument } from "./collab";
+export { saveYdoc } from "./collab";
 export {
   createCollection,
   deleteCollection,
@@ -15,7 +15,7 @@ export {
   countArchived,
   createDocument,
   emptyTrash,
-  getDocument,
+  getDocumentById,
   listArchived,
   listRecent,
   listTree,

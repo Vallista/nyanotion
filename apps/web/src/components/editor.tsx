@@ -59,10 +59,12 @@ export function Editor({
   documentId,
   user,
   onSyncStateChange,
+  editable = true,
 }: {
   documentId: string;
   user: { name: string; color: string };
   onSyncStateChange?: (state: SyncState) => void;
+  editable?: boolean;
 }) {
   // 문서마다 새 Y.Doc. DocumentView 가 key={id} 로 갈아끼운다.
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
@@ -124,5 +126,7 @@ export function Editor({
     );
   }
 
-  return <BlockNoteView editor={editor} theme="light" className="nyan-editor" />;
+  return (
+    <BlockNoteView editor={editor} editable={editable} theme="light" className="nyan-editor" />
+  );
 }

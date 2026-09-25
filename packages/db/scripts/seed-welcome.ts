@@ -59,7 +59,7 @@ async function main(): Promise<void> {
   const mySpace = spaces[0];
   if (mySpace === undefined) throw new Error("개인 space 가 없습니다.");
 
-  const existing = await listTree(mySpace.id);
+  const existing = await listTree([mySpace.id]);
   if (existing.length > 0) {
     console.log(`문서가 이미 ${existing.length}개 있습니다 — 아무것도 하지 않습니다.`);
     return;
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     userId: owner.id,
     title: "Nyanotion 시작하기",
   });
-  await setContent(id, mySpace.id, welcome, owner.id);
+  await setContent(id, welcome, owner.id);
   console.log(`만들었습니다: /d/${id}`);
 }
 
