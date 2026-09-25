@@ -36,6 +36,13 @@
       "when": 1790325031500,
       "tag": "0004_sharing",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790361304003,
+      "tag": "0005_server_setting",
+      "breakpoints": true
     }
   ]
 }

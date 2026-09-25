@@ -25,6 +25,7 @@ import {
   revokeInvitation,
   revokePublicLink,
   searchDocuments,
+  setGpuMode,
   setMemberRole,
   toggleFavorite,
   updateCollection,
@@ -33,6 +34,7 @@ import {
   type CollectionFilter,
   type CollectionView,
 } from "@nyanotion/db";
+import { unloadModels } from "@nyanotion/ai";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -334,5 +336,20 @@ export async function createPublicLinkAction(documentId: string): Promise<{ toke
 export async function revokePublicLinkAction(documentId: string, linkId: string): Promise<void> {
   await requireDocumentOwner(documentId);
   await revokePublicLink(linkId, documentId);
+  revalidatePath("/", "layout");
+}
+
+/* ------------------------------------------------------------ GPU 모드 */
+
+/**
+ * 게임이 GPU 를 쓸 때 냥이를 비켜 세운다.
+ *
+ * `gaming` 으로 바꾸면 모델을 VRAM 에서 곧바로 내린다 — 토글만 해 두고 메모리가 안 비면
+ * 아무 의미가 없다. **문서 편집·동기화·검색은 어느 모드에서도 그대로 돈다.**
+ */
+export async function setGpuModeAction(mode: "free" | "gaming"): Promise<void> {
+  await requireViewer(); // 가족 누구나 바꿀 수 있다 — 집 한 대의 공용 스위치다
+  await setGpuMode(mode);
+  if (mode === "gaming") await unloadModels();
   revalidatePath("/", "layout");
 }

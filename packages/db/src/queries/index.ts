@@ -74,3 +74,11 @@ export {
   type PublicView,
   type ShareRow,
 } from "./shares";
+export {
+  GPU_MODE_KEY,
+  getGpuMode,
+  getSetting,
+  setGpuMode,
+  setSetting,
+  type GpuMode,
+} from "./settings";

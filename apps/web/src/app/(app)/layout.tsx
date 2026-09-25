@@ -1,3 +1,4 @@
+import { aiStatus } from "@nyanotion/ai";
 import { countArchived, listCollections, listFavorites, listTags, listTree } from "@nyanotion/db";
 import { AppShell } from "@/components/app-shell";
 import { CommandPalette } from "@/components/command-palette";
@@ -14,6 +15,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     listTags(viewer.spaceIds),
     listCollections(viewer.spaceIds),
   ]);
+  // 냥이 상태는 Ollama 에 짧게 물어본다 (3초 타임아웃) — 꺼져 있어도 화면은 그대로 뜬다.
+  const ai = await aiStatus();
 
   return (
     <AppShell
@@ -31,6 +34,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           tags={tags}
           collections={collections.map((c) => ({ id: c.id, name: c.name }))}
           email={viewer.email}
+          gpuMode={ai.mode}
+          aiReachable={ai.reachable}
         />
       }
     >

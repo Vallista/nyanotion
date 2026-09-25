@@ -11,6 +11,7 @@ import {
 } from "@/lib/actions";
 import { buildTree, displayTitle, flattenVisible, subtreeIds, type TreeItem } from "@/lib/tree";
 import { CatMark } from "./cat-mark";
+import { GpuModeToggle } from "./gpu-mode-toggle";
 import { openCommandPalette } from "./command-palette";
 import { NewFamilyButton } from "./new-family-button";
 import { SignOutButton } from "./sign-out-button";
@@ -80,6 +81,8 @@ export function Sidebar({
   tags,
   collections,
   email,
+  gpuMode,
+  aiReachable,
 }: {
   spaces: SidebarSpace[];
   nodes: SidebarNode[];
@@ -88,6 +91,8 @@ export function Sidebar({
   tags: { id: string; name: string; count: number }[];
   collections: { id: string; name: string }[];
   email: string;
+  gpuMode: "free" | "gaming";
+  aiReachable: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -422,6 +427,7 @@ export function Sidebar({
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
         />
         <SideLink href="/install" icon={<InstallIcon />} label="앱으로 설치" />
+        <GpuModeToggle mode={gpuMode} reachable={aiReachable} />
         <div
           style={{
             display: "flex",

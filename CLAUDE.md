@@ -62,6 +62,9 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 
 ### AI
 - **모든 LLM 호출은 `packages/ai` 게이트웨이를 통과한다.** 라우트에서 Ollama 를 직접 부르지 말 것. 모델명·타임아웃·동시성·GPU 모드 판정이 전부 거기 있다.
+- **프롬프트·작업 정의는 `@nyanotion/shared` 에 둔다.** 클라이언트도 쓰기 때문에 `packages/ai` 배럴에 넣으면 gateway → db → `node:fs` 가 브라우저 번들에 딸려 와 빌드가 깨진다. **서버 전용 코드와 클라이언트 상수를 같은 배럴에 두지 말 것.**
+- **냥이의 답은 제안으로만.** 사람이 수락해야 문서에 들어간다. 대신 고쳐 놓지 않는다.
+- GPU 모드는 `server_setting` 표에 있다. `gaming` 으로 바꿀 때 **반드시 모델을 VRAM 에서 내린다**(`unloadModels`) — 토글만 하고 메모리가 안 비면 의미가 없다.
 - **동기 요청 경로에서 임베딩하지 않는다.** `ai_job` 에 넣고 `worker` 가 처리한다.
 - **GPU 모드가 `gaming` 이면 AI 경로만 멈춘다.** Postgres·web·collab 은 절대 멈추지 않는다.
 
