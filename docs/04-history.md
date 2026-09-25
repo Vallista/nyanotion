@@ -76,3 +76,13 @@
 M2 — 오프라인 동기화(Yjs + y-indexeddb + Hocuspocus) · PWA 설치 · Cloudflare Tunnel.
 **M2 에서 콘텐츠 원본이 `content_json` → `ydoc_state` 로 넘어간다.** 지금 `content_json` 이 원본이라는 가정에 의존하는
 코드는 `setContent()` 와 `components/editor.tsx` 두 곳뿐이다.
+
+## 2026-09-25 — 폰에서 로그인이 "invalid origin" 으로 막힌 건
+Better Auth 가 `Origin` 이 신뢰 목록에 없으면 403 `INVALID_ORIGIN` 을 준다. `BETTER_AUTH_URL` 이
+`http://localhost:3000` 인데 폰은 Tailscale IP 로 들어오니 다른 출처로 본 것.
+
+**집 서버는 한 대인데 주소가 여럿**이라는 게 이 프로젝트에서 계속 걸릴 지점이다 — localhost, 집 랜 IP,
+Tailscale IP, M2 의 터널 도메인. 그래서 검사를 끄지 않고 `.env` 의 `TRUSTED_ORIGINS` 에 쓰는 주소를 나열한다
+(`auth.ts` 가 `BETTER_AUTH_URL` 과 합쳐 넘긴다). 확인법은 `docs/03-dev-environment.md`.
+
+목록에 없는 Origin 은 그대로 403 이어야 한다 — 확인했다. CSRF 방어를 유지한 채 주소만 늘린 것이다.

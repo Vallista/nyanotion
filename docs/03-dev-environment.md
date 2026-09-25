@@ -189,6 +189,28 @@ docker compose -f infra\docker-compose.yml up -d cloudflared
 **아이폰에 설치**: Safari 로 열고 → 공유 버튼 → **홈 화면에 추가**.
 이 경로는 메뉴에 숨어 있어서 말로 설명하면 가족이 반드시 실패한다 → **`/install` 안내 페이지를 만들어 스크린샷을 넣는다.**
 
+### 로그인이 "invalid origin" 으로 막힐 때
+
+Better Auth 는 요청의 `Origin` 이 신뢰 목록에 없으면 403 `INVALID_ORIGIN` 을 준다 (CSRF 방어).
+집 서버는 한 대인데 주소가 여럿이라 — `localhost`, 집 랜 IP, Tailscale IP, 나중엔 터널 도메인 —
+폰에서 IP 로 열면 바로 여기에 걸린다.
+
+`.env` 의 `TRUSTED_ORIGINS` 에 **실제로 여는 주소를 전부** 적는다 (쉼표 구분). `BETTER_AUTH_URL` 은 자동 포함이다.
+
+```
+TRUSTED_ORIGINS=http://192.168.0.12:3000,http://100.x.y.z:3000,https://nyanotion.example.com
+```
+
+**검사를 끄지 말 것** (`disableCSRFCheck` 같은 것). 주소를 추가하는 게 답이다.
+확인:
+
+```bash
+# 목록에 있는 Origin → 200
+curl -s -o /dev/null -w "%{http_code}
+" -X POST http://<주소>/api/auth/sign-in/email   -H "Content-Type: application/json" -H "Origin: http://<주소>" -d '{"email":"...","password":"..."}'
+# 목록에 없는 Origin → 403 INVALID_ORIGIN 이어야 정상
+```
+
 검증할 것:
 - [ ] 홈 화면 아이콘에서 열면 Safari UI 없이 독립 창으로 뜬다
 - [ ] **비행기 모드에서 문서를 편집할 수 있다** (IndexedDB)
