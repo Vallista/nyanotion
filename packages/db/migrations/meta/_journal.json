@@ -29,6 +29,13 @@
       "when": 1790321756486,
       "tag": "0003_tagging_and_search",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790325031500,
+      "tag": "0004_sharing",
+      "breakpoints": true
     }
   ]
 }

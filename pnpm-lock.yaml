@@ -106,6 +106,28 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  packages/auth:
+    dependencies:
+      '@nyanotion/db':
+        specifier: workspace:*
+        version: link:../db
+      '@nyanotion/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.36.4
+        version: 0.36.4(@types/react@19.3.0)(kysely@0.29.6)(postgres@3.4.9)(react@19.3.0)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.9.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.15
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/db:
     dependencies:
       '@nyanotion/shared':
