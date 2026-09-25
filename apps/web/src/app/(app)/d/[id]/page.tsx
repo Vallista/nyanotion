@@ -1,4 +1,4 @@
-import { getDocument, listTree } from "@nyanotion/db";
+import { getDocument, isFavorite, listTags, listTree, tagsForDocuments } from "@nyanotion/db";
 import { notFound } from "next/navigation";
 import { DocumentActions } from "@/components/document-actions";
 import { DocumentView } from "@/components/document-view";
@@ -12,9 +12,12 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const viewer = await requireViewer();
 
-  const [doc, nodes] = await Promise.all([
+  const [doc, nodes, tagMap, allTags, favorite] = await Promise.all([
     getDocument(id, viewer.spaceId),
     listTree(viewer.spaceId),
+    tagsForDocuments([id]),
+    listTags(viewer.spaceId),
+    isFavorite(viewer.userId, id),
   ]);
   if (doc === null || doc.archivedAt !== null) notFound();
 
@@ -25,7 +28,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <TopBar crumbs={crumbs} right={<DocumentActions id={doc.id} />} />
+      <TopBar crumbs={crumbs} right={<DocumentActions id={doc.id} favorite={favorite} />} />
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
         <DocumentView
           key={doc.id}
@@ -33,6 +36,8 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           initialTitle={doc.title}
           updatedAt={formatWhen(doc.updatedAt)}
           user={{ name: viewer.name, color: userColor(viewer.userId) }}
+          tags={tagMap.get(id) ?? []}
+          tagSuggestions={allTags.map((tag) => ({ id: tag.id, name: tag.name }))}
         />
       </div>
     </>

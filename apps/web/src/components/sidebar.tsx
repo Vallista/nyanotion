@@ -12,10 +12,13 @@ import {
 } from "@/lib/actions";
 import { buildTree, displayTitle, flattenVisible, subtreeIds, type TreeItem } from "@/lib/tree";
 import { CatMark } from "./cat-mark";
+import { openCommandPalette } from "./command-palette";
 import { SignOutButton } from "./sign-out-button";
 import {
   ChevronDown,
   ChevronRight,
+  ChuruIcon,
+  CollectionIcon,
   DotsIcon,
   InstallIcon,
   LitterBoxIcon,
@@ -52,11 +55,17 @@ function writeExpanded(ids: ReadonlySet<string>): void {
 export function Sidebar({
   nodes,
   archivedCount,
+  favorites,
+  tags,
+  collections,
   spaceName,
   email,
 }: {
   nodes: TreeNode[];
   archivedCount: number;
+  favorites: { id: string; title: string; icon: string | null }[];
+  tags: { id: string; name: string; count: number }[];
+  collections: { id: string; name: string }[];
   spaceName: string;
   email: string;
 }) {
@@ -193,25 +202,32 @@ export function Sidebar({
       </div>
 
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-        <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" disabled />
+        <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
         <SideLink href="/" icon={<TowerIcon />} label="캣타워" active={pathname === "/"} />
       </div>
 
-      <div
-        style={{
-          marginTop: 18,
-          padding: "0 8px 4px 12px",
-          fontSize: 11.5,
-          fontWeight: 500,
-          color: "var(--ink-3)",
-          letterSpacing: "0.01em",
-        }}
-      >
-        내 문서
-      </div>
+      <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>
+        {favorites.length > 0 && (
+          <>
+            <SectionLabel>츄르</SectionLabel>
+            <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+              {favorites.map((item) => (
+                <SideLink
+                  key={item.id}
+                  href={`/d/${item.id}`}
+                  icon={<ChuruIcon size={14} filled />}
+                  label={displayTitle(item.title)}
+                  active={item.id === activeId}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        <SectionLabel>내 문서</SectionLabel>
 
       <div
-        style={{ flexGrow: 1, overflowY: "auto", padding: "0 8px 12px" }}
+        style={{ padding: "0 8px 12px" }}
         onDragLeave={(e) => {
           if (e.currentTarget === e.target) setDrop(null);
         }}
@@ -264,6 +280,61 @@ export function Sidebar({
             }}
           />
         ))}
+        </div>
+
+        {collections.length > 0 && (
+          <>
+            <SectionLabel>모음</SectionLabel>
+            <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+              {collections.map((item) => (
+                <SideLink
+                  key={item.id}
+                  href={`/c/${item.id}`}
+                  icon={<CollectionIcon size={14} />}
+                  label={item.name}
+                  active={pathname === `/c/${item.id}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {tags.length > 0 && (
+          <>
+            <SectionLabel>태그</SectionLabel>
+            <div
+              style={{
+                padding: "0 10px",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 5,
+              }}
+            >
+              {tags.map((item) => (
+                <Link
+                  key={item.id}
+                  href={`/t/${item.id}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                    height: 22,
+                    padding: "0 8px",
+                    borderRadius: "var(--radius-sm)",
+                    background: pathname === `/t/${item.id}` ? "var(--accent-soft)" : "var(--chip)",
+                    fontSize: 11.5,
+                    color: "var(--ink-2)",
+                    border: 0,
+                  }}
+                  title={`문서 ${item.count}개`}
+                >
+                  {item.name}
+                  <span style={{ color: "var(--ink-4)" }}>{item.count}</span>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div
@@ -529,6 +600,23 @@ function Row({
   );
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        padding: "0 8px 4px 12px",
+        fontSize: 11.5,
+        fontWeight: 500,
+        color: "var(--ink-3)",
+        letterSpacing: "0.01em",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function DropLine({ offset, position }: { offset: number; position: "top" | "bottom" }) {
   return (
     <span
@@ -613,7 +701,7 @@ function SideLink({
   shortcut,
   trailing,
   active = false,
-  disabled = false,
+  onClick,
 }: {
   href?: string;
   icon: React.ReactNode;
@@ -621,7 +709,7 @@ function SideLink({
   shortcut?: string;
   trailing?: string;
   active?: boolean;
-  disabled?: boolean;
+  onClick?: () => void;
 }) {
   const inner = (
     <>
@@ -649,16 +737,16 @@ function SideLink({
     padding: "0 6px 0 8px",
     borderRadius: "var(--radius)",
     fontSize: 13.5,
-    color: disabled ? "var(--ink-4)" : "var(--ink-2)",
+    color: "var(--ink-2)",
     background: active ? "var(--accent-soft)" : "transparent",
     fontWeight: active ? 500 : 400,
     border: 0,
-    cursor: disabled ? "default" : "pointer",
+    cursor: "pointer",
   };
 
-  if (href === undefined || disabled) {
+  if (href === undefined) {
     return (
-      <button style={style} disabled={disabled} title={disabled ? "M3 에서 들어옵니다" : label}>
+      <button style={style} onClick={onClick} title={label}>
         {inner}
       </button>
     );

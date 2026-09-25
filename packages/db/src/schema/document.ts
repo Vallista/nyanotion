@@ -9,7 +9,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
-import { bytea } from "./types";
+import { bytea, tsvector } from "./types";
 import { space } from "./app";
 
 /**
@@ -36,6 +36,10 @@ export const document = pgTable(
     ydocState: bytea("ydoc_state"),
     /** 블록을 펼친 평문 — FTS·청킹·LLM 입력용 파생값. 애플리케이션이 만든다. */
     textPlain: text("text_plain").notNull().default(""),
+    /** 제목+본문의 전문검색 벡터. DB 가 만드는 생성 칼럼이라 직접 쓰지 않는다. */
+    searchTsv: tsvector("search_tsv").generatedAlwaysAs(
+      sql`to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(text_plain, ''))`,
+    ),
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id),
@@ -52,6 +56,7 @@ export const document = pgTable(
     index("document_tree_idx").on(t.spaceId, t.parentId, t.position),
     index("document_live_idx").on(t.spaceId).where(sql`${t.archivedAt} is null`),
     index("document_parent_idx").on(t.parentId),
+    index("document_search_idx").using("gin", t.searchTsv),
   ],
 );
 

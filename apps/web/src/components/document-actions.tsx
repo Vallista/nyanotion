@@ -1,16 +1,30 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { archiveDocumentAction, createDocumentAction } from "@/lib/actions";
-import { DotsIcon, LitterBoxIcon, PlusIcon } from "./icons";
+import { archiveDocumentAction, createDocumentAction, toggleFavoriteAction } from "@/lib/actions";
+import { ChuruIcon, DotsIcon, LitterBoxIcon, PlusIcon } from "./icons";
 
 /** 상단 바 오른쪽. 공유는 M4, 댓글은 M6 에서 들어온다. */
-export function DocumentActions({ id }: { id: string }) {
+export function DocumentActions({ id, favorite }: { id: string; favorite: boolean }) {
   const [, startTransition] = useTransition();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [starred, setStarred] = useState(favorite);
 
   return (
     <span style={{ display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+      <BarButton
+        label={starred ? "츄르에서 빼기" : "츄르에 넣기"}
+        onClick={() => {
+          setStarred((value) => !value);
+          startTransition(async () => {
+            const next = await toggleFavoriteAction(id);
+            setStarred(next);
+          });
+        }}
+        color={starred ? "var(--accent)" : undefined}
+      >
+        <ChuruIcon filled={starred} />
+      </BarButton>
       <BarButton
         label="안에 새 문서"
         onClick={() => startTransition(() => void createDocumentAction(id))}
@@ -83,10 +97,12 @@ export function DocumentActions({ id }: { id: string }) {
 function BarButton({
   label,
   onClick,
+  color,
   children,
 }: {
   label: string;
   onClick: () => void;
+  color?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -101,7 +117,7 @@ function BarButton({
         alignItems: "center",
         justifyContent: "center",
         borderRadius: "var(--radius)",
-        color: "var(--ink-2)",
+        color: color ?? "var(--ink-2)",
       }}
     >
       {children}

@@ -16,3 +16,14 @@ export const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
     return new Uint8Array(value);
   },
 });
+
+/**
+ * Postgres `tsvector`. 전문검색용이며 항상 생성 칼럼이다 — 직접 쓰지 않는다.
+ * 한국어 형태소 분석기가 기본으로 없으므로 `simple` 설정을 쓰고,
+ * 부분 단어는 `pg_trgm` 이 맡는다 (docs/03-dev-environment.md).
+ */
+export const tsvector = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});

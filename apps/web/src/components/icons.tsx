@@ -145,3 +145,38 @@ export function InstallIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 츄르 — 즐겨찾기. 고양이 간식 스틱 모양. */
+export function ChuruIcon({ size = 15, filled = false }: IconProps & { filled?: boolean }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ flexShrink: 0, display: "block" }}
+    >
+      <path
+        d="M10.6 1.9 3.1 9.4a2.3 2.3 0 0 0-.6 1.1l-.6 2.6 2.6-.6c.42-.1.8-.31 1.1-.6l7.5-7.5a1.9 1.9 0 0 0-2.5-2.5z"
+        fill={filled ? "currentColor" : "none"}
+        fillOpacity={filled ? 0.18 : 0}
+      />
+      <path d="M9.6 3 13 6.4" />
+    </svg>
+  );
+}
+
+/** 모음 — 저장된 필터. 겹쳐 놓은 카드 모양. */
+export function CollectionIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="2.4" y="5.4" width="11.2" height="8.2" rx="1.2" />
+      <path d="M4.2 3.4h7.6M5.2 1.6h5.6" />
+    </Svg>
+  );
+}

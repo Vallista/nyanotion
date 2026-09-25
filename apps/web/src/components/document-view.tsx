@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
 import { renameDocumentAction } from "@/lib/actions";
 import { UNTITLED } from "@/lib/tree";
+import { DocumentTags } from "./document-tags";
 import type { SyncState } from "./editor";
 
 // BlockNote 와 Yjs 는 DOM 에 의존하므로 서버에서 렌더하지 않는다.
@@ -19,11 +20,15 @@ export function DocumentView({
   initialTitle,
   updatedAt,
   user,
+  tags,
+  tagSuggestions,
 }: {
   id: string;
   initialTitle: string;
   updatedAt: string;
   user: { name: string; color: string };
+  tags: { id: string; name: string; color: string | null }[];
+  tagSuggestions: { id: string; name: string }[];
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [sync, setSync] = useState<SyncState>("opening");
@@ -64,10 +69,12 @@ export function DocumentView({
             alignItems: "center",
             gap: 10,
             marginTop: 14,
+            flexWrap: "wrap",
             fontSize: 12.5,
             color: "var(--ink-3)",
           }}
         >
+          <DocumentTags documentId={id} tags={tags} suggestions={tagSuggestions} />
           <span>{updatedAt}에 고침</span>
           <SyncBadge state={sync} />
         </div>

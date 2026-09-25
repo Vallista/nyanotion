@@ -15,7 +15,8 @@
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke-documents.ts",
-    "seed": "tsx scripts/seed-welcome.ts"
+    "seed": "tsx scripts/seed-welcome.ts",
+    "smoke:search": "tsx scripts/smoke-search.ts"
   },
   "dependencies": {
     "@nyanotion/shared": "workspace:^",

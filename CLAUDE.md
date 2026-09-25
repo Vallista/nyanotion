@@ -32,6 +32,12 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **형제 정렬은 fractional index(`position`).** 순번 재배열로 다른 행을 건드리지 말 것.
 - 사이드바 트리 조회에 `content_json`/`ydoc_state` 를 넣지 말 것 (무겁다). `title/icon/parent_id/position` 만.
 
+### 검색 (M3~)
+- **한국어에는 Postgres 기본 형태소 분석기가 없다.** `to_tsvector('simple')` 은 띄어쓰기로만 쪼개므로 "장보"로 "장보기"를 못 찾는다. 그래서 tsvector 와 `pg_trgm` 을 **같이** 쓴다 — 둘 중 하나만 지우지 말 것.
+- `document.search_tsv` 는 **생성 칼럼**이다. 직접 쓰지 않는다.
+- 검색은 `packages/db/src/queries/search.ts` 한 곳. 원시 SQL 의 결과는 타입이 보장되지 않으므로 날짜·숫자를 반드시 변환해서 내보낸다.
+- **태그는 트리와 다른 축이다.** 트리는 "어디에 있나", 태그는 "무엇에 관한 것인가". 문서의 자리는 언제나 트리 하나뿐이고, 모음(collection)은 조건만 저장할 뿐 **문서를 소유하지 않는다.**
+
 ### 동기화 (M2~)
 - **표(ticket)로 붙는다.** `packages/shared/src/ticket.ts` 가 문서 하나·수십 초짜리 HMAC 표를 만들고, `/api/collab/ticket` 이 쿠키로 인증해 발급한다. **세션 토큰을 클라이언트 JS 로 내보내지 말 것** — 쿠키의 httpOnly 를 스스로 버리는 일이다.
 - 표가 있어도 `apps/collab` 이 소유권을 한 번 더 확인한다. M4 에서 이 자리가 `access.ts` 를 부르게 된다.
