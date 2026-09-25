@@ -2,20 +2,31 @@
 
 import { useState, useTransition } from "react";
 import { archiveDocumentAction, createDocumentAction, toggleFavoriteAction } from "@/lib/actions";
-import { ChuruIcon, DotsIcon, LitterBoxIcon, PlusIcon } from "./icons";
+import { ChuruIcon, DotsIcon, LitterBoxIcon, PlusIcon, ShareIcon } from "./icons";
+import { ShareDialog, type LinkEntry, type ShareEntry } from "./share-dialog";
 
-/** 상단 바 오른쪽. 공유는 M4, 댓글은 M6 에서 들어온다. */
+/** 상단 바 오른쪽. 댓글은 M6 에서 들어온다. */
 export function DocumentActions({
   id,
   favorite,
   canWrite,
+  canShare,
+  shares,
+  families,
+  links,
 }: {
   id: string;
   favorite: boolean;
   canWrite: boolean;
+  /** 공유는 문서의 owner 만. */
+  canShare: boolean;
+  shares: ShareEntry[];
+  families: { id: string; name: string }[];
+  links: LinkEntry[];
 }) {
   const [, startTransition] = useTransition();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [starred, setStarred] = useState(favorite);
 
   return (
@@ -33,15 +44,46 @@ export function DocumentActions({
       >
         <ChuruIcon filled={starred} />
       </BarButton>
-      <BarButton
-        label="안에 새 문서"
-        onClick={() => startTransition(() => void createDocumentAction(id))}
-      >
-        <PlusIcon />
-      </BarButton>
-      <BarButton label="더 보기" onClick={() => setMenuOpen((v) => !v)}>
-        <DotsIcon />
-      </BarButton>
+
+      {canShare && (
+        <button
+          onClick={() => setShareOpen(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            height: 28,
+            padding: "0 10px",
+            borderRadius: "var(--radius)",
+            fontSize: 13,
+            color: "var(--ink-2)",
+          }}
+        >
+          <span style={{ display: "flex", color: "var(--ink-3)" }}>
+            <ShareIcon />
+          </span>
+          공유
+          {shares.length + links.length > 0 && (
+            <span style={{ color: "var(--ink-4)", fontSize: 11.5 }}>
+              {shares.length + links.length}
+            </span>
+          )}
+        </button>
+      )}
+
+      {canWrite && (
+        <>
+          <BarButton
+            label="안에 새 문서"
+            onClick={() => startTransition(() => void createDocumentAction(id))}
+          >
+            <PlusIcon />
+          </BarButton>
+          <BarButton label="더 보기" onClick={() => setMenuOpen((v) => !v)}>
+            <DotsIcon />
+          </BarButton>
+        </>
+      )}
 
       {menuOpen && (
         <>
@@ -97,6 +139,16 @@ export function DocumentActions({
             </span>
           </span>
         </>
+      )}
+
+      {shareOpen && (
+        <ShareDialog
+          documentId={id}
+          shares={shares}
+          families={families}
+          links={links}
+          onClose={() => setShareOpen(false)}
+        />
       )}
     </span>
   );

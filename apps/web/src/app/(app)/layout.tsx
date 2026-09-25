@@ -19,12 +19,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AppShell
       sidebar={
         <Sidebar
+          spaces={viewer.spaces.map((item) => ({
+            id: item.id,
+            name: item.kind === "org" ? (item.organizationName ?? item.name) : item.name,
+            kind: item.kind,
+            organizationId: item.organizationId,
+          }))}
           nodes={nodes}
           archivedCount={archivedCount}
           favorites={favorites}
           tags={tags}
           collections={collections.map((c) => ({ id: c.id, name: c.name }))}
-          spaceName={viewer.personalSpace.name}
           email={viewer.email}
         />
       }

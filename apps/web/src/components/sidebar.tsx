@@ -1,6 +1,5 @@
 "use client";
 
-import type { TreeNode } from "@nyanotion/db";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
@@ -13,6 +12,7 @@ import {
 import { buildTree, displayTitle, flattenVisible, subtreeIds, type TreeItem } from "@/lib/tree";
 import { CatMark } from "./cat-mark";
 import { openCommandPalette } from "./command-palette";
+import { NewFamilyButton } from "./new-family-button";
 import { SignOutButton } from "./sign-out-button";
 import {
   ChevronDown,
@@ -20,6 +20,7 @@ import {
   ChuruIcon,
   CollectionIcon,
   DotsIcon,
+  FamilyIcon,
   InstallIcon,
   LitterBoxIcon,
   PageIcon,
@@ -33,12 +34,31 @@ const EXPANDED_KEY = "nyanotion.expanded";
 /** 행 안에서 어디에 놓았는가. 위/아래 25% 는 형제, 가운데는 자식으로 넣는다. */
 type DropZone = "before" | "after" | "into";
 
+export type SidebarNode = {
+  id: string;
+  parentId: string | null;
+  position: string;
+  title: string;
+  icon: string | null;
+  type: string;
+  spaceId: string;
+};
+
+export type SidebarSpace = {
+  id: string;
+  name: string;
+  kind: "personal" | "org";
+  organizationId: string | null;
+};
+
 function readExpanded(): Set<string> {
   try {
     const raw = localStorage.getItem(EXPANDED_KEY);
     if (raw === null) return new Set();
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? new Set(parsed.filter((x): x is string => typeof x === "string")) : new Set();
+    return Array.isArray(parsed)
+      ? new Set(parsed.filter((x): x is string => typeof x === "string"))
+      : new Set();
   } catch {
     return new Set();
   }
@@ -53,26 +73,26 @@ function writeExpanded(ids: ReadonlySet<string>): void {
 }
 
 export function Sidebar({
+  spaces,
   nodes,
   archivedCount,
   favorites,
   tags,
   collections,
-  spaceName,
   email,
 }: {
-  nodes: TreeNode[];
+  spaces: SidebarSpace[];
+  nodes: SidebarNode[];
   archivedCount: number;
   favorites: { id: string; title: string; icon: string | null }[];
   tags: { id: string; name: string; count: number }[];
   collections: { id: string; name: string }[];
-  spaceName: string;
   email: string;
 }) {
   const router = useRouter();
-  // 레이아웃은 라우트 파라미터를 받지 못하므로 경로에서 직접 읽는다.
   const pathname = usePathname();
   const activeId = pathname.startsWith("/d/") ? (pathname.split("/")[2] ?? null) : null;
+
   const [, startTransition] = useTransition();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [dragId, setDragId] = useState<string | null>(null);
@@ -82,10 +102,12 @@ export function Sidebar({
 
   useEffect(() => setExpanded(readExpanded()), []);
 
-  const tree = useMemo(() => buildTree(nodes), [nodes]);
-  const rows = useMemo(() => flattenVisible(tree, expanded), [tree, expanded]);
   const blocked = useMemo(
     () => (dragId === null ? new Set<string>() : subtreeIds(nodes, dragId)),
+    [nodes, dragId],
+  );
+  const draggingSpace = useMemo(
+    () => (dragId === null ? null : (nodes.find((n) => n.id === dragId)?.spaceId ?? null)),
     [nodes, dragId],
   );
 
@@ -128,11 +150,6 @@ export function Sidebar({
     });
   }
 
-  function lastChildOf(id: string): string | null {
-    const kids = nodes.filter((n) => n.parentId === id);
-    return kids.length === 0 ? null : (kids[kids.length - 1]?.id ?? null);
-  }
-
   function onDrop(target: TreeItem, zone: DropZone) {
     const moving = dragId;
     setDragId(null);
@@ -143,7 +160,8 @@ export function Sidebar({
     let afterId: string | null;
     if (zone === "into") {
       parentId = target.id;
-      afterId = lastChildOf(target.id);
+      const kids = nodes.filter((n) => n.parentId === target.id);
+      afterId = kids.length === 0 ? null : (kids[kids.length - 1]?.id ?? null);
       setExpanded((prev) => {
         const next = new Set(prev).add(target.id);
         writeExpanded(next);
@@ -153,8 +171,7 @@ export function Sidebar({
       parentId = target.parentId;
       const siblings = nodes.filter((n) => n.parentId === target.parentId && n.id !== moving);
       const index = siblings.findIndex((s) => s.id === target.id);
-      afterId =
-        zone === "after" ? target.id : index <= 0 ? null : (siblings[index - 1]?.id ?? null);
+      afterId = zone === "after" ? target.id : index <= 0 ? null : (siblings[index - 1]?.id ?? null);
     }
 
     startTransition(async () => {
@@ -163,81 +180,21 @@ export function Sidebar({
     });
   }
 
-  return (
-    <nav
-      aria-label="문서 트리"
-      style={{
-        width: 248,
-        flexShrink: 0,
-        height: "100%",
-        background: "var(--surface)",
-        borderRight: "1px solid var(--line)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          height: 46,
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "0 8px 0 14px",
-        }}
-      >
-        <CatMark size={19} color="var(--ink)" />
-        <span style={{ fontSize: 13.5, fontWeight: 600, letterSpacing: "-0.012em" }}>
-          {spaceName}
-        </span>
-        <span style={{ marginLeft: "auto" }}>
-          <RowButton
-            label="새 문서"
-            onClick={() => startTransition(() => void createDocumentAction(null))}
-          >
-            <PlusIcon />
-          </RowButton>
-        </span>
-      </div>
+  const orgSpaces = spaces.filter((item) => item.kind === "org");
+  const personalSpace = spaces.find((item) => item.kind === "personal");
 
-      <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-        <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
-        <SideLink href="/" icon={<TowerIcon />} label="캣타워" active={pathname === "/"} />
-      </div>
-
-      <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>
-        {favorites.length > 0 && (
-          <>
-            <SectionLabel>츄르</SectionLabel>
-            <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-              {favorites.map((item) => (
-                <SideLink
-                  key={item.id}
-                  href={`/d/${item.id}`}
-                  icon={<ChuruIcon size={14} filled />}
-                  label={displayTitle(item.title)}
-                  active={item.id === activeId}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        <SectionLabel>내 문서</SectionLabel>
-
-      <div
-        style={{ padding: "0 8px 12px" }}
-        onDragLeave={(e) => {
-          if (e.currentTarget === e.target) setDrop(null);
-        }}
-      >
-        {rows.length === 0 && (
-          <p style={{ fontSize: 12.5, color: "var(--ink-3)", padding: "6px 8px", lineHeight: 1.6 }}>
-            아직 문서가 없어요. 위의 + 를 눌러 시작하세요.
-          </p>
-        )}
-
+  function renderTree(spaceId: string) {
+    const scoped = nodes.filter((n) => n.spaceId === spaceId);
+    const rows = flattenVisible(buildTree(scoped), expanded);
+    if (rows.length === 0) {
+      return (
+        <p style={{ fontSize: 12.5, color: "var(--ink-3)", padding: "4px 12px", lineHeight: 1.6 }}>
+          아직 문서가 없어요.
+        </p>
+      );
+    }
+    return (
+      <div style={{ padding: "0 8px" }}>
         {rows.map((item) => (
           <Row
             key={item.id}
@@ -246,7 +203,8 @@ export function Sidebar({
             expanded={expanded.has(item.id)}
             dragging={dragId === item.id}
             dropZone={drop?.id === item.id ? drop.zone : null}
-            forbidden={dragId !== null && blocked.has(item.id)}
+            // 문서는 자기 space 안에서만 움직인다 — 공간을 건너뛰는 건 이동이 아니라 공유다.
+            forbidden={dragId !== null && (blocked.has(item.id) || draggingSpace !== spaceId)}
             menuOpen={menuFor === item.id}
             renaming={renaming === item.id}
             onToggle={() => toggle(item.id)}
@@ -280,7 +238,119 @@ export function Sidebar({
             }}
           />
         ))}
-        </div>
+      </div>
+    );
+  }
+
+  return (
+    <nav
+      aria-label="문서 트리"
+      style={{
+        width: 248,
+        flexShrink: 0,
+        height: "100%",
+        background: "var(--surface)",
+        borderRight: "1px solid var(--line)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          height: 46,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          padding: "0 8px 0 14px",
+        }}
+      >
+        <CatMark size={19} color="var(--ink)" />
+        <span style={{ fontSize: 13.5, fontWeight: 600, letterSpacing: "-0.012em" }}>Nyanotion</span>
+      </div>
+
+      <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+        <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
+        <SideLink href="/" icon={<TowerIcon />} label="캣타워" active={pathname === "/"} />
+      </div>
+
+      <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>
+        {favorites.length > 0 && (
+          <>
+            <SectionLabel>츄르</SectionLabel>
+            <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+              {favorites.map((item) => (
+                <SideLink
+                  key={item.id}
+                  href={`/d/${item.id}`}
+                  icon={<ChuruIcon size={14} filled />}
+                  label={displayTitle(item.title)}
+                  active={item.id === activeId}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {orgSpaces.map((item) => (
+          <div key={item.id}>
+            <SectionLabel
+              action={
+                <span style={{ display: "flex", gap: 1 }}>
+                  {item.organizationId !== null && (
+                    <Link
+                      href={`/family/${item.organizationId}`}
+                      aria-label={`${item.name} 관리`}
+                      title="가족 관리"
+                      style={{
+                        width: 20,
+                        height: 20,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 3,
+                        color: "var(--ink-3)",
+                        border: 0,
+                      }}
+                    >
+                      <FamilyIcon size={13} />
+                    </Link>
+                  )}
+                  <RowButton
+                    label="새 문서"
+                    onClick={() => startTransition(() => void createDocumentAction(null, item.id))}
+                  >
+                    <PlusIcon size={13} />
+                  </RowButton>
+                </span>
+              }
+            >
+              {item.name}
+            </SectionLabel>
+            {renderTree(item.id)}
+          </div>
+        ))}
+
+        {personalSpace !== undefined && (
+          <>
+            <SectionLabel
+              action={
+                <RowButton
+                  label="새 문서"
+                  onClick={() =>
+                    startTransition(() => void createDocumentAction(null, personalSpace.id))
+                  }
+                >
+                  <PlusIcon size={13} />
+                </RowButton>
+              }
+            >
+              내 문서
+            </SectionLabel>
+            {renderTree(personalSpace.id)}
+          </>
+        )}
 
         {collections.length > 0 && (
           <>
@@ -302,14 +372,7 @@ export function Sidebar({
         {tags.length > 0 && (
           <>
             <SectionLabel>태그</SectionLabel>
-            <div
-              style={{
-                padding: "0 10px",
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 5,
-              }}
-            >
+            <div style={{ padding: "0 10px", display: "flex", flexWrap: "wrap", gap: 5 }}>
               {tags.map((item) => (
                 <Link
                   key={item.id}
@@ -335,6 +398,11 @@ export function Sidebar({
             </div>
           </>
         )}
+
+        <SectionLabel>가족</SectionLabel>
+        <div style={{ padding: "0 8px" }}>
+          <NewFamilyButton />
+        </div>
       </div>
 
       <div
@@ -386,19 +454,6 @@ export function Sidebar({
 }
 
 /* ---------------------------------------------------------------- 행 */
-
-const rowBase: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  gap: 6,
-  width: "100%",
-  height: 28,
-  paddingRight: 4,
-  borderRadius: "var(--radius)",
-  fontSize: 13.5,
-  color: "var(--ink-2)",
-  position: "relative",
-};
 
 function Row({
   item,
@@ -485,19 +540,30 @@ function Row({
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         style={{
-          ...rowBase,
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          width: "100%",
+          height: 28,
+          paddingRight: 4,
           paddingLeft: indent,
+          borderRadius: "var(--radius)",
+          fontSize: 13.5,
+          position: "relative",
           background:
-            dropZone === "into" ? "var(--accent-soft)"
-            : active ? "var(--accent-soft)"
-            : hover ? "rgba(47,46,43,0.045)"
-            : "transparent",
+            dropZone === "into" || active
+              ? "var(--accent-soft)"
+              : hover
+                ? "rgba(47,46,43,0.045)"
+                : "transparent",
           color: active ? "var(--ink)" : "var(--ink-2)",
           fontWeight: active ? 500 : 400,
           cursor: renaming ? "text" : "pointer",
         }}
       >
-        <span style={{ width: 14, display: "flex", justifyContent: "center", color: "var(--ink-4)" }}>
+        <span
+          style={{ width: 14, display: "flex", justifyContent: "center", color: "var(--ink-4)" }}
+        >
           {item.children.length > 0 ? (
             <button
               aria-label={expanded ? "접기" : "펼치기"}
@@ -600,23 +666,6 @@ function Row({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        marginTop: 18,
-        padding: "0 8px 4px 12px",
-        fontSize: 11.5,
-        fontWeight: 500,
-        color: "var(--ink-3)",
-        letterSpacing: "0.01em",
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
 function DropLine({ offset, position }: { offset: number; position: "top" | "bottom" }) {
   return (
     <span
@@ -632,6 +681,37 @@ function DropLine({ offset, position }: { offset: number; position: "top" | "bot
         pointerEvents: "none",
       }}
     />
+  );
+}
+
+function SectionLabel({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        marginTop: 18,
+        padding: "0 8px 4px 12px",
+        fontSize: 11.5,
+        fontWeight: 500,
+        color: "var(--ink-3)",
+        letterSpacing: "0.01em",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <span
+        style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+      >
+        {children}
+      </span>
+      {action !== undefined && <span style={{ marginLeft: "auto" }}>{action}</span>}
+    </div>
   );
 }
 
@@ -654,8 +734,8 @@ function RowButton({
         onClick();
       }}
       style={{
-        width: 22,
-        height: 22,
+        width: 20,
+        height: 20,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

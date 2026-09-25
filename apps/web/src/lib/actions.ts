@@ -1,8 +1,11 @@
 "use server";
 
 import {
+  acceptInvitation,
   archiveDocument,
   attachTag,
+  createFamily,
+  createPublicLink,
   createCollection,
   createDocument,
   deleteCollection,
@@ -11,19 +14,33 @@ import {
   emptyTrash,
   ensureTag,
   getDocumentById,
+  inviteToFamily,
   moveDocument,
+  removeMember,
+  removeShare,
+  renameFamily,
   renameDocument,
   renameTagName,
   restoreDocument,
+  revokeInvitation,
+  revokePublicLink,
   searchDocuments,
+  setMemberRole,
   toggleFavorite,
   updateCollection,
+  upsertShare,
+  userByEmail,
   type CollectionFilter,
   type CollectionView,
 } from "@nyanotion/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { assertCanWrite, requireViewer } from "./session";
+import {
+  assertCanWrite,
+  requireDocumentOwner,
+  requireFamilyAdmin,
+  requireViewer,
+} from "./session";
 
 /**
  * **모든 동작은 권한을 먼저 확인한다.**
@@ -184,4 +201,138 @@ export async function deleteCollectionAction(id: string): Promise<void> {
   await deleteCollection(id, viewer.spaceIds);
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+/* ------------------------------------------------------------------ 가족 */
+
+export async function createFamilyAction(name: string): Promise<void> {
+  const viewer = await requireViewer();
+  const { organizationId } = await createFamily({ name, ownerUserId: viewer.userId });
+  revalidatePath("/", "layout");
+  redirect(`/family/${organizationId}`);
+}
+
+export async function renameFamilyAction(organizationId: string, name: string): Promise<void> {
+  await requireFamilyAdmin(organizationId);
+  await renameFamily(organizationId, name);
+  revalidatePath("/", "layout");
+}
+
+/** 초대장을 만들고 링크를 돌려준다. 메일 발송은 아직 없다 — 링크를 직접 전한다. */
+export async function inviteToFamilyAction(
+  organizationId: string,
+  email: string,
+  role: string,
+): Promise<{ token: string }> {
+  const viewer = await requireFamilyAdmin(organizationId);
+  const token = await inviteToFamily({
+    organizationId,
+    email,
+    role: role === "admin" || role === "guest" ? role : "member",
+    inviterId: viewer.userId,
+  });
+  revalidatePath("/", "layout");
+  return { token };
+}
+
+export async function revokeInvitationAction(
+  organizationId: string,
+  invitationId: string,
+): Promise<void> {
+  await requireFamilyAdmin(organizationId);
+  await revokeInvitation(invitationId, organizationId);
+  revalidatePath("/", "layout");
+}
+
+export async function setMemberRoleAction(
+  organizationId: string,
+  userId: string,
+  role: string,
+): Promise<void> {
+  const viewer = await requireFamilyAdmin(organizationId);
+  // 자기 자신을 강등해 가족에 owner 가 없어지는 일을 막는다.
+  if (userId === viewer.userId && role !== "owner") {
+    throw new Error("자기 역할은 스스로 낮출 수 없습니다.");
+  }
+  await setMemberRole(organizationId, userId, role);
+  revalidatePath("/", "layout");
+}
+
+export async function removeMemberAction(organizationId: string, userId: string): Promise<void> {
+  const viewer = await requireFamilyAdmin(organizationId);
+  if (userId === viewer.userId) throw new Error("자기 자신을 내보낼 수 없습니다.");
+  await removeMember(organizationId, userId);
+  revalidatePath("/", "layout");
+}
+
+/** 초대 링크를 받아들인다. 로그인한 주소와 초대장 주소가 같아야 한다. */
+export async function acceptInvitationAction(
+  token: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const viewer = await requireViewer();
+  const result = await acceptInvitation(token, viewer.userId, viewer.email);
+  revalidatePath("/", "layout");
+  return result.ok ? { ok: true } : { ok: false, reason: result.reason };
+}
+
+/* ------------------------------------------------------------------ 공유 */
+
+/** 주소로 사람에게 공유한다. 아직 계정이 없으면 먼저 가족으로 초대해야 한다. */
+export async function shareWithPersonAction(
+  documentId: string,
+  email: string,
+  role: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  const viewer = await requireDocumentOwner(documentId);
+  const target = await userByEmail(email);
+  if (target === null) return { ok: false, reason: "no-account" };
+  if (target.id === viewer.userId) return { ok: false, reason: "self" };
+  await upsertShare({
+    documentId,
+    subjectType: "user",
+    subjectId: target.id,
+    role,
+    createdBy: viewer.userId,
+  });
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function shareWithFamilyAction(
+  documentId: string,
+  organizationId: string,
+  role: string,
+): Promise<void> {
+  const viewer = await requireDocumentOwner(documentId);
+  // 내가 속한 가족에만 열 수 있다.
+  if (!viewer.spaces.some((item) => item.organizationId === organizationId)) {
+    throw new Error("이 가족에 공유할 수 없습니다.");
+  }
+  await upsertShare({
+    documentId,
+    subjectType: "org",
+    subjectId: organizationId,
+    role,
+    createdBy: viewer.userId,
+  });
+  revalidatePath("/", "layout");
+}
+
+export async function removeShareAction(documentId: string, shareId: string): Promise<void> {
+  await requireDocumentOwner(documentId);
+  await removeShare(shareId, documentId);
+  revalidatePath("/", "layout");
+}
+
+export async function createPublicLinkAction(documentId: string): Promise<{ token: string }> {
+  const viewer = await requireDocumentOwner(documentId);
+  const token = await createPublicLink({ documentId, createdBy: viewer.userId });
+  revalidatePath("/", "layout");
+  return { token };
+}
+
+export async function revokePublicLinkAction(documentId: string, linkId: string): Promise<void> {
+  await requireDocumentOwner(documentId);
+  await revokePublicLink(linkId, documentId);
+  revalidatePath("/", "layout");
 }

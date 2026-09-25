@@ -10,7 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx scripts/smoke-access.ts"
+    "smoke": "tsx scripts/smoke-access.ts",
+    "smoke:family": "tsx scripts/smoke-family.ts"
   },
   "dependencies": {
     "@nyanotion/db": "workspace:*",

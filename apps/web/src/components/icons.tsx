@@ -180,3 +180,26 @@ export function CollectionIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 가족 — 사람 둘 */
+export function FamilyIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="6" cy="5.4" r="2.3" />
+      <path d="M1.9 13.4c0-2.3 1.8-3.8 4.1-3.8s4.1 1.5 4.1 3.8" />
+      <path d="M11 4.1a2.1 2.1 0 0 1 0 4M11.6 9.9c1.7.3 2.9 1.6 2.9 3.5" />
+    </Svg>
+  );
+}
+
+/** 공유 — 시안 03 의 상단 바 아이콘 */
+export function ShareIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M6.6 8.9 9.4 7.1M6.6 7.1 9.4 8.9" />
+      <circle cx="4.7" cy="8" r="1.9" />
+      <circle cx="11.3" cy="4.4" r="1.9" />
+      <circle cx="11.3" cy="11.6" r="1.9" />
+    </Svg>
+  );
+}

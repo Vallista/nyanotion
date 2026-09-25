@@ -1,5 +1,5 @@
 import { effectiveRole, spacesForUser, type SpaceAccess } from "@nyanotion/auth";
-import { getDocumentById, type Document } from "@nyanotion/db";
+import { getDocumentById, roleInFamily, type Document } from "@nyanotion/db";
 import { roleAllows, type DocumentRole } from "@nyanotion/shared";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
@@ -67,4 +67,22 @@ export async function assertCanWrite(
     throw new Error("이 문서를 고칠 권한이 없습니다.");
   }
   return viewer;
+}
+
+/**
+ * 가족 수준 행위(초대·역할 바꾸기·내보내기)는 owner 나 admin 만.
+ * **가족 역할과 문서 권한을 섞지 않는다** — 문서는 access.ts 가 따로 판정한다.
+ */
+export async function requireFamilyAdmin(organizationId: string): Promise<Viewer> {
+  const viewer = await requireViewer();
+  const role = await roleInFamily(organizationId, viewer.userId);
+  if (role !== "owner" && role !== "admin") {
+    throw new Error("이 가족을 관리할 권한이 없습니다.");
+  }
+  return viewer;
+}
+
+/** 문서를 공유·링크로 여는 건 그 문서의 owner 만. */
+export async function requireDocumentOwner(documentId: string): Promise<Viewer> {
+  return assertCanWrite(documentId, "owner");
 }
