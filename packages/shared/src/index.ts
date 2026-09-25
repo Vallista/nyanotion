@@ -1,3 +1,4 @@
+export * from "./ticket";
 export * from "./blocks";
 export * from "./position";
 

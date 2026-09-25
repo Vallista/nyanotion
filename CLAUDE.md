@@ -25,11 +25,19 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **공개 가입 없음.** 가입은 초대 토큰이 있어야만. `ALLOW_PUBLIC_SIGNUP` 을 true 로 만드는 코드 경로를 만들지 말 것.
 
 ### 콘텐츠
-- **M2부터 콘텐츠 원본은 `ydoc_state`(Yjs).** `content_json` 과 `text_plain` 은 저장 시마다 갱신하는 **파생값**이다. 검색·렌더·API·LLM 은 파생값만 본다 — CRDT 를 몰라야 한다.
-- **`text_plain` 은 애플리케이션이 만든다** (`packages/shared` 변환기 하나). DB 트리거로 만들지 않는다.
+- **콘텐츠 원본은 `ydoc_state`(Yjs).** `content_json` 과 `text_plain` 은 저장 시마다 갱신하는 **파생값**이다. 검색·렌더·API·LLM 은 파생값만 본다 — CRDT 를 몰라야 한다.
+- **본문을 쓰는 경로는 `apps/collab` 의 `saveYdoc()` 하나다.** 웹에서 본문을 저장하는 서버 액션을 만들지 말 것. `setContent()` 는 **씨앗·가져오기 전용**이며 Yjs 를 거치지 않으므로 사람이 편집 중인 문서에 쓰면 안 된다.
+- **`text_plain` 은 애플리케이션이 만든다** (`packages/shared` 의 `blocksToPlainText`). DB 트리거로 만들지 않는다.
 - **문서 삭제는 `archived_at` 로만.** 하드 삭제는 모래상자 비우기에서 하위 트리 통째로.
 - **형제 정렬은 fractional index(`position`).** 순번 재배열로 다른 행을 건드리지 말 것.
 - 사이드바 트리 조회에 `content_json`/`ydoc_state` 를 넣지 말 것 (무겁다). `title/icon/parent_id/position` 만.
+
+### 동기화 (M2~)
+- **표(ticket)로 붙는다.** `packages/shared/src/ticket.ts` 가 문서 하나·수십 초짜리 HMAC 표를 만들고, `/api/collab/ticket` 이 쿠키로 인증해 발급한다. **세션 토큰을 클라이언트 JS 로 내보내지 말 것** — 쿠키의 httpOnly 를 스스로 버리는 일이다.
+- 표가 있어도 `apps/collab` 이 소유권을 한 번 더 확인한다. M4 에서 이 자리가 `access.ts` 를 부르게 된다.
+- **동기화 서버 주소는 지금 페이지를 연 주소에서 만든다** (`NEXT_PUBLIC_COLLAB_PORT`). 집 서버는 주소가 여럿이라 못 박으면 폰에서 깨진다. 터널처럼 경로가 달라질 때만 `NEXT_PUBLIC_COLLAB_URL` 로 고정한다.
+- **`public/sw.js` 는 `/api/*` 를 절대 캐시하지 않는다.** 오래된 표를 돌려주면 동기화가 조용히 실패한다. 문서 내용도 캐시하지 않는다 — 그건 Yjs 가 IndexedDB 에 들고 있다.
+- Yjs fragment 이름은 `"prosemirror"` — `@blocknote/server-util` 의 기본값과 같아야 한다. 바꾸면 기존 문서를 못 읽는다.
 
 ### 에디터
 - **BlockNote UI 는 Ariakit 판(`@blocknote/ariakit`)이다.** Mantine 판은 쓰지 않는다 — `@mantine/core` 가 React 에 아직 없는 `useEffectEvent` 를 불러 빌드가 깨진다.

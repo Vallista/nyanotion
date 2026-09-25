@@ -9,6 +9,7 @@ import {
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
+import { bytea } from "./types";
 import { space } from "./app";
 
 /**
@@ -31,8 +32,8 @@ export const document = pgTable(
     icon: text("icon"),
     /** BlockNote 블록 트리. M1 원본, M2 부터 파생값. */
     contentJson: jsonb("content_json").notNull().default(sql`'[]'::jsonb`),
-    /** Yjs 상태. M2 부터 원본이 된다. */
-    ydocState: text("ydoc_state"),
+    /** Yjs 문서 상태. **M2 부터 이것이 원본이다** — content_json·text_plain 은 파생값. */
+    ydocState: bytea("ydoc_state"),
     /** 블록을 펼친 평문 — FTS·청킹·LLM 입력용 파생값. 애플리케이션이 만든다. */
     textPlain: text("text_plain").notNull().default(""),
     createdBy: text("created_by")

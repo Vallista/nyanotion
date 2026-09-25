@@ -12,6 +12,7 @@
     "db:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d postgres",
     "db:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
     "typecheck": "pnpm -r typecheck",
-    "db:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f postgres"
+    "db:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f postgres",
+    "dev:collab": "pnpm --filter @nyanotion/collab dev"
   }
 }

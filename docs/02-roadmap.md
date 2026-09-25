@@ -40,6 +40,7 @@
 - 개인 space 하나 안에서만 동작 — 문서별 권한은 M4
 
 ## M2 — 동기화 · 오프라인 · 설치 ★ 이번 설계의 중심
+### 동기화와 PWA ✅ (2026-09-25) · 터널은 도메인 정해지면
 - `apps/collab` (Hocuspocus) + 인증 훅
 - `content_json → ydoc_state` 전환, Yjs 를 원본으로
 - 클라이언트: `y-indexeddb` 로컬 영속 + `y-websocket` 동기화
@@ -50,6 +51,19 @@
 - Persistent Storage 요청 (알림 권한과 함께)
 
 **완료 기준** — **아이폰 홈 화면에서 앱으로 열리고, 비행기 모드에서 메모를 쓰고, 서버를 껐다 켜도 그 메모가 합쳐진다.** 데스크탑과 폰에서 같은 문서를 열어도 안 깨진다.
+
+확인한 것 (`pnpm --filter @nyanotion/collab smoke`, 11개 항목):
+- 표를 HTTP 로 발급받아 WebSocket 으로 붙는다
+- 기기 A 가 쓴 내용이 `ydoc_state` 에 남고 `content_json`·`text_plain` 이 파생된다
+- **빈 상태로 붙은 기기 B 가 같은 내용을 받는다** (기기 간 동기화)
+- 엉터리 표 · 다른 문서의 표 · 만료된 표는 전부 거절된다
+- `pnpm -r typecheck` · `pnpm build` 통과, `/install` `/offline` `/manifest.webmanifest` `/sw.js` 200
+- Tailscale 주소로도 로그인·표 발급·문서 열기가 된다
+
+**아직 안 한 것**
+- Cloudflare Tunnel + 도메인 — 도메인이 정해져야 한다
+- 그래서 **HTTPS 가 없어 서비스 워커·홈 화면 추가·영구 저장소를 실제로 확인하지 못했다.** 코드는 올라가 있고 터널이 붙는 순간 동작한다.
+- 오프라인 편집(비행기 모드)도 브라우저에서 사람 손으로 확인해야 한다 — 자동 검증은 기기 간 동기화까지
 
 ## M3 — 분류와 검색
 - 태그 CRUD, 문서에 달기, 태그 필터

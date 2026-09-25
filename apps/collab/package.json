@@ -1,0 +1,26 @@
+{
+  "name": "@nyanotion/collab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke-sync.ts"
+  },
+  "dependencies": {
+    "@blocknote/server-util": "^0.55.0",
+    "@hocuspocus/provider": "^4.7.0",
+    "@hocuspocus/server": "^4.7.0",
+    "@nyanotion/db": "workspace:*",
+    "@nyanotion/shared": "workspace:*",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "drizzle-orm": "^0.36.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

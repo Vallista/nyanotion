@@ -7,7 +7,6 @@ import {
   moveDocument,
   renameDocument,
   restoreDocument,
-  setContent,
 } from "@nyanotion/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -29,14 +28,6 @@ export async function renameDocumentAction(id: string, title: string): Promise<v
   const viewer = await requireViewer();
   await renameDocument(id, viewer.spaceId, title.slice(0, 300), viewer.userId);
   revalidatePath("/", "layout");
-}
-
-export async function saveContentAction(id: string, contentJson: unknown): Promise<{ title: string }> {
-  const viewer = await requireViewer();
-  const result = await setContent(id, viewer.spaceId, contentJson, viewer.userId);
-  // 사이드바 제목이 바뀔 수 있으므로 레이아웃을 다시 그린다.
-  revalidatePath("/", "layout");
-  return result;
 }
 
 export async function moveDocumentAction(

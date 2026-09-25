@@ -6,6 +6,7 @@ import { TopBar } from "@/components/top-bar";
 import { formatWhen } from "@/lib/format";
 import { requireViewer } from "@/lib/session";
 import { displayTitle, pathTo } from "@/lib/tree";
+import { userColor } from "@/lib/user-color";
 
 export default async function DocumentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,8 +31,8 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           key={doc.id}
           id={doc.id}
           initialTitle={doc.title}
-          initialContent={doc.contentJson}
           updatedAt={formatWhen(doc.updatedAt)}
+          user={{ name: viewer.name, color: userColor(viewer.userId) }}
         />
       </div>
     </>

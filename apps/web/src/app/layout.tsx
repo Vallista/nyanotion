@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans_KR } from "next/font/google";
 import "./globals.css";
+import { ServiceWorker } from "@/components/service-worker";
 
 const plexKr = IBM_Plex_Sans_KR({
   subsets: ["latin"],
@@ -17,8 +18,23 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nyanotion",
+  title: { default: "Nyanotion", template: "%s · Nyanotion" },
   description: "가족 문서 서버",
+  applicationName: "Nyanotion",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Nyanotion",
+    statusBarStyle: "default",
+  },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
@@ -31,7 +47,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko" className={`${plexKr.variable} ${plexMono.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <ServiceWorker />
+      </body>
     </html>
   );
 }

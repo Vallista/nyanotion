@@ -77,7 +77,11 @@ curl.exe -s -X POST http://localhost:3000/api/auth/sign-up/email `
 ## 매일 쓰는 명령
 
 ```powershell
-pnpm dev                 # web 개발 서버
+pnpm dev                 # web 개발 서버 (localhost:3000)
+pnpm dev:collab          # 동기화 서버 (apps/collab, ws 1234) — 문서 편집에 필요하다
+pnpm --filter @nyanotion/db smoke       # 문서 계층 점검
+pnpm --filter @nyanotion/collab smoke   # 동기화 점검 (위 둘이 떠 있어야 한다)
+pnpm --filter @nyanotion/web icons      # 앱 아이콘 다시 만들기
 pnpm db:generate         # 스키마 변경 → 마이그레이션 SQL 생성
 pnpm db:migrate          # 적용
 pnpm db:studio           # Drizzle Studio

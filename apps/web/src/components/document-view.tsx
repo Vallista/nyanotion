@@ -1,11 +1,12 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { renameDocumentAction, saveContentAction } from "@/lib/actions";
+import { useCallback, useState } from "react";
+import { renameDocumentAction } from "@/lib/actions";
 import { UNTITLED } from "@/lib/tree";
+import type { SyncState } from "./editor";
 
-// BlockNote 는 DOM 에 의존하므로 서버에서 렌더하지 않는다.
+// BlockNote 와 Yjs 는 DOM 에 의존하므로 서버에서 렌더하지 않는다.
 const Editor = dynamic(() => import("./editor").then((m) => m.Editor), {
   ssr: false,
   loading: () => (
@@ -13,70 +14,22 @@ const Editor = dynamic(() => import("./editor").then((m) => m.Editor), {
   ),
 });
 
-const SAVE_DELAY_MS = 800;
-
-type SaveState = "idle" | "dirty" | "saving" | "saved" | "failed";
-
 export function DocumentView({
   id,
   initialTitle,
-  initialContent,
   updatedAt,
+  user,
 }: {
   id: string;
   initialTitle: string;
-  initialContent: unknown;
   updatedAt: string;
+  user: { name: string; color: string };
 }) {
   const [title, setTitle] = useState(initialTitle);
-  const [state, setState] = useState<SaveState>("idle");
+  const [sync, setSync] = useState<SyncState>("opening");
 
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pending = useRef<unknown>(null);
-  const inFlight = useRef(false);
-
-  // 문서를 옮겨 다니면 초기값을 다시 잡는다.
-  useEffect(() => {
-    setTitle(initialTitle);
-    setState("idle");
-    pending.current = null;
-  }, [id, initialTitle]);
-
-  const flush = useCallback(async () => {
-    if (pending.current === null || inFlight.current) return;
-    const payload = pending.current;
-    pending.current = null;
-    inFlight.current = true;
-    setState("saving");
-    try {
-      const result = await saveContentAction(id, payload);
-      // 제목이 비어 있었으면 서버가 첫 줄로 채워 준다.
-      if (result.title !== "" && title.trim() === "") setTitle(result.title);
-      setState(pending.current === null ? "saved" : "dirty");
-    } catch {
-      setState("failed");
-    } finally {
-      inFlight.current = false;
-      if (pending.current !== null) void flush();
-    }
-  }, [id, title]);
-
-  const onContentChange = useCallback(
-    (blocks: unknown) => {
-      pending.current = blocks;
-      setState("dirty");
-      if (timer.current !== null) clearTimeout(timer.current);
-      timer.current = setTimeout(() => void flush(), SAVE_DELAY_MS);
-    },
-    [flush],
-  );
-
-  useEffect(
-    () => () => {
-      if (timer.current !== null) clearTimeout(timer.current);
-    },
-    [],
-  );
+  // Editor 가 useEffect 의존성으로 들고 있으므로 안정적이어야 한다.
+  const onSyncStateChange = useCallback((state: SyncState) => setSync(state), []);
 
   return (
     <article style={{ width: "100%", maxWidth: 720, margin: "0 auto", padding: "56px 16px 120px" }}>
@@ -116,30 +69,42 @@ export function DocumentView({
           }}
         >
           <span>{updatedAt}에 고침</span>
-          <SaveBadge state={state} />
+          <SyncBadge state={sync} />
         </div>
       </header>
 
-      <Editor initialContent={initialContent} onChange={onContentChange} />
+      {/* 본문 저장은 Yjs 가 한다 — 여기서 따로 저장하지 않는다. */}
+      <Editor documentId={id} user={user} onSyncStateChange={onSyncStateChange} />
     </article>
   );
 }
 
-function SaveBadge({ state }: { state: SaveState }) {
-  if (state === "idle") return null;
-  const label =
-    state === "dirty" ? "고치는 중"
-    : state === "saving" ? "저장 중"
-    : state === "saved" ? "저장됨"
-    : "저장 실패 — 다시 시도합니다";
-  const dot =
-    state === "saved" ? "dot dot-synced"
-    : state === "failed" ? "dot dot-offline"
-    : "dot dot-syncing";
+/** 상태는 색이 아니라 점의 모양으로 구분한다 — 시안 09. */
+function SyncBadge({ state }: { state: SyncState }) {
+  if (state === "opening") return null;
+
+  const { dot, label, strong } = describe(state);
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }} title={label}>
       <span className={dot} />
-      <span style={{ color: state === "failed" ? "var(--ink-2)" : "var(--ink-3)" }}>{label}</span>
+      <span style={{ color: strong ? "var(--ink-2)" : "var(--ink-3)" }}>{label}</span>
     </span>
   );
+}
+
+function describe(state: Exclude<SyncState, "opening">): {
+  dot: string;
+  label: string;
+  strong: boolean;
+} {
+  switch (state) {
+    case "synced":
+      return { dot: "dot dot-synced", label: "동기화됨", strong: false };
+    case "connecting":
+      return { dot: "dot dot-syncing", label: "맞추는 중", strong: false };
+    case "offline":
+      return { dot: "dot dot-offline", label: "이 기기에 저장 중", strong: false };
+    case "denied":
+      return { dot: "dot dot-offline", label: "서버가 이 문서를 거절했습니다", strong: true };
+  }
 }

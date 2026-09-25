@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ChevronRight,
   DotsIcon,
+  InstallIcon,
   LitterBoxIcon,
   PageIcon,
   PlusIcon,
@@ -281,6 +282,7 @@ export function Sidebar({
           label="모래상자"
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
         />
+        <SideLink href="/install" icon={<InstallIcon />} label="앱으로 설치" />
         <div
           style={{
             display: "flex",

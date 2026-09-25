@@ -134,3 +134,14 @@ export function SidebarIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 홈 화면에 추가 — 기기에 내려받는 모양 */
+export function InstallIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M8 2.6v7.2" />
+      <path d="m5.2 7.2 2.8 2.6 2.8-2.6" />
+      <path d="M3 10.6v1.8a1.2 1.2 0 0 0 1.2 1.2h7.6a1.2 1.2 0 0 0 1.2-1.2v-1.8" />
+    </Svg>
+  );
+}
