@@ -33,6 +33,7 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **`text_plain` 은 애플리케이션이 만든다** (`packages/shared` 의 `blocksToPlainText`). DB 트리거로 만들지 않는다.
 - **문서 삭제는 `archived_at` 로만.** 하드 삭제는 모래상자 비우기에서 하위 트리 통째로.
 - **형제 정렬은 fractional index(`position`).** 순번 재배열로 다른 행을 건드리지 말 것.
+- **`position` 칼럼은 `COLLATE "C"` 여야 한다** (마이그레이션 0007). fractional index 는 바이트 순서를 전제하는데 이 DB 의 기본 콜레이션은 `'a0' < 'Zz'` 로 본다 — 맨 앞에 끼울 때 나오는 키가 `'Zz'` 꼴이라 순서가 조용히 뒤집힌다. 새 정렬 칼럼을 만들면 똑같이 해 줄 것.
 - 사이드바 트리 조회에 `content_json`/`ydoc_state` 를 넣지 말 것 (무겁다). `title/icon/parent_id/position` 만.
 
 ### 검색 (M3~)

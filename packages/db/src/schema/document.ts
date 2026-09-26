@@ -26,6 +26,12 @@ export const document = pgTable(
     /** 하위 트리는 부모가 하드 삭제될 때 같이 사라진다 (모래상자 비우기). */
     parentId: text("parent_id").references((): AnyPgColumn => document.id, { onDelete: "cascade" }),
     /** 형제 사이 정렬. fractional index — 끼워 넣을 때 다른 행을 건드리지 않는다. */
+    /**
+     * **이 칼럼은 `COLLATE "C"` 다** (마이그레이션 0007). fractional index 는 바이트 순서를
+     * 전제하는데 이 DB 의 기본 콜레이션(Korean_Korea.949)은 'a0' 를 'Zz' 보다 앞에 놓는다 —
+     * 맨 앞에 끼울 때 나오는 키가 바로 'Zz' 꼴이라 순서가 뒤집힌다. Drizzle 로는 표현이 안 되니
+     * 스키마를 새로 만들 때 0007 을 잊지 말 것.
+     */
     position: text("position").notNull(),
     type: text("type").notNull().default("page"),
     title: text("title").notNull().default(""),

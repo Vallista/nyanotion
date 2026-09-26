@@ -5,3 +5,4 @@ export * from "./document";
 export * from "./tagging";
 export * from "./sharing";
 export * from "./settings";
+export * from "./properties";

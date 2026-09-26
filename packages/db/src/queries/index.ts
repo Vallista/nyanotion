@@ -7,6 +7,7 @@ export {
   listCollections,
   updateCollection,
   type CollectionFilter,
+  type CollectionSource,
   type CollectionSummary,
   type CollectionView,
 } from "./collections";
@@ -82,3 +83,21 @@ export {
   setSetting,
   type GpuMode,
 } from "./settings";
+export {
+  addProperty,
+  addToCollection,
+  collectionOfProperty,
+  collectionSource,
+  deleteProperty,
+  ensureSelectOption,
+  listCollectionItems,
+  listProperties,
+  moveInCollection,
+  removeFromCollection,
+  selectOptions,
+  setPropertyValue,
+  updateProperty,
+  valuesForDocuments,
+  type PropertyDef,
+  type SelectOption,
+} from "./properties";

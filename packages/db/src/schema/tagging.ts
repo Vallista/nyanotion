@@ -70,6 +70,12 @@ export const collection = pgTable(
     /** { field: 'updatedAt'|'title', direction: 'asc'|'desc' } */
     sortJson: jsonb("sort_json").notNull().default({}),
     view: text("view").notNull().default("list"),
+    /**
+     * 줄을 어디서 가져오나.
+     *   'filter' — 조건에 맞는 문서를 보여 준다 (문서를 소유하지 않는다)
+     *   'manual' — collection_item 에 손으로 담은 것만. 노션의 데이터베이스가 이쪽이다.
+     */
+    source: text("source").notNull().default("filter"),
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id),

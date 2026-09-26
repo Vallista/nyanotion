@@ -10,11 +10,15 @@ import { collection, type Collection } from "../schema/index";
 
 export type CollectionFilter = { tagIds: string[]; query: string };
 export type CollectionView = "list" | "table";
+/** 줄을 어디서 가져오나 — 조건(filter)인가, 손으로 담은 것(manual)인가. */
+export type CollectionSource = "filter" | "manual";
 
 export type CollectionSummary = {
   id: string;
   name: string;
+  spaceId: string;
   view: CollectionView;
+  source: CollectionSource;
   filter: CollectionFilter;
 };
 
@@ -32,11 +36,17 @@ function readView(value: unknown): CollectionView {
   return value === "table" ? "table" : "list";
 }
 
+function readSource(value: unknown): CollectionSource {
+  return value === "manual" ? "manual" : "filter";
+}
+
 function toSummary(row: Collection): CollectionSummary {
   return {
     id: row.id,
     name: row.name,
+    spaceId: row.spaceId,
     view: readView(row.view),
+    source: readSource(row.source),
     filter: readFilter(row.filterJson),
   };
 }
@@ -73,6 +83,7 @@ export async function createCollection(input: {
   name: string;
   filter: CollectionFilter;
   view?: CollectionView;
+  source?: CollectionSource;
 }): Promise<string> {
   const id = newId();
   await db.insert(collection).values({
@@ -82,6 +93,7 @@ export async function createCollection(input: {
     filterJson: input.filter,
     sortJson: { field: "updatedAt", direction: "desc" },
     view: input.view ?? "list",
+    source: input.source ?? "filter",
     createdBy: input.userId,
   });
   return id;
