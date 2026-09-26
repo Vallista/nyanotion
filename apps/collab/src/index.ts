@@ -1,4 +1,5 @@
 import { ServerBlockNoteEditor } from "@blocknote/server-util";
+import { serverSchema } from "@nyanotion/editor-schema";
 import { Server } from "@hocuspocus/server";
 import { canWrite } from "@nyanotion/auth";
 import { getDocumentById, loadEnv, saveYdoc, type Document } from "@nyanotion/db";
@@ -23,7 +24,9 @@ const DEBOUNCE_MS = Number(process.env.COLLAB_DEBOUNCE_MS ?? 2000);
 /** 조용해지지 않아도 이 간격으로는 반드시 저장한다. */
 const MAX_DEBOUNCE_MS = Number(process.env.COLLAB_MAX_DEBOUNCE_MS ?? 10000);
 
-const converter = ServerBlockNoteEditor.create();
+// **브라우저와 같은 스키마**로 연다. 기본 스키마로 열면 `database` 같은 사용자 정의 블록을
+// 모르고 지나쳐 content_json 에서 사라진다 — packages/editor-schema 참고.
+const converter = ServerBlockNoteEditor.create({ schema: serverSchema });
 
 const secret = process.env.BETTER_AUTH_SECRET;
 if (secret === undefined || secret === "") {

@@ -203,3 +203,12 @@ export function ShareIcon(p: IconProps) {
     </Svg>
   );
 }
+
+export function TableIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <rect x="2.4" y="3.2" width="11.2" height="9.6" rx="1.2" />
+      <path d="M2.4 6.4h11.2M6.4 6.4v6.4" />
+    </Svg>
+  );
+}

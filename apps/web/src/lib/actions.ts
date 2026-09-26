@@ -391,6 +391,37 @@ export async function createDatabaseAction(name: string, spaceId?: string): Prom
   redirect(`/c/${id}`);
 }
 
+/**
+ * 본문 안에 끼울 표를 하나 만들고 **id 를 돌려준다**. 화면을 옮기지 않는다 —
+ * 부르는 쪽(에디터 블록)이 그 id 를 블록 속성에 적어야 하기 때문이다.
+ *
+ * 표는 문서와 같은 공간에 만든다. 그래야 문서를 볼 수 있는 사람이 표도 볼 수 있다.
+ */
+export async function createInlineDatabaseAction(
+  documentId: string,
+  name: string,
+): Promise<{ collectionId: string }> {
+  await assertCanWrite(documentId);
+  const viewer = await requireViewer();
+
+  const doc = await getDocumentById(documentId);
+  if (doc === null) throw new Error("문서를 찾을 수 없습니다.");
+  if (!viewer.spaceIds.includes(doc.spaceId)) throw new Error("이 공간에 표를 만들 수 없습니다.");
+
+  const collectionId = await createCollection({
+    spaceId: doc.spaceId,
+    userId: viewer.userId,
+    name: name.trim() === "" ? "표" : name.trim(),
+    filter: { tagIds: [], query: "" },
+    view: "table",
+    source: "manual",
+  });
+  await addProperty({ collectionId, name: "상태", type: "select" });
+  await addProperty({ collectionId, name: "메모", type: "text" });
+  revalidatePath("/", "layout");
+  return { collectionId };
+}
+
 /** 이 모음이 내가 들어갈 수 있는 공간의 것인지 확인하고 그 공간 id 를 돌려준다. */
 async function collectionSpace(collectionId: string): Promise<{ viewer: Viewer; spaceId: string }> {
   const viewer = await requireViewer();

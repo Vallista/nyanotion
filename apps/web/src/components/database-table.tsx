@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  useTransition,
+} from "react";
 import {
   addPropertyAction,
   addRowAction,
@@ -16,7 +22,8 @@ import {
 import { displayTitle } from "@/lib/tree";
 import { DotsIcon, PageIcon, PlusIcon } from "./icons";
 
-export type PropertyType = "text" | "number" | "select" | "date" | "checkbox" | "url" | "person";
+export type PropertyType =
+  "text" | "number" | "select" | "date" | "checkbox" | "url" | "person";
 
 export type Column = {
   id: string;
@@ -30,6 +37,18 @@ export type Row = {
   title: string;
   values: Record<string, unknown>;
 };
+
+/**
+ * 표가 바뀌었다고 알리는 길.
+ *
+ * 모음 페이지에서는 서버 액션의 revalidate 가 알아서 다시 그리므로 아무것도 하지 않는다.
+ * 본문에 끼운 표(InlineDatabase)는 브라우저에서 제 데이터를 따로 받아 오므로, 이 신호를 받아
+ * 다시 받아 온다. 그래서 자식들이 고칠 때마다 여기를 부른다.
+ */
+const TableChanged = createContext<() => void>(() => {});
+function useTableChanged(): () => void {
+  return useContext(TableChanged);
+}
 
 const TYPE_LABELS: Record<PropertyType, string> = {
   text: "글",
@@ -52,15 +71,22 @@ export function DatabaseTable({
   rows,
   people,
   canWrite,
+  onChanged,
 }: {
   collectionId: string;
   columns: Column[];
   rows: Row[];
   people: { id: string; name: string }[];
   canWrite: boolean;
+  /** 본문에 끼운 표처럼 스스로 데이터를 받아 오는 쪽이 준다. 모음 페이지는 주지 않는다. */
+  onChanged?: () => void;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const changed = useCallback(() => {
+    router.refresh();
+    onChanged?.();
+  }, [router, onChanged]);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [rowMenuFor, setRowMenuFor] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -75,182 +101,225 @@ export function DatabaseTable({
     }
     startTransition(async () => {
       await addRowAction(collectionId, clean);
-      router.refresh();
+      changed();
     });
   }
 
   return (
-    <div>
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}>
-          <thead>
-            <tr>
-              <th style={headStyle} />
-              <th style={{ ...headStyle, minWidth: 200 }}>제목</th>
-              {columns.map((column) => (
-                <th key={column.id} style={{ ...headStyle, minWidth: 120, position: "relative" }}>
-                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+    <TableChanged.Provider value={changed}>
+      <div>
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{ width: "100%", borderCollapse: "collapse", minWidth: 560 }}
+          >
+            <thead>
+              <tr>
+                <th style={headStyle} />
+                <th style={{ ...headStyle, minWidth: 200 }}>제목</th>
+                {columns.map((column) => (
+                  <th
+                    key={column.id}
+                    style={{
+                      ...headStyle,
+                      minWidth: 120,
+                      position: "relative",
+                    }}
+                  >
                     <span
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      {column.name}
+                      <span
+                        style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {column.name}
+                      </span>
+                      <span
+                        style={{
+                          color: "var(--ink-4)",
+                          fontSize: 10,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {TYPE_LABELS[column.type]}
+                      </span>
+                      {canWrite && (
+                        <button
+                          aria-label={`${column.name} 설정`}
+                          onClick={() =>
+                            setMenuFor((v) =>
+                              v === column.id ? null : column.id,
+                            )
+                          }
+                          style={{
+                            marginLeft: "auto",
+                            color: "var(--ink-4)",
+                            padding: 2,
+                          }}
+                        >
+                          <DotsIcon size={12} />
+                        </button>
+                      )}
                     </span>
-                    <span style={{ color: "var(--ink-4)", fontSize: 10, flexShrink: 0 }}>
-                      {TYPE_LABELS[column.type]}
-                    </span>
+                    {menuFor === column.id && (
+                      <ColumnMenu
+                        collectionId={collectionId}
+                        column={column}
+                        onClose={() => setMenuFor(null)}
+                      />
+                    )}
+                  </th>
+                ))}
+                {canWrite && (
+                  <th style={{ ...headStyle, width: 36 }}>
+                    <AddColumnButton collectionId={collectionId} />
+                  </th>
+                )}
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((row, index) => (
+                <tr
+                  key={row.documentId}
+                  style={{ borderBottom: "1px solid var(--line-soft)" }}
+                >
+                  <td style={{ ...cellStyle, width: 28, position: "relative" }}>
                     {canWrite && (
                       <button
-                        aria-label={`${column.name} 설정`}
-                        onClick={() => setMenuFor((v) => (v === column.id ? null : column.id))}
-                        style={{ marginLeft: "auto", color: "var(--ink-4)", padding: 2 }}
+                        aria-label="줄 설정"
+                        onClick={() =>
+                          setRowMenuFor((v) =>
+                            v === row.documentId ? null : row.documentId,
+                          )
+                        }
+                        style={{ color: "var(--ink-4)", padding: 2 }}
                       >
                         <DotsIcon size={12} />
                       </button>
                     )}
-                  </span>
-                  {menuFor === column.id && (
-                    <ColumnMenu
-                      collectionId={collectionId}
-                      column={column}
-                      onClose={() => setMenuFor(null)}
-                    />
-                  )}
-                </th>
-              ))}
-              {canWrite && (
-                <th style={{ ...headStyle, width: 36 }}>
-                  <AddColumnButton collectionId={collectionId} />
-                </th>
-              )}
-            </tr>
-          </thead>
-
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.documentId} style={{ borderBottom: "1px solid var(--line-soft)" }}>
-                <td style={{ ...cellStyle, width: 28, position: "relative" }}>
-                  {canWrite && (
-                    <button
-                      aria-label="줄 설정"
-                      onClick={() =>
-                        setRowMenuFor((v) => (v === row.documentId ? null : row.documentId))
-                      }
-                      style={{ color: "var(--ink-4)", padding: 2 }}
-                    >
-                      <DotsIcon size={12} />
-                    </button>
-                  )}
-                  {rowMenuFor === row.documentId && (
-                    <RowMenu
-                      collectionId={collectionId}
-                      documentId={row.documentId}
-                      canMoveUp={index > 0}
-                      previousId={index > 1 ? (rows[index - 2]?.documentId ?? null) : null}
-                      canMoveDown={index < rows.length - 1}
-                      nextId={rows[index + 1]?.documentId ?? null}
-                      onClose={() => setRowMenuFor(null)}
-                    />
-                  )}
-                </td>
-
-                <td style={cellStyle}>
-                  <Link
-                    href={`/d/${row.documentId}`}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      border: 0,
-                      color: "var(--ink)",
-                      fontSize: 14,
-                    }}
-                  >
-                    <span style={{ display: "flex", color: "var(--ink-4)" }}>
-                      <PageIcon size={14} />
-                    </span>
-                    {displayTitle(row.title)}
-                  </Link>
-                </td>
-
-                {columns.map((column) => (
-                  <td key={column.id} style={cellStyle}>
-                    <Cell
-                      collectionId={collectionId}
-                      documentId={row.documentId}
-                      column={column}
-                      value={row.values[column.id]}
-                      people={people}
-                      canWrite={canWrite}
-                    />
+                    {rowMenuFor === row.documentId && (
+                      <RowMenu
+                        collectionId={collectionId}
+                        documentId={row.documentId}
+                        canMoveUp={index > 0}
+                        previousId={
+                          index > 1
+                            ? (rows[index - 2]?.documentId ?? null)
+                            : null
+                        }
+                        canMoveDown={index < rows.length - 1}
+                        nextId={rows[index + 1]?.documentId ?? null}
+                        onClose={() => setRowMenuFor(null)}
+                      />
+                    )}
                   </td>
-                ))}
-                {canWrite && <td style={cellStyle} />}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
 
-      {canWrite && (
-        <div style={{ marginTop: 6 }}>
-          {adding ? (
-            <input
-              autoFocus
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onBlur={() => addRow(draft)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") addRow(event.currentTarget.value);
-                if (event.key === "Escape") {
-                  setDraft("");
-                  setAdding(false);
-                }
-              }}
-              placeholder="무엇을 더할까요"
-              aria-label="새 줄 제목"
-              style={{
-                width: "100%",
-                maxWidth: 320,
-                height: 30,
-                padding: "0 8px",
-                borderRadius: "var(--radius)",
-                border: "1px solid var(--accent)",
-                background: "var(--card)",
-                fontSize: 13.5,
-                outline: "none",
-              }}
-            />
-          ) : (
-            <button
-              onClick={() => setAdding(true)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                height: 30,
-                padding: "0 8px",
-                borderRadius: "var(--radius)",
-                fontSize: 13,
-                color: "var(--ink-3)",
-              }}
-            >
-              <PlusIcon size={13} />
-              줄 추가
-            </button>
-          )}
+                  <td style={cellStyle}>
+                    <Link
+                      href={`/d/${row.documentId}`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        border: 0,
+                        color: "var(--ink)",
+                        fontSize: 14,
+                      }}
+                    >
+                      <span style={{ display: "flex", color: "var(--ink-4)" }}>
+                        <PageIcon size={14} />
+                      </span>
+                      {displayTitle(row.title)}
+                    </Link>
+                  </td>
+
+                  {columns.map((column) => (
+                    <td key={column.id} style={cellStyle}>
+                      <Cell
+                        collectionId={collectionId}
+                        documentId={row.documentId}
+                        column={column}
+                        value={row.values[column.id]}
+                        people={people}
+                        canWrite={canWrite}
+                      />
+                    </td>
+                  ))}
+                  {canWrite && <td style={cellStyle} />}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
 
-      {rows.length === 0 && !adding && (
-        <p style={{ fontSize: 13, color: "var(--ink-3)", marginTop: 14, lineHeight: 1.75 }}>
-          아직 줄이 없어요. 줄 하나가 문서라서, 눌러 열면 본문에 메모를 쓸 수 있습니다.
-        </p>
-      )}
-    </div>
+        {canWrite && (
+          <div style={{ marginTop: 6 }}>
+            {adding ? (
+              <input
+                autoFocus
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                onBlur={() => addRow(draft)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") addRow(event.currentTarget.value);
+                  if (event.key === "Escape") {
+                    setDraft("");
+                    setAdding(false);
+                  }
+                }}
+                placeholder="무엇을 더할까요"
+                aria-label="새 줄 제목"
+                style={{
+                  width: "100%",
+                  maxWidth: 320,
+                  height: 30,
+                  padding: "0 8px",
+                  borderRadius: "var(--radius)",
+                  border: "1px solid var(--accent)",
+                  background: "var(--card)",
+                  fontSize: 13.5,
+                  outline: "none",
+                }}
+              />
+            ) : (
+              <button
+                onClick={() => setAdding(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  height: 30,
+                  padding: "0 8px",
+                  borderRadius: "var(--radius)",
+                  fontSize: 13,
+                  color: "var(--ink-3)",
+                }}
+              >
+                <PlusIcon size={13} />줄 추가
+              </button>
+            )}
+          </div>
+        )}
+
+        {rows.length === 0 && !adding && (
+          <p
+            style={{
+              fontSize: 13,
+              color: "var(--ink-3)",
+              marginTop: 14,
+              lineHeight: 1.75,
+            }}
+          >
+            아직 줄이 없어요. 줄 하나가 문서라서, 눌러 열면 본문에 메모를 쓸 수
+            있습니다.
+          </p>
+        )}
+      </div>
+    </TableChanged.Provider>
   );
 }
 
@@ -272,9 +341,13 @@ function Cell({
   canWrite: boolean;
 }) {
   const [, startTransition] = useTransition();
+  const changed = useTableChanged();
 
   function save(next: unknown) {
-    startTransition(() => void setValueAction(collectionId, documentId, column.id, next));
+    startTransition(async () => {
+      await setValueAction(collectionId, documentId, column.id, next);
+      changed();
+    });
   }
 
   if (column.type === "checkbox") {
@@ -292,7 +365,8 @@ function Cell({
 
   if (column.type === "select") {
     const current = typeof value === "string" ? value : "";
-    const currentName = column.options.find((o) => o.id === current)?.name ?? "";
+    const currentName =
+      column.options.find((o) => o.id === current)?.name ?? "";
     if (!canWrite) return <Chip>{currentName}</Chip>;
     return (
       <SelectCell
@@ -300,9 +374,15 @@ function Cell({
         currentId={current}
         currentName={currentName}
         onPick={(name) =>
-          startTransition(
-            () => void setSelectValueAction(collectionId, documentId, column.id, name),
-          )
+          startTransition(async () => {
+            await setSelectValueAction(
+              collectionId,
+              documentId,
+              column.id,
+              name,
+            );
+            changed();
+          })
         }
       />
     );
@@ -310,11 +390,14 @@ function Cell({
 
   if (column.type === "person") {
     const current = typeof value === "string" ? value : "";
-    if (!canWrite) return <Chip>{people.find((p) => p.id === current)?.name ?? ""}</Chip>;
+    if (!canWrite)
+      return <Chip>{people.find((p) => p.id === current)?.name ?? ""}</Chip>;
     return (
       <select
         value={current}
-        onChange={(event) => save(event.target.value === "" ? null : event.target.value)}
+        onChange={(event) =>
+          save(event.target.value === "" ? null : event.target.value)
+        }
         aria-label={column.name}
         style={selectStyle}
       >
@@ -340,22 +423,39 @@ function Cell({
   if (!canWrite) {
     if (column.type === "url" && text !== "") {
       return (
-        <a href={text} target="_blank" rel="noreferrer nofollow" style={{ fontSize: 13 }}>
+        <a
+          href={text}
+          target="_blank"
+          rel="noreferrer nofollow"
+          style={{ fontSize: 13 }}
+        >
           {text}
         </a>
       );
     }
-    return <span style={{ fontSize: 13.5, color: "var(--ink-2)" }}>{format(column, text)}</span>;
+    return (
+      <span style={{ fontSize: 13.5, color: "var(--ink-2)" }}>
+        {format(column, text)}
+      </span>
+    );
   }
 
   return (
     <input
-      type={column.type === "number" ? "number" : column.type === "date" ? "date" : "text"}
+      type={
+        column.type === "number"
+          ? "number"
+          : column.type === "date"
+            ? "date"
+            : "text"
+      }
       defaultValue={text}
       onBlur={(event) => {
         const raw = event.currentTarget.value;
         if (raw === text) return;
-        save(column.type === "number" ? (raw === "" ? null : Number(raw)) : raw);
+        save(
+          column.type === "number" ? (raw === "" ? null : Number(raw)) : raw,
+        );
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter") event.currentTarget.blur();
@@ -478,12 +578,16 @@ function ColumnMenu({
   onClose: () => void;
 }) {
   const [, startTransition] = useTransition();
+  const changed = useTableChanged();
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
   return (
     <>
-      <span onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 25 }} />
+      <span
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 25 }}
+      />
       <span style={menuStyle}>
         {renaming ? (
           <input
@@ -493,9 +597,12 @@ function ColumnMenu({
               const next = event.currentTarget.value.trim();
               onClose();
               if (next !== "" && next !== column.name) {
-                startTransition(
-                  () => void updatePropertyAction(collectionId, column.id, { name: next }),
-                );
+                startTransition(async () => {
+                  await updatePropertyAction(collectionId, column.id, {
+                    name: next,
+                  });
+                  changed();
+                });
               }
             }}
             onKeyDown={(event) => {
@@ -517,34 +624,49 @@ function ColumnMenu({
           </button>
         )}
 
-        <span style={{ fontSize: 11, color: "var(--ink-3)", padding: "6px 8px 2px" }}>종류</span>
+        <span
+          style={{
+            fontSize: 11,
+            color: "var(--ink-3)",
+            padding: "6px 8px 2px",
+          }}
+        >
+          종류
+        </span>
         {(Object.keys(TYPE_LABELS) as PropertyType[]).map((type) => (
           <button
             key={type}
             onClick={() => {
               onClose();
               if (type !== column.type) {
-                startTransition(
-                  () => void updatePropertyAction(collectionId, column.id, { type }),
-                );
+                startTransition(async () => {
+                  await updatePropertyAction(collectionId, column.id, { type });
+                  changed();
+                });
               }
             }}
             style={{
               ...menuItemStyle,
               color: type === column.type ? "var(--ink)" : "var(--ink-2)",
-              background: type === column.type ? "var(--accent-soft)" : "transparent",
+              background:
+                type === column.type ? "var(--accent-soft)" : "transparent",
             }}
           >
             {TYPE_LABELS[type]}
           </button>
         ))}
 
-        <span style={{ height: 1, background: "var(--line-soft)", margin: "4px 0" }} />
+        <span
+          style={{ height: 1, background: "var(--line-soft)", margin: "4px 0" }}
+        />
         {confirming ? (
           <button
             onClick={() => {
               onClose();
-              startTransition(() => void deletePropertyAction(collectionId, column.id));
+              startTransition(async () => {
+                await deletePropertyAction(collectionId, column.id);
+                changed();
+              });
             }}
             style={{ ...menuItemStyle, color: "var(--ink)" }}
           >
@@ -555,7 +677,14 @@ function ColumnMenu({
             속성 지우기
           </button>
         )}
-        <span style={{ fontSize: 11, lineHeight: 1.6, color: "var(--ink-3)", padding: "2px 8px 4px" }}>
+        <span
+          style={{
+            fontSize: 11,
+            lineHeight: 1.6,
+            color: "var(--ink-3)",
+            padding: "2px 8px 4px",
+          }}
+        >
           값도 함께 사라집니다. 문서는 남아요.
         </span>
       </span>
@@ -581,16 +710,23 @@ function RowMenu({
   onClose: () => void;
 }) {
   const [, startTransition] = useTransition();
+  const changed = useTableChanged();
 
   return (
     <>
-      <span onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 25 }} />
+      <span
+        onClick={onClose}
+        style={{ position: "fixed", inset: 0, zIndex: 25 }}
+      />
       <span style={{ ...menuStyle, left: 0, right: "auto", minWidth: 150 }}>
         {canMoveUp && (
           <button
             onClick={() => {
               onClose();
-              startTransition(() => void moveRowAction(collectionId, documentId, previousId));
+              startTransition(async () => {
+                await moveRowAction(collectionId, documentId, previousId);
+                changed();
+              });
             }}
             style={menuItemStyle}
           >
@@ -601,24 +737,39 @@ function RowMenu({
           <button
             onClick={() => {
               onClose();
-              startTransition(() => void moveRowAction(collectionId, documentId, nextId));
+              startTransition(async () => {
+                await moveRowAction(collectionId, documentId, nextId);
+                changed();
+              });
             }}
             style={menuItemStyle}
           >
             아래로
           </button>
         )}
-        <span style={{ height: 1, background: "var(--line-soft)", margin: "4px 0" }} />
+        <span
+          style={{ height: 1, background: "var(--line-soft)", margin: "4px 0" }}
+        />
         <button
           onClick={() => {
             onClose();
-            startTransition(() => void removeRowAction(collectionId, documentId));
+            startTransition(async () => {
+              await removeRowAction(collectionId, documentId);
+              changed();
+            });
           }}
           style={menuItemStyle}
         >
           표에서 빼기
         </button>
-        <span style={{ fontSize: 11, lineHeight: 1.6, color: "var(--ink-3)", padding: "2px 8px 4px" }}>
+        <span
+          style={{
+            fontSize: 11,
+            lineHeight: 1.6,
+            color: "var(--ink-3)",
+            padding: "2px 8px 4px",
+          }}
+        >
           문서는 남습니다. 지우려면 문서를 열어 모래상자로.
         </span>
       </span>
@@ -629,6 +780,7 @@ function RowMenu({
 function AddColumnButton({ collectionId }: { collectionId: string }) {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const changed = useTableChanged();
 
   return (
     <span style={{ position: "relative", display: "flex" }}>
@@ -642,16 +794,24 @@ function AddColumnButton({ collectionId }: { collectionId: string }) {
       </button>
       {open && (
         <>
-          <span onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 25 }} />
+          <span
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 25 }}
+          />
           <span style={menuStyle}>
             {(Object.keys(TYPE_LABELS) as PropertyType[]).map((type) => (
               <button
                 key={type}
                 onClick={() => {
                   setOpen(false);
-                  startTransition(
-                    () => void addPropertyAction(collectionId, TYPE_LABELS[type], type),
-                  );
+                  startTransition(async () => {
+                    await addPropertyAction(
+                      collectionId,
+                      TYPE_LABELS[type],
+                      type,
+                    );
+                    changed();
+                  });
                 }}
                 style={menuItemStyle}
               >

@@ -39,6 +39,28 @@ export async function requireViewer(): Promise<Viewer> {
 }
 
 /**
+ * 로그인했으면 누구인지, 아니면 null. **리다이렉트하지 않는다** —
+ * 공개 링크처럼 로그인 없이도 되는 길에서 쓴다.
+ */
+export async function optionalViewer(): Promise<Viewer | null> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session === null) return null;
+
+  const spaces = await spacesForUser(session.user.id);
+  const personalSpace = spaces.find((item) => item.kind === "personal");
+  if (personalSpace === undefined) return null;
+
+  return {
+    userId: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    spaces,
+    personalSpace,
+    spaceIds: spaces.map((item) => item.id),
+  };
+}
+
+/**
  * 문서 하나를 권한과 함께 가져온다. **문서에 닿는 모든 경로가 여기를 지나야 한다.**
  *
  * 권한이 없으면 404 로 끝낸다 — 403 과 구분하면 "그 문서가 있긴 하다"를 알려 주게 된다.

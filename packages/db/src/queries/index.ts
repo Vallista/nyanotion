@@ -1,6 +1,12 @@
 export { createPersonalSpace, hasOpenInvitation, isFirstUser } from "./accounts";
 export { saveYdoc } from "./collab";
 export {
+  createAttachment,
+  documentIsPubliclyShared,
+  getAttachment,
+  type AttachmentRow,
+} from "./attachments";
+export {
   createCollection,
   deleteCollection,
   getCollection,

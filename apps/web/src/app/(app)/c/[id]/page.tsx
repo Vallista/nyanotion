@@ -1,21 +1,11 @@
-import {
-  familyMembers,
-  getCollection,
-  listCollectionItems,
-  listProperties,
-  listTags,
-  searchDocuments,
-  selectOptions,
-  tagsForDocuments,
-  valuesForDocuments,
-} from "@nyanotion/db";
+import { getCollection, listTags, searchDocuments, tagsForDocuments } from "@nyanotion/db";
 import { notFound } from "next/navigation";
 import { CollectionActions } from "@/components/collection-actions";
-import { DatabaseTable, type Column, type Row } from "@/components/database-table";
+import { DatabaseTable } from "@/components/database-table";
 import { DocumentTable } from "@/components/document-table";
 import { TopBar } from "@/components/top-bar";
+import { loadDatabaseView } from "@/lib/collection-view";
 import { requireViewer } from "@/lib/session";
-import { getDocumentById } from "@nyanotion/db";
 
 /**
  * 모음. 두 종류다.
@@ -30,36 +20,12 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
   if (saved === null) notFound();
 
   const space = viewer.spaces.find((item) => item.id === saved.spaceId);
-  const canWrite = space !== undefined && (space.baseRole === "owner" || space.baseRole === "editor");
 
   if (saved.source === "manual") {
-    const [properties, items] = await Promise.all([listProperties(id), listCollectionItems(id)]);
-
-    const docs = await Promise.all(items.map((item) => getDocumentById(item.documentId)));
-    const present = docs.filter((doc): doc is NonNullable<typeof doc> => doc !== null);
-    const valueMap = await valuesForDocuments(
-      present.map((doc) => doc.id),
-      properties.map((prop) => prop.id),
-    );
-
-    // 사람 속성에 쓸 목록 — 가족이면 구성원, 개인 공간이면 나 혼자.
-    const people =
-      space?.organizationId != null
-        ? (await familyMembers(space.organizationId)).map((m) => ({ id: m.userId, name: m.name }))
-        : [{ id: viewer.userId, name: viewer.name }];
-
-    const columns: Column[] = properties.map((prop) => ({
-      id: prop.id,
-      name: prop.name,
-      type: prop.type,
-      options: selectOptions(prop.config).map((o) => ({ id: o.id, name: o.name })),
-    }));
-
-    const rows: Row[] = present.map((doc) => ({
-      documentId: doc.id,
-      title: doc.title,
-      values: Object.fromEntries(valueMap.get(doc.id) ?? new Map()),
-    }));
+    // 본문에 끼운 표와 **같은 코드**로 모은다 — lib/collection-view.ts
+    const view = await loadDatabaseView(id, viewer);
+    if (view === null) notFound();
+    const { columns, rows, people, canWrite } = view;
 
     return (
       <>

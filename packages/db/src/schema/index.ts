@@ -6,3 +6,4 @@ export * from "./tagging";
 export * from "./sharing";
 export * from "./settings";
 export * from "./properties";
+export * from "./attachment";

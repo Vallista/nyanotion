@@ -2,6 +2,9 @@
 
 import "@blocknote/core/style.css";
 import "@blocknote/ariakit/style.css";
+// 반드시 위 두 줄 **다음**에. BlockNote 는 변수를 `.bn-root` 에 두므로 특이도가 같고,
+// 같으면 나중에 로드된 쪽이 이긴다.
+import "@/styles/blocknote.css";
 
 import { BlockNoteView } from "@blocknote/ariakit";
 import { ko } from "@blocknote/core/locales";
@@ -14,11 +17,15 @@ import {
   type DefaultReactSuggestionItem,
 } from "@blocknote/react";
 import { HocuspocusProvider } from "@hocuspocus/provider";
+import { DATABASE_BLOCK_TYPE } from "@nyanotion/editor-schema";
 import { TASK_LABELS, blocksToPlainText, type AiTask } from "@nyanotion/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createInlineDatabaseAction } from "@/lib/actions";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
+import { editorSchema } from "./blocks/database-block";
 import { CatMark } from "./cat-mark";
+import { TableIcon } from "./icons";
 import { NyanSuggestion, type NyanState } from "./nyan-suggestion";
 
 /**
@@ -27,8 +34,8 @@ import { NyanSuggestion, type NyanState } from "./nyan-suggestion";
  * 편집의 원본은 이 브라우저의 **로컬 Y.Doc** 이다. IndexedDB 에 곧바로 남고, 연결이 살아 있을 때만
  * 서버로 흘러간다 — ARCHITECTURE.md §4.
  *
- * Ariakit 판 BlockNoteView 는 theme 을 "light" | "dark" 만 받는다. 색은 globals.css 의 `--bn-*`
- * 변수로 맞춘다 (메뉴·툴팁이 portal 로 나가므로 :root 에 둔다). 여기서 색을 새로 만들지 말 것.
+ * Ariakit 판 BlockNoteView 는 theme 을 "light" | "dark" 만 받는다. 색은 styles/blocknote.css 의
+ * `--bn-*` 변수로 맞춘다 — `:root` 가 아니라 `.bn-root` 에 둬야 먹는다. 여기서 색을 새로 만들지 말 것.
  */
 
 /** 화면에 보여 줄 동기화 상태. 색이 아니라 점의 모양으로 구분한다 — 시안 09. */
@@ -36,6 +43,18 @@ export type SyncState = "opening" | "connecting" | "synced" | "offline" | "denie
 
 /** @blocknote/server-util 의 기본 fragment 이름과 같아야 한다. */
 const FRAGMENT = "prosemirror";
+
+/**
+ * 한국어 기본 문구가 길어서 폰 폭(358px)에서 두 줄로 접힌다. 노션처럼 한 줄로 끝나게 줄인다.
+ * 나머지 번역은 @blocknote/core 의 ko 를 그대로 쓴다.
+ */
+const dictionary = {
+  ...ko,
+  placeholders: {
+    ...ko.placeholders,
+    default: "글을 쓰거나 / 를 누르세요",
+  },
+};
 
 /**
  * 동기화 서버 주소.
@@ -50,6 +69,27 @@ function collabUrl(): string {
   const port = process.env.NEXT_PUBLIC_COLLAB_PORT ?? "1234";
   const scheme = window.location.protocol === "https:" ? "wss" : "ws";
   return `${scheme}://${window.location.hostname}:${port}`;
+}
+
+/**
+ * 그림·파일 블록이 부르는 업로드. BlockNote 는 URL 문자열 하나만 돌려받길 바란다.
+ * 권한은 서버가 문서 기준으로 판정한다 — /api/upload 참고.
+ */
+async function uploadToDocument(documentId: string, file: File): Promise<string> {
+  const form = new FormData();
+  form.append("documentId", documentId);
+  form.append("file", file);
+
+  const response = await fetch("/api/upload", { method: "POST", body: form });
+  if (!response.ok) {
+    const body: unknown = await response.json().catch(() => ({}));
+    const message = (body as { error?: unknown }).error;
+    throw new Error(typeof message === "string" ? message : `올리지 못했습니다 (${response.status})`);
+  }
+  const body: unknown = await response.json();
+  const url = (body as { url?: unknown }).url;
+  if (typeof url !== "string") throw new Error("서버가 준 주소가 이상합니다");
+  return url;
 }
 
 async function fetchTicket(documentId: string): Promise<string> {
@@ -119,11 +159,13 @@ export function Editor({
 
   const editor = useCreateBlockNote(
     withCollaboration({
-      dictionary: ko,
+      dictionary,
       trailingBlock: true,
+      schema: editorSchema,
       collaboration: { fragment: ydoc.getXmlFragment(FRAGMENT), user },
+      uploadFile: (file: File) => uploadToDocument(documentId, file),
     }),
-    [ydoc],
+    [ydoc, documentId],
   );
 
   /** 지금 글감으로 쓸 것: 선택한 블록들, 없으면 커서가 있는 블록. */
@@ -237,6 +279,35 @@ export function Editor({
 
   useEffect(() => () => abort.current?.abort(), []);
 
+  /**
+   * 표를 하나 새로 만들고 지금 블록을 그 표로 바꾼다.
+   * 표의 실체는 `collection` 이고 블록은 id 만 들고 있다 — 노션과 같은 구조다.
+   */
+  const insertDatabase = useCallback(async () => {
+    const current = editor.getTextCursorPosition().block;
+    try {
+      const { collectionId } = await createInlineDatabaseAction(documentId, "표");
+      editor.replaceBlocks(
+        [current],
+        [{ type: DATABASE_BLOCK_TYPE, props: { collectionId, view: "table" } }],
+      );
+    } catch {
+      // 표를 만들지 못하면 블록을 건드리지 않는다 — 빈 자리가 남는 것보다 낫다.
+    }
+  }, [documentId, editor]);
+
+  const databaseItem: DefaultReactSuggestionItem = useMemo(
+    () => ({
+      title: "데이터베이스",
+      subtext: "표로 정리하는 목록. 줄 하나가 문서가 됩니다",
+      group: "기본 블록",
+      aliases: ["db", "database", "표", "데이터베이스", "table"],
+      icon: <TableIcon size={18} />,
+      onItemClick: () => void insertDatabase(),
+    }),
+    [insertDatabase],
+  );
+
   const aiItems: DefaultReactSuggestionItem[] = useMemo(
     () =>
       (Object.keys(TASK_LABELS) as AiTask[]).map((task) => ({
@@ -271,7 +342,10 @@ export function Editor({
           getItems={async (query) =>
             filterSuggestionItems(
               editable
-                ? [...getDefaultReactSlashMenuItems(editor), ...aiItems]
+                ? [
+                    ...insertIntoGroup(getDefaultReactSlashMenuItems(editor), databaseItem),
+                    ...aiItems,
+                  ]
                 : getDefaultReactSlashMenuItems(editor),
               query,
             )
@@ -307,6 +381,22 @@ export function Editor({
       )}
     </>
   );
+}
+
+/**
+ * 항목을 **같은 그룹끼리 붙여** 놓는다.
+ *
+ * 제안 메뉴는 앞 항목과 그룹이 달라질 때마다 소제목을 새로 그린다. 그래서 기존 "기본 블록"
+ * 무리 뒤에 다른 그룹이 끼고 나서 다시 "기본 블록" 항목을 붙이면 소제목이 두 번 나온다.
+ */
+function insertIntoGroup(
+  items: DefaultReactSuggestionItem[],
+  item: DefaultReactSuggestionItem,
+): DefaultReactSuggestionItem[] {
+  let last = -1;
+  for (let i = 0; i < items.length; i += 1) if (items[i]?.group === item.group) last = i;
+  if (last < 0) return [...items, item];
+  return [...items.slice(0, last + 1), item, ...items.slice(last + 1)];
 }
 
 /** 냥이가 준 글을 단락 블록들로. 표 같은 건 만들지 않는다 — 글자만 돌려준다. */

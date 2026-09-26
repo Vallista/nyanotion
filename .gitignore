@@ -8,6 +8,8 @@ out/
 
 .env
 infra/data/
+.data/
+apps/web/.data/
 infra/cloudflared/config.yml
 .env
 .env.local
@@ -27,3 +29,7 @@ Thumbs.db
 .next/
 next-env.d.ts
 .vs/
+
+# 점검 스크립트 산출물 (스크린샷·리포트)
+apps/web/scripts/*.png
+apps/web/scripts/editor-report.json

@@ -1,0 +1,301 @@
+/*
+ * BlockNote 를 Nyanotion 시안에 맞춘다.
+ *
+ * **이 파일은 반드시 editor.tsx 에서 BlockNote 의 style.css 두 줄 다음에 import 한다.**
+ * BlockNote 는 자기 변수를 `.bn-root` 에 정의하는데(특이도 0,1,0) 우리가 쓰던 `:root` 와
+ * 특이도가 같다. 같으면 나중에 로드된 쪽이 이기고, BlockNote 의 CSS 는 이 클라이언트 청크에서
+ * 늦게 들어오므로 globals.css 에 적은 값은 전부 조용히 무시됐다. 그래서 같은 `.bn-root` 에,
+ * 더 늦게 적는다.
+ *
+ * 색은 시안 팔레트만 쓴다. Ariakit 판에는 `#007acc` 처럼 변수가 아니라 **박힌 색**이 있어서
+ * 그런 자리는 규칙으로 직접 덮는다 (아래 "박힌 색" 절).
+ *
+ * 구조는 노션을 따른다: 종이 위에 상자 없이 글만 놓이고, 한 줄이 한 블록이며,
+ * 조작 손잡이는 왼쪽 여백에 호버로만 나타난다.
+ */
+
+/* --- 변수 ------------------------------------------------------------- */
+.bn-root {
+  --bn-font-family: var(--font-plex-kr), "Apple SD Gothic Neo", -apple-system, system-ui, sans-serif;
+
+  --bn-border-radius: var(--radius);
+  --bn-border-radius-small: var(--radius-sm);
+  --bn-border-radius-medium: 6px;   /* 떠 있는 카드는 노션처럼 조금 더 둥글게 */
+  --bn-border-radius-large: 6px;
+  --bn-border: 1px solid var(--line);
+
+  --bn-colors-editor-text: var(--ink);
+  /* 종이 위에 그대로 — 흰 상자를 만들지 않는다. 사용자가 본 "테두리"의 정체. */
+  --bn-colors-editor-background: transparent;
+
+  --bn-colors-menu-text: var(--ink);
+  --bn-colors-menu-background: var(--card);
+  --bn-colors-tooltip-text: var(--paper);
+  --bn-colors-tooltip-background: var(--ink);
+
+  --bn-colors-hovered-text: var(--ink);
+  --bn-colors-hovered-background: var(--surface);
+  /* 기본값이 #3f3f3f 라 글자를 고르면 새까맣게 덮였다. */
+  --bn-colors-selected-text: var(--ink);
+  --bn-colors-selected-background: var(--accent-soft);
+
+  --bn-colors-disabled-text: var(--ink-4);
+  --bn-colors-disabled-background: var(--surface);
+
+  --bn-colors-border: var(--line);
+  --bn-colors-side-menu: var(--ink-5);
+
+  --bn-colors-shadow: rgba(47, 46, 43, 0.1);
+  --bn-shadow-light: 0 1px 4px rgba(47, 46, 43, 0.06);
+  --bn-shadow-medium: var(--shadow-float);
+}
+
+/* --- 본문 ------------------------------------------------------------- */
+.bn-container,
+.bn-container .bn-editor {
+  background: transparent;
+}
+
+.bn-container .bn-editor {
+  /* 문서 화면(article)이 이미 720px 단을 잡는다. 에디터는 좌우 여백만 없앤다. */
+  padding-inline: 0;
+  /* 16px 미만이면 iOS 가 탭할 때 확대한다. 노션 본문도 16px. */
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.003em;
+  color: var(--ink);
+}
+
+/* 편집 중인 종이에 파란 테두리를 두르지 않는다. */
+.bn-container .bn-editor:focus,
+.bn-container .bn-editor:focus-visible {
+  outline: none;
+}
+
+/* 한 줄 = 한 블록. 줄 간격은 노션과 같은 3px. */
+.bn-container .bn-block-content {
+  padding: 3px 0;
+}
+
+/* --- 제목 -------------------------------------------------------------
+   BlockNote 는 `.bn-block-outer:not([data-prev-type])>.bn-block>.bn-block-content[...]`
+   (특이도 0,5,0)로 `font-size: var(--level)` 을 건다. font-size 를 직접 덮으려 들면 진다.
+   설계된 대로 `--level` 을 바꾼다. 비율은 노션 그대로. */
+.bn-container [data-content-type="heading"] {
+  --level: 1.875em;
+  padding-top: 1.6em;
+  padding-bottom: 2px;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.3;
+}
+.bn-container [data-content-type="heading"][data-level="2"] {
+  --level: 1.4em;
+  padding-top: 1.3em;
+  letter-spacing: -0.014em;
+}
+.bn-container [data-content-type="heading"][data-level="3"] {
+  --level: 1.15em;
+  padding-top: 1em;
+  letter-spacing: -0.01em;
+}
+/* 문서 첫 블록이 제목이면 위 여백을 없앤다 — 제목 input 바로 아래가 비어 보이지 않게. */
+.bn-container .bn-block-group > .bn-block-outer:first-child [data-content-type="heading"] {
+  padding-top: 0;
+}
+
+/* --- 플레이스홀더 -----------------------------------------------------
+   tiptap 이 만든 규칙이 런타임에 <style> 로 들어오므로 특이도를 넉넉히 둔다.
+   좁은 폰에서 두 줄로 접히던 것을 한 줄로 자른다. */
+.bn-container .bn-block-content .bn-inline-content:before,
+.bn-container .bn-block-content:before {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 글머리표·번호는 위 규칙의 예외 — 잘리면 안 된다. */
+.bn-container [data-content-type="bulletListItem"]:before,
+.bn-container [data-content-type="numberedListItem"]:before {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* --- 왼쪽 손잡이 (+ 와 ⠿) --------------------------------------------- */
+.bn-container .bn-side-menu {
+  color: var(--ink-5);
+}
+.bn-container .bn-side-menu button:hover {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+}
+
+/* --- 인용·코드·구분선 -------------------------------------------------- */
+.bn-container blockquote,
+.bn-container [data-content-type="quote"] {
+  border-left: 3px solid var(--line-strong);
+  background: transparent;
+  border-radius: 0;
+  padding: 2px 0 2px 14px;
+  color: var(--ink-2);
+}
+
+.bn-container code,
+.bn-container [data-content-type="codeBlock"] {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 0.86em;
+}
+.bn-container .bn-inline-content code {
+  background: var(--chip);
+  border-radius: var(--radius-sm);
+  padding: 0.15em 0.35em;
+  color: var(--ink);
+}
+.bn-container [data-content-type="codeBlock"] {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+/* --- 표 --------------------------------------------------------------- */
+.bn-container .bn-table-cell,
+.bn-container table td,
+.bn-container table th {
+  border-color: var(--line);
+}
+.bn-container table th {
+  background: var(--surface);
+  font-weight: 500;
+}
+
+/* --- 떠 있는 층: 슬래시 메뉴·서식 툴바 ---------------------------------
+   노션의 드롭다운을 따른다 — 흰 카드, 6px 모서리, 얇은 선 + 부드러운 그림자,
+   회색 소제목, 고른 줄은 **옅은 회색**(채도 높은 파랑이 아니라). */
+.bn-container .bn-suggestion-menu,
+.bn-container .bn-ak-menu,
+.bn-container .bn-ak-popover {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: var(--shadow-float);
+  padding: 4px;
+  max-height: min(56vh, 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.bn-container .bn-suggestion-menu {
+  width: min(330px, calc(100vw - 32px));
+}
+
+/* 폰에서는 더 낮게 — 화면을 덮으면 커서가 어디였는지 알 수 없다. */
+@media (max-height: 760px), (max-width: 560px) {
+  .bn-container .bn-suggestion-menu,
+  .bn-container .bn-ak-menu {
+    max-height: min(42vh, 280px);
+  }
+}
+
+.bn-container .bn-ak-group-label,
+.bn-container .bn-suggestion-menu-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--ink-4);
+  padding: 8px 8px 4px;
+  letter-spacing: 0.01em;
+}
+
+.bn-container .bn-ak-menu-item,
+.bn-container .bn-suggestion-menu-item {
+  border-radius: var(--radius);
+  padding: 6px 8px;
+  gap: 10px;
+  color: var(--ink);
+}
+.bn-container .bn-ak-suggestion-menu-item-title {
+  font-size: 14px;
+  font-weight: 450;
+}
+.bn-container .bn-ak-suggestion-menu-item-subtitle {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.bn-container .bn-ak-suggestion-menu-item-section[data-position="left"] {
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  width: 30px;
+  height: 30px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* --- 박힌 색 ----------------------------------------------------------
+   Ariakit 판은 이 색들을 변수로 빼 두지 않았다(`#007acc`). 변수로는 못 고치니 덮는다.
+   `.bn-ak-menu-item[aria-selected=true]` 는 (0,2,0) 이라 아래 (0,3,0) 이 이긴다. */
+.bn-container .bn-ak-menu-item[aria-selected="true"],
+.bn-container .bn-ak-menu-item[data-active-item],
+.bn-container .bn-ak-menu-item:hover,
+.bn-container .bn-ak-select-item[data-active-item],
+.bn-container .bn-ak-select-item:hover {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+.bn-container .bn-ak-menu-item[aria-selected="true"] .bn-ak-suggestion-menu-item-subtitle,
+.bn-container .bn-ak-menu-item:hover .bn-ak-suggestion-menu-item-subtitle {
+  color: var(--ink-3);
+}
+.bn-container .bn-ak-primary {
+  background-color: var(--accent);
+  color: var(--paper);
+}
+.bn-container .bn-ak-popover:focus-visible,
+.bn-container .bn-ak-popover[data-focus-visible],
+.bn-container .bn-ak-input:focus-visible,
+.bn-container .bn-ak-input[data-focus-visible] {
+  outline: 2px solid var(--accent);
+}
+
+/* 단축키 표시는 시안의 kbd 처럼. */
+.bn-container .bn-ak-menu-item kbd,
+.bn-container .bn-suggestion-menu-item-small {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ink-4);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px 5px;
+}
+
+/* --- 전역 리셋이 새는 것 막기 -----------------------------------------
+   globals.css 의 `button { padding:0; text-align:left }` 이 메뉴·툴바 버튼을 망가뜨린다. */
+.bn-container button {
+  text-align: inherit;
+}
+.bn-container a {
+  border-bottom-color: var(--accent-line);
+}
+
+/* --- 블록 하나를 고른 자리 ---------------------------------------------
+   기본값이 파란 형광펜(#64a0ff)이라 시안과 따로 논다. 노션처럼 옅은 바탕만 남긴다. */
+.bn-container .bn-block-content.ProseMirror-selectednode > *:after,
+.bn-container .ProseMirror-selectednode > .bn-block-content > *:after,
+.bn-container .bn-block-content .ProseMirror-selectednode:after,
+.bn-container .bn-inline-content .ProseMirror-selectednode:after {
+  background-color: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+  border-radius: var(--radius);
+}
+
+/* --- 끼워 넣은 것들이 단 밖으로 나가지 않게 ----------------------------
+   표처럼 넓은 것은 제 안에서 가로로 스크롤한다 — 페이지가 통째로 밀리면 안 된다. */
+.bn-container .bn-block-content > * {
+  max-width: 100%;
+}
+
+/* --- 글자를 고른 자리 -------------------------------------------------- */
+.bn-container .bn-editor ::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}

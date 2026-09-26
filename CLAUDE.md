@@ -58,8 +58,16 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 
 ### 에디터
 - **BlockNote UI 는 Ariakit 판(`@blocknote/ariakit`)이다.** Mantine 판은 쓰지 않는다 — `@mantine/core` 가 React 에 아직 없는 `useEffectEvent` 를 불러 빌드가 깨진다.
-- **Ariakit 판 `BlockNoteView` 는 `theme` 을 `"light" | "dark"` 만 받는다.** 색은 `globals.css` 의 `--bn-*` 변수로 맞춘다. 메뉴·툴팁이 portal 로 나가므로 그 변수는 `:root` 에 둔다.
+- **Ariakit 판 `BlockNoteView` 는 `theme` 을 `"light" | "dark"` 만 받는다.** 색은 `apps/web/src/styles/blocknote.css` 의 `--bn-*` 변수로 맞추고, 그 파일은 **`editor.tsx` 에서 BlockNote 의 `style.css` 두 줄 다음에** import 한다.
+- **`--bn-*` 는 `:root` 가 아니라 `.bn-root` 에 적는다.** BlockNote 가 같은 변수를 `.bn-root` 에 정의하는데 특이도가 (0,1,0) 로 같아서, 같으면 **나중에 로드된 쪽이 이긴다**. `globals.css` 는 클라이언트 청크보다 먼저 들어오므로 거기 적은 값은 조용히 무시된다. 메뉴·툴팁은 portal 로 나가도 `.bn-root` 안에 남는다.
+- **Ariakit 판에는 변수로 빼지 않은 박힌 색이 있다** (`#007acc` 고른 줄, `#64a0ff` 블록 선택). 변수로는 못 고치니 `.bn-container` 를 앞에 붙여 특이도를 올려 규칙째 덮는다.
+- **제목 크기는 `font-size` 가 아니라 `--level` 로 바꾼다.** BlockNote 가 특이도 (0,5,0) 규칙으로 `font-size: var(--level)` 을 걸기 때문에 `font-size` 를 덮으려는 시도는 진다.
+- **편집 영역과 입력칸은 터치 기기에서 16px 이상.** iOS Safari 는 그보다 작은 입력칸을 탭하면 화면을 확대한다. `maximum-scale=1` 로 막지 말 것 — 손가락 확대까지 죽는다. `@media (pointer: coarse)` 로 글자만 키운다.
+- **블록 종류 정의는 `packages/editor-schema` 한 곳.** 브라우저(`createReactBlockSpec`)와 collab 서버(`createBlockSpec`)가 같은 것을 써야 한다. 서버가 모르는 블록은 Yjs → `content_json` 변환에서 **조용히 사라진다.**
+- **CSS 주석 안에 `*/` 를 쓰지 말 것** (`@blocknote/*/style.css` 같은 경로). 주석이 일찍 닫혀 뒤가 전부 깨지고, `next build` 의 minifier 가 "Expected a pseudo-class" 로 터진다.
+- **첨부 파일의 권한은 문서 기준이다.** 올리기는 `assertCanWrite`, 내려받기는 `canRead` — 또는 그 문서가 지금 공개 링크로 열려 있을 때. id 를 안다고 내주지 말 것. 받아 주는 종류는 허용 목록이고 `image/svg+xml`·`text/html` 은 제외한다 (스크립트를 품을 수 있다).
 - 에디터 파일(`components/editor.tsx`)은 항상 클라이언트이고 `next/dynamic` 의 `ssr: false` 로만 불러온다.
+- **`next dev` 가 떠 있는 동안 `next build` 를 돌리지 말 것.** 둘이 같은 출력 폴더를 쓰기 때문에 빌드가 개발 서버의 상태를 지워 버리고, 그때부터 모든 요청이 500 이 된다. 살리려면 개발 서버를 껐다 켜야 한다.
 - **`text_plain` 을 만드는 경로는 `setContent()` 하나뿐이다.** 다른 곳에서 저장하지 말 것.
 
 ### 클라이언트

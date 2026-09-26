@@ -15,6 +15,7 @@
     "@hocuspocus/server": "^4.7.0",
     "@nyanotion/auth": "workspace:^",
     "@nyanotion/db": "workspace:*",
+    "@nyanotion/editor-schema": "workspace:*",
     "@nyanotion/shared": "workspace:*",
     "yjs": "^13.6.33"
   },

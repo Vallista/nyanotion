@@ -39,6 +39,9 @@ html, body {
   padding: 0;
   background: var(--paper);
   color: var(--ink);
+  /* 가로로 눕혔을 때 Safari 가 멋대로 글자를 키우는 것을 막는다. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -138,80 +141,23 @@ kbd {
 .dot-syncing { border: 1.5px solid var(--ink-3); border-top-color: transparent; }
 .dot-offline { border: 1.5px solid var(--ink-5); }
 
-/* --- BlockNote 를 시안에 맞춘다 ---------------------------------------
-   Ariakit 판은 theme 객체를 받지 않으므로 색을 전부 이 변수들로 맞춘다.
-   메뉴·툴팁이 portal 로 body 바로 아래에 붙으므로 :root 에 둔다. */
-:root {
-  --bn-font-family: var(--font-plex-kr), "Apple SD Gothic Neo", -apple-system, system-ui, sans-serif;
-  --bn-border-radius: var(--radius);
-  --bn-border-radius-small: var(--radius-sm);
-  --bn-border-radius-medium: var(--radius);
-  --bn-border-radius-large: var(--radius);
-  --bn-border: 1px solid var(--line);
+/* --- BlockNote ---------------------------------------------------------
+   에디터 테마는 `src/styles/blocknote.css` 에 있고, editor.tsx 가 BlockNote 의 CSS
+   **다음에** 불러온다. 여기(:root)에 `--bn-*` 을 적으면 BlockNote 가 같은 변수를
+   `.bn-root` 에 정의하므로 특이도가 같아지고, 늦게 로드되는 BlockNote 가 이긴다.
+   그래서 이 파일에는 적지 않는다. */
 
-  --bn-colors-editor-text: var(--ink);
-  --bn-colors-editor-background: transparent;
-  --bn-colors-menu-text: var(--ink-2);
-  --bn-colors-menu-background: var(--card);
-  --bn-colors-tooltip-text: var(--ink-2);
-  --bn-colors-tooltip-background: var(--card);
-  --bn-colors-hovered-text: var(--ink);
-  --bn-colors-hovered-background: var(--surface);
-  --bn-colors-selected-text: var(--ink);
-  --bn-colors-selected-background: var(--accent-soft);
-  --bn-colors-disabled-text: var(--ink-4);
-  --bn-colors-disabled-background: var(--surface);
-  --bn-colors-border: var(--line);
-  --bn-colors-side-menu: var(--ink-5);
-  --bn-colors-shadow: rgba(47, 46, 43, 0.1);
-  --bn-shadow-light: 0 2px 8px rgba(47, 46, 43, 0.06);
-  --bn-shadow-medium: var(--shadow-float);
-}
-
-.nyan-editor {
-  background: transparent;
-}
-
-/* 본문 단 폭은 문서 화면이 이미 720px 로 잡으므로 에디터는 좌우 여백만 없앤다. */
-.nyan-editor .bn-editor {
-  padding-inline: 2px;
-  font-size: 15.5px;
-  line-height: 1.72;
-  letter-spacing: -0.003em;
-}
-
-/* 제목은 문서 화면의 input 이 담당한다. 본문 안 heading 은 시안의 h2 크기로. */
-.nyan-editor .bn-block-content[data-content-type="heading"][data-level="1"] {
-  font-size: 21px;
-  font-weight: 600;
-  letter-spacing: -0.016em;
-}
-.nyan-editor .bn-block-content[data-content-type="heading"][data-level="2"] {
-  font-size: 17.5px;
-  font-weight: 600;
-  letter-spacing: -0.012em;
-}
-.nyan-editor .bn-block-content[data-content-type="heading"][data-level="3"] {
-  font-size: 15.5px;
-  font-weight: 600;
-}
-
-/* 드래그 핸들과 + 는 호버에서만 — 시안의 규칙. BlockNote 기본 동작과 같지만 색만 맞춘다. */
-.nyan-editor .bn-side-menu {
-  color: var(--ink-5);
-}
-
-/* 인용 블록은 시안처럼 왼쪽 선 하나에 옅은 바탕. */
-.nyan-editor blockquote {
-  border-left: 1px solid var(--line-strong);
-  background: var(--surface);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-}
-
-/* 코드 블록 폰트 */
-.nyan-editor code,
-.nyan-editor pre {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
-  font-size: 13.5px;
+/* --- iOS 확대 막기 ------------------------------------------------------
+   Safari 는 글자가 16px 보다 작은 입력칸을 탭하면 화면을 그 칸에 맞춰 확대한다.
+   `maximum-scale=1` 로 막는 방법도 있지만 그건 손가락 확대까지 죽인다 —
+   대신 **터치 기기에서만** 입력 글자를 16px 로 올린다. 데스크탑 모양은 그대로다.
+   (에디터 본문은 styles/blocknote.css 에서 이미 16px.) */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: 16px;
+  }
+  .field > input { font-size: 16px; }
 }
