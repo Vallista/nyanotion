@@ -193,6 +193,30 @@ docker compose -f infra\docker-compose.yml up -d cloudflared
 **아이폰에 설치**: Safari 로 열고 → 공유 버튼 → **홈 화면에 추가**.
 이 경로는 메뉴에 숨어 있어서 말로 설명하면 가족이 반드시 실패한다 → **`/install` 안내 페이지를 만들어 스크린샷을 넣는다.**
 
+### pgvector 설치 (M6 전에)
+
+이 PostgreSQL 에는 `pg_trgm` 은 있지만 `vector` 가 없다. 문서에 질문하기(M6)의 벡터 검색에 필요하다.
+
+**관리자 PowerShell** 에서 한 번:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File infra\install-pgvector.ps1
+```
+
+내려받기 → PostgreSQL 잠시 멈춤 → 파일 복사 → 다시 시작까지 한다. 그다음 보통 터미널에서:
+
+```powershell
+& "C:\Program Files\PostgreSQLin\psql.exe" -U nyanotion -h 127.0.0.1 -d nyanotion `
+  -c "CREATE EXTENSION IF NOT EXISTS vector;" -c "SELECT extversion FROM pg_extension WHERE extname='vector';"
+```
+
+> 서비스를 멈췄다 켜므로 **2DActionGames 의 `game` DB 도 잠깐 끊긴다.** 게임 서버를 돌리는 중이면 먼저 내린다.
+
+### 밖에서 접속하기 (Cloudflare Tunnel)
+
+`infra/cloudflared/README.md` 참고. **HTTPS 가 거기서 생긴다** — 서비스 워커·홈 화면 추가·
+영구 저장소·공개 링크가 전부 HTTPS 를 요구하므로, 도메인이 붙기 전까지는 집 안에서만 쓸 수 있다.
+
 ### 로그인이 "invalid origin" 으로 막힐 때
 
 Better Auth 는 요청의 `Origin` 이 신뢰 목록에 없으면 403 `INVALID_ORIGIN` 을 준다 (CSRF 방어).

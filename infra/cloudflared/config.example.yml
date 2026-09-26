@@ -1,0 +1,32 @@
+# Cloudflare Tunnel 설정 본보기.
+#
+# 두 개의 호스트 이름을 쓴다 — 웹과 동기화 서버.
+# 경로(/collab)로 나누지 않는 이유: Hocuspocus 는 경로를 가리지 않고 받는데,
+# 터널이 경로를 그대로 넘기므로 섞이면 디버깅이 번거롭다. 호스트를 나누면 그럴 일이 없다.
+#
+# 쓰는 법:
+#   1) cloudflared tunnel login
+#   2) cloudflared tunnel create nyanotion        → 터널 id 와 자격증명 json 이 나온다
+#   3) 이 파일을 config.yml 로 복사하고 아래 <  > 를 채운다
+#   4) cloudflared tunnel route dns nyanotion <도메인>
+#      cloudflared tunnel route dns nyanotion collab.<도메인>
+#   5) cloudflared tunnel run nyanotion
+
+tunnel: <터널-id>
+credentials-file: C:\Users\<사용자>\.cloudflared\<터널-id>.json
+
+ingress:
+  # 동기화 서버 (WebSocket) — 먼저 와야 한다. 위에서부터 맞는 규칙을 고른다.
+  - hostname: collab.<도메인>
+    service: ws://127.0.0.1:1234
+    originRequest:
+      # Yjs 는 오래 열어 둔다. 기본값(90초)이면 조용할 때 끊긴다.
+      connectTimeout: 30s
+      noTLSVerify: false
+
+  # 웹
+  - hostname: <도메인>
+    service: http://127.0.0.1:3000
+
+  # 나머지는 받지 않는다
+  - service: http_status:404
