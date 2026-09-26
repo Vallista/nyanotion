@@ -212,6 +212,9 @@ powershell -ExecutionPolicy Bypass -File infra\install-pgvector.ps1
 
 > 서비스를 멈췄다 켜므로 **2DActionGames 의 `game` DB 도 잠깐 끊긴다.** 게임 서버를 돌리는 중이면 먼저 내린다.
 
+> **`CREATE EXTENSION vector` 는 슈퍼유저만 할 수 있다** (pgvector 는 trusted 확장이 아니다).
+> 그래서 앱 계정(`nyanotion`)이 아니라 `postgres` 로 한 번 켜 준다. 그 뒤로는 앱 계정이 그냥 쓴다.
+
 ### 밖에서 접속하기 (Cloudflare Tunnel)
 
 `infra/cloudflared/README.md` 참고. **HTTPS 가 거기서 생긴다** — 서비스 워커·홈 화면 추가·
