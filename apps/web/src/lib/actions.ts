@@ -2,20 +2,28 @@
 
 import {
   acceptInvitation,
+  addProperty,
+  addToCollection,
   archiveDocument,
   attachTag,
+  collectionOfProperty,
   createFamily,
   createPublicLink,
   createCollection,
   createDocument,
   deleteCollection,
+  deleteProperty,
   deleteTag,
   detachTag,
   emptyTrash,
+  ensureSelectOption,
   ensureTag,
+  getCollection,
   getDocumentById,
   inviteToFamily,
   moveDocument,
+  moveInCollection,
+  removeFromCollection,
   removeMember,
   removeShare,
   renameFamily,
@@ -27,12 +35,15 @@ import {
   searchDocuments,
   setGpuMode,
   setMemberRole,
+  setPropertyValue,
   toggleFavorite,
   updateCollection,
+  updateProperty,
   upsertShare,
   userByEmail,
   type CollectionFilter,
   type CollectionView,
+  type PropertyType,
 } from "@nyanotion/db";
 import { unloadModels } from "@nyanotion/ai";
 import { revalidatePath } from "next/cache";
@@ -42,6 +53,7 @@ import {
   requireDocumentOwner,
   requireFamilyAdmin,
   requireViewer,
+  type Viewer,
 } from "./session";
 
 /**
@@ -351,5 +363,134 @@ export async function setGpuModeAction(mode: "free" | "gaming"): Promise<void> {
   await requireViewer(); // 가족 누구나 바꿀 수 있다 — 집 한 대의 공용 스위치다
   await setGpuMode(mode);
   if (mode === "gaming") await unloadModels();
+  revalidatePath("/", "layout");
+}
+
+/* ------------------------------------------------ 데이터베이스 (모음의 속성) */
+
+/**
+ * 손으로 담는 표를 만든다. **줄 하나가 문서다** — 눌러서 열면 본문에 메모를 쓸 수 있다.
+ * 기본 속성 몇 개를 같이 만들어 둔다. 빈 표를 주면 뭘 해야 할지 모른다.
+ */
+export async function createDatabaseAction(name: string, spaceId?: string): Promise<void> {
+  const viewer = await requireViewer();
+  const target = spaceId ?? viewer.personalSpace.id;
+  if (!viewer.spaceIds.includes(target)) throw new Error("이 공간에 표를 만들 수 없습니다.");
+
+  const id = await createCollection({
+    spaceId: target,
+    userId: viewer.userId,
+    name,
+    filter: { tagIds: [], query: "" },
+    view: "table",
+    source: "manual",
+  });
+  await addProperty({ collectionId: id, name: "상태", type: "select" });
+  await addProperty({ collectionId: id, name: "메모", type: "text" });
+  revalidatePath("/", "layout");
+  redirect(`/c/${id}`);
+}
+
+/** 이 모음이 내가 들어갈 수 있는 공간의 것인지 확인하고 그 공간 id 를 돌려준다. */
+async function collectionSpace(collectionId: string): Promise<{ viewer: Viewer; spaceId: string }> {
+  const viewer = await requireViewer();
+  const found = await getCollection(collectionId, viewer.spaceIds);
+  if (found === null) throw new Error("표를 찾을 수 없습니다.");
+  return { viewer, spaceId: found.spaceId };
+}
+
+export async function addPropertyAction(
+  collectionId: string,
+  name: string,
+  type: PropertyType,
+): Promise<void> {
+  await collectionSpace(collectionId);
+  await addProperty({ collectionId, name, type });
+  revalidatePath("/", "layout");
+}
+
+export async function updatePropertyAction(
+  collectionId: string,
+  propertyId: string,
+  patch: { name?: string; type?: PropertyType },
+): Promise<void> {
+  await collectionSpace(collectionId);
+  await updateProperty(propertyId, collectionId, patch);
+  revalidatePath("/", "layout");
+}
+
+/** 속성을 지우면 그 값들도 함께 사라진다. 문서는 그대로다. */
+export async function deletePropertyAction(
+  collectionId: string,
+  propertyId: string,
+): Promise<void> {
+  await collectionSpace(collectionId);
+  await deleteProperty(propertyId, collectionId);
+  revalidatePath("/", "layout");
+}
+
+/** 셀 하나 고치기. **문서를 고칠 수 있어야 한다** — 표에 있다고 아무나 쓰지 못한다. */
+export async function setValueAction(
+  collectionId: string,
+  documentId: string,
+  propertyId: string,
+  value: unknown,
+): Promise<void> {
+  await collectionSpace(collectionId);
+  await assertCanWrite(documentId);
+  // 속성이 정말 이 표의 것인지 — 다른 표의 속성 id 를 끼워 넣지 못하게.
+  if ((await collectionOfProperty(propertyId)) !== collectionId) {
+    throw new Error("이 표의 속성이 아닙니다.");
+  }
+  await setPropertyValue(documentId, propertyId, value);
+  revalidatePath("/", "layout");
+}
+
+/** select 속성에 선택지를 더하면서 값으로도 넣는다 — 타이핑 한 번으로 끝나게. */
+export async function setSelectValueAction(
+  collectionId: string,
+  documentId: string,
+  propertyId: string,
+  optionName: string,
+): Promise<void> {
+  await collectionSpace(collectionId);
+  await assertCanWrite(documentId);
+  if ((await collectionOfProperty(propertyId)) !== collectionId) {
+    throw new Error("이 표의 속성이 아닙니다.");
+  }
+  if (optionName.trim() === "") {
+    await setPropertyValue(documentId, propertyId, null);
+  } else {
+    const optionId = await ensureSelectOption(propertyId, collectionId, optionName);
+    await setPropertyValue(documentId, propertyId, optionId);
+  }
+  revalidatePath("/", "layout");
+}
+
+/** 줄 하나 = 문서 하나. 표가 사는 공간에 만들고 표에 담는다. */
+export async function addRowAction(collectionId: string, title = ""): Promise<string> {
+  const { viewer, spaceId } = await collectionSpace(collectionId);
+  const documentId = await createDocument({ spaceId, userId: viewer.userId, title });
+  await addToCollection(collectionId, documentId);
+  revalidatePath("/", "layout");
+  return documentId;
+}
+
+/** 표에서 빼는 것일 뿐 문서는 남는다. 지우려면 문서를 모래상자로 보낸다. */
+export async function removeRowAction(collectionId: string, documentId: string): Promise<void> {
+  await collectionSpace(collectionId);
+  await assertCanWrite(documentId);
+  await removeFromCollection(collectionId, documentId);
+  revalidatePath("/", "layout");
+}
+
+export async function moveRowAction(
+  collectionId: string,
+  documentId: string,
+  afterDocumentId: string | null,
+): Promise<void> {
+  await collectionSpace(collectionId);
+  await assertCanWrite(documentId);
+  await moveInCollection(collectionId, documentId, afterDocumentId);
   revalidatePath("/", "layout");
 }

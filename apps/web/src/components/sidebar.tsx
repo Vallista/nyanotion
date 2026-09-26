@@ -13,6 +13,7 @@ import { buildTree, displayTitle, flattenVisible, subtreeIds, type TreeItem } fr
 import { CatMark } from "./cat-mark";
 import { GpuModeToggle } from "./gpu-mode-toggle";
 import { openCommandPalette } from "./command-palette";
+import { NewDatabaseButton } from "./new-database-button";
 import { NewFamilyButton } from "./new-family-button";
 import { SignOutButton } from "./sign-out-button";
 import {
@@ -357,22 +358,19 @@ export function Sidebar({
           </>
         )}
 
-        {collections.length > 0 && (
-          <>
-            <SectionLabel>모음</SectionLabel>
-            <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-              {collections.map((item) => (
-                <SideLink
-                  key={item.id}
-                  href={`/c/${item.id}`}
-                  icon={<CollectionIcon size={14} />}
-                  label={item.name}
-                  active={pathname === `/c/${item.id}`}
-                />
-              ))}
-            </div>
-          </>
-        )}
+        <SectionLabel>모음</SectionLabel>
+        <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
+          {collections.map((item) => (
+            <SideLink
+              key={item.id}
+              href={`/c/${item.id}`}
+              icon={<CollectionIcon size={14} />}
+              label={item.name}
+              active={pathname === `/c/${item.id}`}
+            />
+          ))}
+          <NewDatabaseButton spaceId={personalSpace?.id} />
+        </div>
 
         {tags.length > 0 && (
           <>
