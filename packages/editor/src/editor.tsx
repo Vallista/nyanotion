@@ -236,28 +236,37 @@ export function NyanotionEditor({
   const replaceCurrent = useCallback(
     (
       block: { type: string; props?: Record<string, string> },
-      keepCursor = false,
+      cursor: "inside" | "after" | "own" = "after",
     ) => {
       const current = editor.getTextCursorPosition().block;
+
+      if (cursor === "inside") {
+        /**
+         * 글을 쓸 수 있는 블록(콜아웃)은 **종류만 바꾼다.** 블록을 갈아 끼우면
+         * (`replaceBlocks`) 커서가 따라오지 않는다 — 제안 메뉴가 우리 다음에 친 글("/콜아웃")을
+         * 지우면서 선택을 옮기기 때문이다. BlockNote 기본 항목(제목·인용)도 같은 이유로
+         * `updateBlock` 을 쓴다.
+         */
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        editor.updateBlock(current, block as any);
+        return;
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 블록 종류가 스키마에 따라 달라진다
-      const { insertedBlocks } = editor.replaceBlocks(
-        [current],
-        [block as any],
-      );
+      const { insertedBlocks } = editor.replaceBlocks([current], [block as any]);
       const made = insertedBlocks[0];
       if (made === undefined) return;
 
+      // 글을 못 쓰는 블록이 문서의 마지막이면 더 쓸 자리가 사라진다.
+      // `trailingBlock` 이 이 경우를 잡아 주지 않아 직접 만든다 — 노션도 늘 한 줄을 남겨 둔다.
       const last = editor.document[editor.document.length - 1];
-      if (last !== undefined && last.id === made.id) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const [paragraph] = editor.insertBlocks(
-          [{ type: "paragraph" } as any],
-          made,
-          "after",
-        );
-        // 수식처럼 제 입력칸을 여는 블록은 커서를 뺏으면 안 된다.
-        if (paragraph !== undefined && !keepCursor)
-          editor.setTextCursorPosition(paragraph, "start");
+      if (last === undefined || last.id !== made.id) return;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [paragraph] = editor.insertBlocks([{ type: "paragraph" } as any], made, "after");
+      // 수식처럼 제 입력칸을 여는 블록은 커서를 뺏으면 안 된다.
+      if (paragraph !== undefined && cursor === "after") {
+        editor.setTextCursorPosition(paragraph, "start");
       }
     },
     [editor],
@@ -304,7 +313,7 @@ export function NyanotionEditor({
         aliases: ["callout", "콜아웃", "강조", "노트", "주의"],
         icon: <CalloutIcon size={18} />,
         onItemClick: () =>
-          replaceCurrent({ type: CALLOUT_BLOCK_TYPE, props: { tone: "note" } }),
+          replaceCurrent({ type: CALLOUT_BLOCK_TYPE, props: { tone: "note" } }, "inside"),
       },
       {
         title: "수식",
@@ -315,7 +324,7 @@ export function NyanotionEditor({
         onItemClick: () =>
           replaceCurrent(
             { type: EQUATION_BLOCK_TYPE, props: { latex: "" } },
-            true,
+            "own",
           ),
       },
     ],

@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
   Nyanotion 을 이 컴퓨터에서 돌릴 수 있게 한 번에 맞춘다.

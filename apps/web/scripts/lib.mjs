@@ -41,9 +41,25 @@ export async function signIn(page, { base = BASE, email = EMAIL, password = PASS
   return "가입";
 }
 
-/** 글을 칠 수 있는 마지막 줄에 커서를 놓는다 (표·수식 블록은 contenteditable 이 아니다). */
+/**
+ * 글을 칠 수 있는 빈 줄에 커서를 놓는다.
+ *
+ * 문단이 없을 수도 있다 — 마지막 줄이 콜아웃·인용이면 BlockNote 는 뒤에 문단을 붙이지 않는다
+ * (표·수식 같은 블록만 우리가 직접 붙인다). 그때는 사람이 하듯 마지막 줄 끝에서 Enter 를 친다.
+ */
 export async function focusLastLine(page) {
-  const line = page.locator('.bn-editor [data-content-type="paragraph"]').last();
+  const paragraphs = page.locator('.bn-editor [data-content-type="paragraph"]');
+
+  if ((await paragraphs.count()) === 0) {
+    const last = page.locator(".bn-editor .bn-inline-content").last();
+    await last.scrollIntoViewIfNeeded();
+    await last.click();
+    await page.keyboard.press("End");
+    await page.keyboard.press("Enter");
+    await page.waitForTimeout(600);
+  }
+
+  const line = paragraphs.last();
   // 표·달력이 길면 문단이 화면 밖에 있다 — 그대로 누르면 엉뚱한 곳이 눌린다.
   await line.scrollIntoViewIfNeeded();
   await line.click();

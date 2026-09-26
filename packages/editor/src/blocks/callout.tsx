@@ -26,33 +26,42 @@ export const calloutReactSpec = createReactBlockSpec(calloutBlockConfig, {
     const style = TONES[tone];
     const emoji = block.props.emoji === "" ? style.emoji : block.props.emoji;
 
+    /**
+     * **내용 DOM 이 흐름상 첫 자식이어야 한다.**
+     *
+     * 그림글자를 내용 앞에 형제로 두면 ProseMirror 가 이 블록의 글자 위치를 찾지 못해,
+     * 슬래시 메뉴로 만들자마자 커서가 아래 문단으로 조용히 밀려난다.
+     * 그래서 그림글자는 흐름 밖(absolute)에 두고 내용에 왼쪽 여백을 준다.
+     */
     return (
       <div
         style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
+          position: "relative",
           background: style.bg,
           borderLeft: `3px solid ${style.line}`,
           borderRadius: "var(--radius)",
-          padding: "10px 12px",
+          padding: "10px 12px 10px 40px",
           margin: "4px 0",
+          minHeight: "1.5em",
         }}
       >
-        {editor.isEditable ? (
-          <TonePicker
-            emoji={emoji}
-            tone={tone}
-            onPick={(next) =>
-              editor.updateBlock(block, { props: { tone: next, emoji: TONES[next].emoji } })
-            }
-          />
-        ) : (
-          <span contentEditable={false} style={{ fontSize: 15, lineHeight: 1.5 }}>
-            {emoji}
-          </span>
-        )}
-        <div ref={contentRef} style={{ flex: 1, minWidth: 0 }} />
+        <span
+          contentEditable={false}
+          style={{ position: "absolute", left: 12, top: 10, lineHeight: 1.5 }}
+        >
+          {editor.isEditable ? (
+            <TonePicker
+              emoji={emoji}
+              tone={tone}
+              onPick={(next) =>
+                editor.updateBlock(block, { props: { tone: next, emoji: TONES[next].emoji } })
+              }
+            />
+          ) : (
+            <span style={{ fontSize: 15 }}>{emoji}</span>
+          )}
+        </span>
+        <div ref={contentRef} />
       </div>
     );
   },

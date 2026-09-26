@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 <#
 .SYNOPSIS
   한 환경의 서버 두 개(웹 · 동기화)를 같이 띄운다.

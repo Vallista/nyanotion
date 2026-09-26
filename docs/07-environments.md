@@ -91,6 +91,9 @@ cloudflared tunnel route dns nyanotion collab-beta.nyanotion.party
 
 ## 새 컴퓨터에서 처음부터
 
+`scripts/*.ps1` 은 **PowerShell 7** 문법을 쓴다 (Windows 에 딸려 오는 5.1 로는 안 돌아간다).
+`winget install Microsoft.PowerShell` 로 먼저 깔 것.
+
 ```powershell
 git clone <저장소>
 cd nyanotion

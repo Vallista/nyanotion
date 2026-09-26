@@ -19,7 +19,13 @@
 
 ## 한 줄로 시작하기
 
-Windows + PostgreSQL 17 + Node 20↑ 가 있으면:
+필요한 것: **Windows · PowerShell 7 · PostgreSQL 17 · Node 20↑**
+
+```powershell
+winget install Microsoft.PowerShell    # pwsh 가 없으면
+```
+
+그다음:
 
 ```powershell
 pwsh scripts/setup.ps1 -PostgresPassword '<postgres 수퍼유저 비밀번호>'

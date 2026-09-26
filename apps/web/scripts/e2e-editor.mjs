@@ -130,7 +130,14 @@ console.log("\n콜아웃");
   check("메뉴에 콜아웃이 있다", menu.includes("콜아웃"), menu.slice(0, 60));
   await page.keyboard.type("장 볼 때 잊지 말 것", { delay: 20 });
   await page.waitForTimeout(700);
-  check("콜아웃 블록이 생겼다", (await page.locator('[data-content-type="callout"]').count()) > 0);
+  const callout = page.locator('[data-content-type="callout"]');
+  check("콜아웃 블록이 생겼다", (await callout.count()) > 0);
+  // 커서가 콜아웃 **안에** 있어야 한다 — 밖이면 글이 아래 문단으로 샌다.
+  check(
+    "친 글이 콜아웃 안에 들어간다",
+    (await callout.first().innerText()).includes("장 볼 때"),
+    (await callout.first().innerText()).slice(0, 40),
+  );
 }
 
 console.log("\n수식");
