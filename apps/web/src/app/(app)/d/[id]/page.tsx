@@ -95,7 +95,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
           id={doc.id}
           initialTitle={doc.title}
           updatedAt={formatWhen(doc.updatedAt)}
-          user={{ name: viewer.name, color: userColor(viewer.userId) }}
+          user={{ id: viewer.userId, name: viewer.name, color: userColor(viewer.userId) }}
           tags={tagMap.get(id) ?? []}
           tagSuggestions={allTags.map((item) => ({ id: item.id, name: item.name }))}
           canWrite={canWrite}

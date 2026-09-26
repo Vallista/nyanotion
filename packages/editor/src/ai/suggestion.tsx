@@ -1,7 +1,7 @@
 "use client";
 
 import { TASK_LABELS, type AiTask } from "@nyanotion/shared";
-import { CatMark } from "./cat-mark";
+import { CatMark } from "../cat-mark";
 
 export type NyanState = {
   task: AiTask;

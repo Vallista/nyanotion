@@ -5,10 +5,10 @@ import { useCallback, useState } from "react";
 import { renameDocumentAction } from "@/lib/actions";
 import { UNTITLED } from "@/lib/tree";
 import { DocumentTags } from "./document-tags";
-import type { SyncState } from "./editor";
+import type { SyncState } from "@nyanotion/editor";
 
 // BlockNote 와 Yjs 는 DOM 에 의존하므로 서버에서 렌더하지 않는다.
-const Editor = dynamic(() => import("./editor").then((m) => m.Editor), {
+const Editor = dynamic(() => import("./document-editor").then((m) => m.DocumentEditor), {
   ssr: false,
   loading: () => (
     <p style={{ fontSize: 14, color: "var(--ink-4)", padding: "4px 2px" }}>에디터를 불러오는 중…</p>
@@ -27,7 +27,7 @@ export function DocumentView({
   id: string;
   initialTitle: string;
   updatedAt: string;
-  user: { name: string; color: string };
+  user: { id: string; name: string; color: string };
   tags: { id: string; name: string; color: string | null }[];
   tagSuggestions: { id: string; name: string }[];
   /** 읽기 전용으로 받은 문서면 false — 제목·태그·본문이 전부 잠긴다. */

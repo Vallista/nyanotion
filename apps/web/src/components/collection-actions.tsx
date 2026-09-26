@@ -4,15 +4,22 @@ import { useState, useTransition } from "react";
 import { deleteCollectionAction, updateCollectionAction } from "@/lib/actions";
 import { DotsIcon } from "./icons";
 
-/** 모음 이름·보기 방식 바꾸기, 지우기. 지워도 문서는 그대로다. */
+/**
+ * 모음 이름·보기 방식 바꾸기, 지우기. 지워도 문서는 그대로다.
+ *
+ * 손으로 담는 모음(=데이터베이스)에는 목록·표 토글을 두지 않는다 —
+ * 그쪽은 표·보드·달력이고, 그 전환은 표 안의 단추가 맡는다.
+ */
 export function CollectionActions({
   id,
   name,
   view,
+  showViewToggle = true,
 }: {
   id: string;
   name: string;
-  view: "list" | "table";
+  view: "list" | "table" | "board" | "calendar";
+  showViewToggle?: boolean;
 }) {
   const [, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
@@ -52,6 +59,7 @@ export function CollectionActions({
 
   return (
     <span style={{ display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
+      {showViewToggle && (
       <span
         style={{
           display: "inline-flex",
@@ -76,6 +84,7 @@ export function CollectionActions({
           </button>
         ))}
       </span>
+      )}
 
       <button
         aria-label="모음 설정"

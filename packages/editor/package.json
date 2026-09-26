@@ -1,0 +1,35 @@
+{
+  "name": "@nyanotion/editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@blocknote/ariakit": "^0.55.0",
+    "@blocknote/core": "^0.55.0",
+    "@blocknote/react": "^0.55.0",
+    "@hocuspocus/provider": "^4.7.0",
+    "@nyanotion/editor-schema": "workspace:*",
+    "@nyanotion/shared": "workspace:*",
+    "katex": "^0.16.11",
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "@types/react": "^19.2.3",
+    "react": "^19.3.0",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "react": ">=19"
+  }
+}

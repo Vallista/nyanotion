@@ -1,7 +1,7 @@
 import { getCollection, listTags, searchDocuments, tagsForDocuments } from "@nyanotion/db";
 import { notFound } from "next/navigation";
 import { CollectionActions } from "@/components/collection-actions";
-import { DatabaseTable } from "@/components/database-table";
+import { CollectionDatabase } from "@/components/collection-database";
 import { DocumentTable } from "@/components/document-table";
 import { TopBar } from "@/components/top-bar";
 import { loadDatabaseView } from "@/lib/collection-view";
@@ -25,7 +25,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
     // 본문에 끼운 표와 **같은 코드**로 모은다 — lib/collection-view.ts
     const view = await loadDatabaseView(id, viewer);
     if (view === null) notFound();
-    const { columns, rows, people, canWrite } = view;
+    const { columns, rows, canWrite } = view;
 
     return (
       <>
@@ -34,7 +34,14 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
             { id: null, title: space?.name ?? viewer.personalSpace.name },
             { id: null, title: saved.name },
           ]}
-          right={<CollectionActions id={saved.id} name={saved.name} view={saved.view} />}
+          right={
+            <CollectionActions
+              id={saved.id}
+              name={saved.name}
+              view={view.view}
+              showViewToggle={false}
+            />
+          }
         />
         <div style={{ flexGrow: 1, overflowY: "auto" }}>
           <div style={{ width: "100%", maxWidth: 980, margin: "0 auto", padding: "56px 16px 120px" }}>
@@ -44,18 +51,15 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
             <p style={{ fontSize: 13, color: "var(--ink-3)", marginBottom: 28 }}>
               줄 {rows.length}개 · 속성 {columns.length}개
             </p>
-            <DatabaseTable
-              collectionId={saved.id}
-              columns={columns}
-              rows={rows}
-              people={people}
-              canWrite={canWrite}
-            />
+            <CollectionDatabase collectionId={saved.id} editable={canWrite} />
           </div>
         </div>
       </>
     );
   }
+
+  // 조건 모음은 list·table 만 뜻이 있다. board·calendar 는 손으로 담는 모음(=데이터베이스) 것이다.
+  const listView = saved.view === "table" ? "table" : "list";
 
   const [hits, allTags] = await Promise.all([
     searchDocuments(viewer.spaceIds, saved.filter.query, {
@@ -81,7 +85,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
           { id: null, title: space?.name ?? viewer.personalSpace.name },
           { id: null, title: saved.name },
         ]}
-        right={<CollectionActions id={saved.id} name={saved.name} view={saved.view} />}
+        right={<CollectionActions id={saved.id} name={saved.name} view={listView} />}
       />
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
         <div style={{ width: "100%", maxWidth: 880, margin: "0 auto", padding: "56px 16px 120px" }}>
@@ -99,7 +103,7 @@ export default async function CollectionPage({ params }: { params: Promise<{ id:
             </p>
           ) : (
             <DocumentTable
-              view={saved.view}
+              view={listView}
               rows={hits.map((hit) => ({
                 id: hit.id,
                 title: hit.title,

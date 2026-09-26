@@ -7,12 +7,13 @@ import {
   selectOptions,
   valuesForDocuments,
 } from "@nyanotion/db";
-import type { Column, Row } from "@/components/database-table";
+import type { Column, DatabaseViewKind, Row } from "@nyanotion/editor";
 import type { Viewer } from "./session";
 
 export type DatabaseView = {
   collectionId: string;
   name: string;
+  view: DatabaseViewKind;
   columns: Column[];
   rows: Row[];
   people: { id: string; name: string }[];
@@ -56,6 +57,8 @@ export async function loadDatabaseView(
   return {
     collectionId: saved.id,
     name: saved.name,
+    // 조건 모음의 'list' 는 표에서 뜻이 없다 — 표로 돌린다.
+    view: saved.view === "board" || saved.view === "calendar" ? saved.view : "table",
     canWrite,
     people,
     columns: properties.map((prop) => ({

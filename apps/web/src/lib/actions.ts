@@ -416,7 +416,9 @@ export async function createInlineDatabaseAction(
     view: "table",
     source: "manual",
   });
+  // 보드(선택)와 달력(날짜)이 만들자마자 뜻이 있도록 세 가지를 기본으로 둔다.
   await addProperty({ collectionId, name: "상태", type: "select" });
+  await addProperty({ collectionId, name: "날짜", type: "date" });
   await addProperty({ collectionId, name: "메모", type: "text" });
   revalidatePath("/", "layout");
   return { collectionId };

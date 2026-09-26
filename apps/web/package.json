@@ -18,6 +18,7 @@
     "@nyanotion/ai": "workspace:^",
     "@nyanotion/auth": "workspace:^",
     "@nyanotion/db": "workspace:*",
+    "@nyanotion/editor": "workspace:*",
     "@nyanotion/editor-schema": "workspace:*",
     "@nyanotion/shared": "workspace:*",
     "better-auth": "^1.2.7",

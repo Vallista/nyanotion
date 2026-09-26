@@ -9,7 +9,14 @@ import { collection, type Collection } from "../schema/index";
  */
 
 export type CollectionFilter = { tagIds: string[]; query: string };
-export type CollectionView = "list" | "table";
+/**
+ * 모음을 보여 주는 방식.
+ *   조건 모음(filter)  — list · table
+ *   손으로 담는 모음(manual, 노션의 데이터베이스) — table · board · calendar
+ * 한 칼럼에 두 뜻이 섞이지만, 읽을 때 `readView` 가 모르는 값을 걸러 준다.
+ */
+export const COLLECTION_VIEWS = ["list", "table", "board", "calendar"] as const;
+export type CollectionView = (typeof COLLECTION_VIEWS)[number];
 /** 줄을 어디서 가져오나 — 조건(filter)인가, 손으로 담은 것(manual)인가. */
 export type CollectionSource = "filter" | "manual";
 
@@ -33,7 +40,9 @@ function readFilter(value: unknown): CollectionFilter {
 }
 
 function readView(value: unknown): CollectionView {
-  return value === "table" ? "table" : "list";
+  return (COLLECTION_VIEWS as readonly string[]).includes(value as string)
+    ? (value as CollectionView)
+    : "list";
 }
 
 function readSource(value: unknown): CollectionSource {

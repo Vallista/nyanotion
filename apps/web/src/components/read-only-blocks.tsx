@@ -42,6 +42,13 @@ function Inline({ node }: { node: Unknown }): React.ReactNode {
     );
   }
 
+  // 멘션은 글자만 남긴다 — 가리키는 문서가 공개라는 보장이 없으므로 링크로 만들지 않는다.
+  if (node.type === "mention") {
+    const props = isRecord(node.props) ? node.props : {};
+    const title = typeof props.title === "string" && props.title !== "" ? props.title : "제목 없음";
+    return <span style={{ background: "var(--chip)", padding: "0 3px", borderRadius: 3 }}>@{title}</span>;
+  }
+
   if (typeof node.text === "string") {
     const styles = readStyles(node.styles);
     let out: React.ReactNode = node.text;
@@ -200,6 +207,95 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
           {nested}
         </Fragment>
       );
+    case "callout": {
+      const props = isRecord(node.props) ? node.props : {};
+      const tone = typeof props.tone === "string" ? props.tone : "note";
+      const emoji =
+        typeof props.emoji === "string" && props.emoji !== ""
+          ? props.emoji
+          : tone === "tip"
+            ? "🐾"
+            : tone === "warn"
+              ? "⚠️"
+              : "💡";
+      return (
+        <Fragment>
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
+              background: tone === "warn" ? "rgba(176,128,80,0.09)" : "var(--surface)",
+              borderLeft: `3px solid ${tone === "tip" ? "var(--accent)" : "var(--line-strong)"}`,
+              borderRadius: "var(--radius)",
+              padding: "10px 12px",
+              margin: "8px 0",
+            }}
+          >
+            <span>{emoji}</span>
+            <div style={{ flex: 1, lineHeight: 1.72 }}>{inner}</div>
+          </div>
+          {nested}
+        </Fragment>
+      );
+    }
+
+    case "equation": {
+      const props = isRecord(node.props) ? node.props : {};
+      const latex = typeof props.latex === "string" ? props.latex : "";
+      // 공개 화면에는 KaTeX 를 싣지 않는다 (글꼴까지 200kB 가 넘는다). 원본을 그대로 보여 준다.
+      return (
+        <Fragment>
+          <pre
+            style={{
+              background: "var(--surface)",
+              borderRadius: "var(--radius)",
+              padding: "10px 12px",
+              margin: "8px 0",
+              textAlign: "center",
+              fontSize: 13.5,
+              fontFamily: "var(--font-plex-mono), monospace",
+              overflowX: "auto",
+            }}
+          >
+            {latex}
+          </pre>
+          {nested}
+        </Fragment>
+      );
+    }
+
+    case "image":
+    case "video":
+    case "audio":
+    case "file":
+      return (
+        <Fragment>
+          <Media type={type} props={node.props} />
+          {nested}
+        </Fragment>
+      );
+
+    case "divider":
+      return <hr style={{ border: 0, borderTop: "1px solid var(--line)", margin: "18px 0" }} />;
+
+    case "database":
+      // 표는 로그인한 사람의 권한으로만 읽을 수 있다 — 공개 링크로는 내용을 보여 주지 않는다.
+      return (
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--ink-3)",
+            border: "1px dashed var(--line-strong)",
+            borderRadius: "var(--radius)",
+            padding: "10px 12px",
+            margin: "8px 0",
+          }}
+        >
+          표가 있습니다. 로그인하면 볼 수 있어요.
+        </p>
+      );
+
     default:
       return (
         <Fragment>
@@ -208,6 +304,46 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
         </Fragment>
       );
   }
+}
+
+/**
+ * 그림·소리·파일. 주소는 `/api/file/<id>` 이고, 그 라우트가 **공개 링크가 열려 있을 때만**
+ * 로그인 없이 내준다. 그래서 여기서 따로 막지 않는다.
+ */
+function Media({ type, props }: { type: string; props: Unknown }): React.ReactNode {
+  const bag = isRecord(props) ? props : {};
+  const url = typeof bag.url === "string" ? bag.url : "";
+  const name = typeof bag.name === "string" ? bag.name : "파일";
+  const caption = typeof bag.caption === "string" ? bag.caption : "";
+  if (url === "") return null;
+
+  const figure = (child: React.ReactNode) => (
+    <figure style={{ margin: "10px 0" }}>
+      {child}
+      {caption !== "" && (
+        <figcaption style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 5 }}>
+          {caption}
+        </figcaption>
+      )}
+    </figure>
+  );
+
+  if (type === "image") {
+    // next/image 를 쓰지 않는다 — 우리 서버가 내주는 파일이라 최적화 경로가 오히려 방해된다.
+    // eslint-disable-next-line @next/next/no-img-element
+    return figure(<img src={url} alt={caption === "" ? name : caption} style={{ maxWidth: "100%", borderRadius: "var(--radius)" }} />);
+  }
+  if (type === "video") {
+    return figure(<video src={url} controls style={{ maxWidth: "100%", borderRadius: "var(--radius)" }} />);
+  }
+  if (type === "audio") {
+    return figure(<audio src={url} controls style={{ width: "100%" }} />);
+  }
+  return figure(
+    <a href={url} rel="noreferrer nofollow">
+      {name}
+    </a>,
+  );
 }
 
 export function ReadOnlyBlocks({ content }: { content: unknown }) {

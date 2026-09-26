@@ -1,6 +1,19 @@
 export { createPersonalSpace, hasOpenInvitation, isFirstUser } from "./accounts";
 export { saveYdoc } from "./collab";
 export {
+  addComment,
+  createThread,
+  deleteComment,
+  documentOfThread,
+  editComment,
+  getThread,
+  listThreads,
+  openThreadCount,
+  ownerOfComment,
+  setThreadResolved,
+  type ThreadRow,
+} from "./comments";
+export {
   createAttachment,
   documentIsPubliclyShared,
   getAttachment,
@@ -15,6 +28,7 @@ export {
   type CollectionFilter,
   type CollectionSource,
   type CollectionSummary,
+  COLLECTION_VIEWS,
   type CollectionView,
 } from "./collections";
 export {

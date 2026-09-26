@@ -1,42 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-  useTransition,
-} from "react";
-import {
-  addPropertyAction,
-  addRowAction,
-  deletePropertyAction,
-  moveRowAction,
-  removeRowAction,
-  setSelectValueAction,
-  setValueAction,
-  updatePropertyAction,
-} from "@/lib/actions";
-import { displayTitle } from "@/lib/tree";
-import { DotsIcon, PageIcon, PlusIcon } from "./icons";
+import { createContext, useCallback, useContext, useState, useTransition } from "react";
+import { displayTitle, usePorts } from "../context";
+import { DotsIcon, PageIcon, PlusIcon } from "../icons";
+import type { Column, PropertyType, Row } from "../ports";
 
-export type PropertyType =
-  "text" | "number" | "select" | "date" | "checkbox" | "url" | "person";
+export type { Column, PropertyType, Row } from "../ports";
 
-export type Column = {
-  id: string;
-  name: string;
-  type: PropertyType;
-  options: { id: string; name: string }[];
-};
-
-export type Row = {
-  documentId: string;
-  title: string;
-  values: Record<string, unknown>;
-};
 
 /**
  * 표가 바뀌었다고 알리는 길.
@@ -81,12 +51,12 @@ export function DatabaseTable({
   /** 본문에 끼운 표처럼 스스로 데이터를 받아 오는 쪽이 준다. 모음 페이지는 주지 않는다. */
   onChanged?: () => void;
 }) {
-  const router = useRouter();
+  const ports = usePorts();
   const [, startTransition] = useTransition();
   const changed = useCallback(() => {
-    router.refresh();
+    ports.onDataChanged?.();
     onChanged?.();
-  }, [router, onChanged]);
+  }, [ports, onChanged]);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [rowMenuFor, setRowMenuFor] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -100,7 +70,7 @@ export function DatabaseTable({
       return;
     }
     startTransition(async () => {
-      await addRowAction(collectionId, clean);
+      await ports.database.addRow(collectionId, clean);
       changed();
     });
   }
@@ -219,8 +189,8 @@ export function DatabaseTable({
                   </td>
 
                   <td style={cellStyle}>
-                    <Link
-                      href={`/d/${row.documentId}`}
+                    <ports.Link
+                      href={ports.hrefForDocument(row.documentId)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -234,7 +204,7 @@ export function DatabaseTable({
                         <PageIcon size={14} />
                       </span>
                       {displayTitle(row.title)}
-                    </Link>
+                    </ports.Link>
                   </td>
 
                   {columns.map((column) => (
@@ -342,10 +312,11 @@ function Cell({
 }) {
   const [, startTransition] = useTransition();
   const changed = useTableChanged();
+  const ports = usePorts();
 
   function save(next: unknown) {
     startTransition(async () => {
-      await setValueAction(collectionId, documentId, column.id, next);
+      await ports.database.setValue(collectionId, documentId, column.id, next);
       changed();
     });
   }
@@ -375,7 +346,7 @@ function Cell({
         currentName={currentName}
         onPick={(name) =>
           startTransition(async () => {
-            await setSelectValueAction(
+            await ports.database.setSelectValue(
               collectionId,
               documentId,
               column.id,
@@ -579,6 +550,7 @@ function ColumnMenu({
 }) {
   const [, startTransition] = useTransition();
   const changed = useTableChanged();
+  const ports = usePorts();
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
@@ -598,7 +570,7 @@ function ColumnMenu({
               onClose();
               if (next !== "" && next !== column.name) {
                 startTransition(async () => {
-                  await updatePropertyAction(collectionId, column.id, {
+                  await ports.database.updateProperty(collectionId, column.id, {
                     name: next,
                   });
                   changed();
@@ -640,7 +612,7 @@ function ColumnMenu({
               onClose();
               if (type !== column.type) {
                 startTransition(async () => {
-                  await updatePropertyAction(collectionId, column.id, { type });
+                  await ports.database.updateProperty(collectionId, column.id, { type });
                   changed();
                 });
               }
@@ -664,7 +636,7 @@ function ColumnMenu({
             onClick={() => {
               onClose();
               startTransition(async () => {
-                await deletePropertyAction(collectionId, column.id);
+                await ports.database.deleteProperty(collectionId, column.id);
                 changed();
               });
             }}
@@ -711,6 +683,7 @@ function RowMenu({
 }) {
   const [, startTransition] = useTransition();
   const changed = useTableChanged();
+  const ports = usePorts();
 
   return (
     <>
@@ -724,7 +697,7 @@ function RowMenu({
             onClick={() => {
               onClose();
               startTransition(async () => {
-                await moveRowAction(collectionId, documentId, previousId);
+                await ports.database.moveRow(collectionId, documentId, previousId);
                 changed();
               });
             }}
@@ -738,7 +711,7 @@ function RowMenu({
             onClick={() => {
               onClose();
               startTransition(async () => {
-                await moveRowAction(collectionId, documentId, nextId);
+                await ports.database.moveRow(collectionId, documentId, nextId);
                 changed();
               });
             }}
@@ -754,7 +727,7 @@ function RowMenu({
           onClick={() => {
             onClose();
             startTransition(async () => {
-              await removeRowAction(collectionId, documentId);
+              await ports.database.removeRow(collectionId, documentId);
               changed();
             });
           }}
@@ -781,6 +754,7 @@ function AddColumnButton({ collectionId }: { collectionId: string }) {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
   const changed = useTableChanged();
+  const ports = usePorts();
 
   return (
     <span style={{ position: "relative", display: "flex" }}>
@@ -805,7 +779,7 @@ function AddColumnButton({ collectionId }: { collectionId: string }) {
                 onClick={() => {
                   setOpen(false);
                   startTransition(async () => {
-                    await addPropertyAction(
+                    await ports.database.addProperty(
                       collectionId,
                       TYPE_LABELS[type],
                       type,
