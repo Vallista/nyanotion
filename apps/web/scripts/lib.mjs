@@ -67,3 +67,28 @@ export async function focusLastLine(page) {
   // 표 블록이 다시 그려지는 중이면 첫 글자가 삼켜진다 — 가라앉을 때까지 기다린다.
   await page.waitForTimeout(900);
 }
+
+/**
+ * 문서 하나를 연다. id 를 주면 그것, 아니면 **사이드바의 첫 문서**.
+ *
+ * 문서 id 를 스크립트에 박아 두면 환경(dev·beta·prod)이 바뀔 때마다 깨진다 —
+ * 같은 서버라도 DB 가 다르면 id 가 다르다.
+ */
+export async function openDocument(page, id, { base = BASE } = {}) {
+  if (id !== undefined && id !== "") {
+    await page.goto(`${base}/d/${id}`, { waitUntil: "networkidle" });
+  } else {
+    await page.goto(`${base}/`, { waitUntil: "networkidle" });
+    // 누르지 않고 **주소만 읽어서** 옮긴다 — 폰에서는 사이드바가 서랍이라 링크가 보이지 않는다.
+    const href = await page
+      .locator('a[href^="/d/"]')
+      .first()
+      .getAttribute("href", { timeout: 15000 })
+      .catch(() => null);
+    if (href === null) throw new Error("열 수 있는 문서가 없습니다.");
+    await page.goto(`${base}${href}`, { waitUntil: "networkidle" });
+  }
+  await page.waitForSelector(".bn-editor", { timeout: 30000 });
+  await page.waitForTimeout(1800);
+  return page.url().split("/d/")[1];
+}

@@ -8,9 +8,9 @@
  */
 import { chromium, devices } from "playwright";
 import { writeFileSync } from "node:fs";
-import { BASE, signIn } from "./lib.mjs";
+import { focusLastLine, openDocument, signIn } from "./lib.mjs";
 
-const DOC = process.argv[2] ?? "e73wf6yxkrnps6cwfped7od9";
+const DOC = process.argv[2];
 const browser = await chromium.launch();
 const report = {};
 
@@ -24,11 +24,12 @@ for (const shape of [
   page.on("pageerror", (e) => problems.push("pageerror: " + String(e).slice(0, 200)));
 
   await signIn(page);
-  await page.goto(`${BASE}/d/${DOC}`, { waitUntil: "networkidle" });
-  await page.waitForSelector(".bn-editor", { timeout: 20000 }).catch(() => {
-    problems.push("'.bn-editor' 를 못 찾음 — 에디터가 안 떴다");
-  });
-  await page.waitForTimeout(1500);
+  const opened = await openDocument(page, DOC)
+    .then(() => true)
+    .catch((error) => {
+      problems.push(`문서를 열지 못했다: ${String(error).slice(0, 120)}`);
+      return false;
+    });
 
   const styles = await page.evaluate(() => {
     const look = (selector) => {
@@ -72,17 +73,19 @@ for (const shape of [
   await page.screenshot({ path: `apps/web/scripts/inspect-${shape.name}.png` });
 
   // 슬래시 메뉴 — 찍고 나서 되돌린다
-  await page.locator('.bn-editor [data-content-type="paragraph"]').last().click({ force: true });
-  await page.keyboard.press("End");
-  await page.keyboard.type("/", { delay: 45 });
-  const opened = await page
-    .waitForSelector(".bn-suggestion-menu", { timeout: 6000 })
-    .then(() => true)
-    .catch(() => false);
-  await page.waitForTimeout(400);
+  let menuShown = false;
+  if (opened) {
+    await focusLastLine(page);
+    await page.keyboard.type("/", { delay: 45 });
+    menuShown = await page
+      .waitForSelector(".bn-suggestion-menu", { timeout: 6000 })
+      .then(() => true)
+      .catch(() => false);
+    await page.waitForTimeout(400);
+  }
 
   let menu = null;
-  if (opened) {
+  if (menuShown) {
     await page.screenshot({ path: `apps/web/scripts/inspect-${shape.name}-slash.png` });
     menu = await page.evaluate(() => {
       const el = document.querySelector(".bn-suggestion-menu");
@@ -102,9 +105,11 @@ for (const shape of [
   }
 
   // 되돌리기 — 문서를 바꾸면 안 된다
-  await page.keyboard.press("Escape");
-  await page.keyboard.press("Backspace");
-  await page.waitForTimeout(400);
+  if (opened) {
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Backspace");
+    await page.waitForTimeout(500);
+  }
 
   report[shape.name] = { styles, menu, problems };
   await page.close();

@@ -7,16 +7,14 @@
  * **문서를 바꾸지 않는다** — 친 "/" 는 되돌린다.
  */
 import { chromium, devices } from "playwright";
-import { BASE, focusLastLine, signIn } from "./lib.mjs";
+import { focusLastLine, openDocument, signIn } from "./lib.mjs";
 
-const DOC = process.argv[2] ?? "e73wf6yxkrnps6cwfped7od9";
+const DOC = process.argv[2];
 const browser = await chromium.launch();
 const page = await browser.newPage({ ...devices["Desktop Chrome"] });
 
 await signIn(page);
-await page.goto(`${BASE}/d/${DOC}`, { waitUntil: "networkidle" });
-await page.waitForSelector(".bn-editor", { timeout: 20000 });
-await page.waitForTimeout(1500);
+await openDocument(page, DOC);
 
 await focusLastLine(page);
 await page.keyboard.type("/", { delay: 45 });
