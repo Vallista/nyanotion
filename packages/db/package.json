@@ -14,10 +14,11 @@
     "migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx scripts/smoke-documents.ts",
+    "smoke": "pnpm smoke:documents && pnpm smoke:search && pnpm smoke:props",
     "seed": "tsx scripts/seed-welcome.ts",
     "smoke:search": "tsx scripts/smoke-search.ts",
-    "smoke:props": "tsx scripts/smoke-properties.ts"
+    "smoke:props": "tsx scripts/smoke-properties.ts",
+    "smoke:documents": "tsx scripts/smoke-documents.ts"
   },
   "dependencies": {
     "@nyanotion/shared": "workspace:^",
