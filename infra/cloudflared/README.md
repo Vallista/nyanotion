@@ -71,3 +71,12 @@ curl -s -o /dev/null -w "%{http_code}
 
 > 인증서가 나오기 전에는 로그인해도 `/` 가 307 로 돈다. 세션 쿠키가 `Secure` 라 평문 HTTP 로는
 > 실리지 않기 때문이다 — 고장이 아니라 의도된 동작이다.
+
+## HTTP(80) 도 그대로 열린다 — 앱이 돌려보낸다
+
+Cloudflare 는 TLS 를 끝내고 우리 쪽으로 평문으로 넘기므로, 80 번으로 들어온 요청도 앱까지 닿는다.
+그대로 두면 **세션 쿠키가 `Secure` 라 로그인만 되고 아무것도 안 되는 상태**가 된다.
+
+`apps/web/src/middleware.ts` 가 308 로 돌린다. 판별은 **공개 주소로 들어왔는지**로 한다
+(`BETTER_AUTH_URL` 의 host 와 `x-forwarded-host` 비교) — `x-forwarded-proto` 만 보면
+Next 가 평문 요청 전부에 그 헤더를 붙이기 때문에 집 안의 localhost·Tailscale 까지 걸린다.
