@@ -41,3 +41,33 @@ cloudflared service install    # 관리자 권한
 도메인 없이 `cloudflared tunnel --url http://localhost:3000` 만 돌리면
 `https://무작위.trycloudflare.com` 이 나온다. 재시작할 때마다 주소가 바뀌므로
 **홈 화면에 추가한 앱이 깨진다** — PWA 동작 확인용으로만 쓴다.
+
+## 실제로 쓴 값 (nyanotion.party)
+
+```
+터널 이름 : nyanotion
+터널 id   : cdb7d097-0249-4567-a033-c379f8e95a50
+호스트    : nyanotion.party        → http://127.0.0.1:3000
+            collab.nyanotion.party → ws://127.0.0.1:1234
+```
+
+`config.yml` 은 터널 id 를 담고 있어 git 에 올리지 않는다 (`.gitignore`).
+자격증명 json 과 `cert.pem` 은 `~/.cloudflared/` 에 있다 — **이 둘이 곧 도메인 제어권이다.**
+
+## 새 도메인은 인증서가 늦게 나온다
+
+Cloudflare 의 Universal SSL 은 도메인을 막 산 직후에는 아직 발급 전이라, DNS 와 터널이 멀쩡해도
+HTTPS 핸드셰이크가 깨진다 (`SEC_E_ILLEGAL_MESSAGE` / `HandshakeFailure`).
+보통 15분 안팎, 늦으면 더 걸린다. **HTTP(80) 로 200 이 나오면 터널·앱은 정상이고 인증서만 기다리는 것이다.**
+
+확인:
+
+```bash
+curl -s -o /dev/null -w "%{http_code}
+" http://nyanotion.party/login    # 200 이면 터널 OK
+curl -s -o /dev/null -w "%{http_code}
+" https://nyanotion.party/login   # 000 이면 인증서 대기
+```
+
+> 인증서가 나오기 전에는 로그인해도 `/` 가 307 로 돈다. 세션 쿠키가 `Secure` 라 평문 HTTP 로는
+> 실리지 않기 때문이다 — 고장이 아니라 의도된 동작이다.

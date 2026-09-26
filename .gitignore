@@ -8,6 +8,7 @@ out/
 
 .env
 infra/data/
+infra/cloudflared/config.yml
 .env
 .env.local
 .env.*.local
