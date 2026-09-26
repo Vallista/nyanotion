@@ -57,6 +57,13 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - Yjs fragment 이름은 `"prosemirror"` — `@blocknote/server-util` 의 기본값과 같아야 한다. 바꾸면 기존 문서를 못 읽는다.
 
 ### 에디터
+
+- **에디터는 `packages/editor` 패키지다. 이 패키지는 서버를 모른다** — 저장·권한·주소는 전부 `EditorPorts`(`ports.ts`)로 들어온다. Next·서버 액션·fetch 가 패키지 안으로 새면 분리한 뜻이 없다. 꽂는 자리는 `apps/web/src/components/document-editor.tsx` 하나다.
+- **블록 종류 정의는 `packages/editor-schema` 한 곳.** 브라우저(React 스펙)와 collab 서버(코어 스펙)가 같은 것을 써야 한다. 서버가 모르는 블록은 Yjs → `content_json` 변환에서 **조용히 사라진다.** 속성을 지우거나 이름을 바꾸면 이미 저장된 문서가 깨진다 — 더하는 것만 안전하다.
+- **`contentEditable={false}` 블록 안의 단추는 마우스 이벤트를 에디터로 넘기지 말 것** (`onMouseDown` 에서 `stopPropagation`). 넘기면 ProseMirror 가 블록을 통째로 고른 상태가 되고, 그 뒤로 `/` 가 먹히지 않는다.
+- **표를 어떻게 보는지(표·보드·달력)는 블록이 아니라 모음에 저장한다.** 블록 속성으로 두면 뷰를 바꿀 때마다 문서에 트랜잭션이 생긴다.
+- **글을 못 쓰는 블록(표·수식)을 넣을 때는 아래에 문단 하나를 같이 만든다.** `trailingBlock` 이 이 경우를 잡아 주지 않아 더 쓸 자리가 사라진다.
+- **댓글은 Yjs 가 아니라 Postgres 에 있다.** 오프라인에서 지운 댓글이 다른 기기에서 되살아나는 문제를 떠안지 않기 위해서다.
 - **BlockNote UI 는 Ariakit 판(`@blocknote/ariakit`)이다.** Mantine 판은 쓰지 않는다 — `@mantine/core` 가 React 에 아직 없는 `useEffectEvent` 를 불러 빌드가 깨진다.
 - **Ariakit 판 `BlockNoteView` 는 `theme` 을 `"light" | "dark"` 만 받는다.** 색은 `apps/web/src/styles/blocknote.css` 의 `--bn-*` 변수로 맞추고, 그 파일은 **`editor.tsx` 에서 BlockNote 의 `style.css` 두 줄 다음에** import 한다.
 - **`--bn-*` 는 `:root` 가 아니라 `.bn-root` 에 적는다.** BlockNote 가 같은 변수를 `.bn-root` 에 정의하는데 특이도가 (0,1,0) 로 같아서, 같으면 **나중에 로드된 쪽이 이긴다**. `globals.css` 는 클라이언트 청크보다 먼저 들어오므로 거기 적은 값은 조용히 무시된다. 메뉴·툴팁은 portal 로 나가도 `.bn-root` 안에 남는다.
@@ -67,7 +74,7 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **CSS 주석 안에 `*/` 를 쓰지 말 것** (`@blocknote/*/style.css` 같은 경로). 주석이 일찍 닫혀 뒤가 전부 깨지고, `next build` 의 minifier 가 "Expected a pseudo-class" 로 터진다.
 - **첨부 파일의 권한은 문서 기준이다.** 올리기는 `assertCanWrite`, 내려받기는 `canRead` — 또는 그 문서가 지금 공개 링크로 열려 있을 때. id 를 안다고 내주지 말 것. 받아 주는 종류는 허용 목록이고 `image/svg+xml`·`text/html` 은 제외한다 (스크립트를 품을 수 있다).
 - 에디터 파일(`components/editor.tsx`)은 항상 클라이언트이고 `next/dynamic` 의 `ssr: false` 로만 불러온다.
-- **`next dev` 가 떠 있는 동안 `next build` 를 돌리지 말 것.** 둘이 같은 출력 폴더를 쓰기 때문에 빌드가 개발 서버의 상태를 지워 버리고, 그때부터 모든 요청이 500 이 된다. 살리려면 개발 서버를 껐다 켜야 한다.
+- **빌드 폴더는 환경마다 다르다** (`next.config.ts` 의 `distDir` ← `NEXT_DIST_DIR`). 하나를 같이 쓰면 `next build` 가 돌고 있는 `next dev` 의 상태를 지워 버려 그때부터 모든 요청이 500 이 된다. 새 환경을 만들면 `apps/web/tsconfig.json` 의 `include` 에 `.next-<환경>/types` 도 더할 것.
 - **`text_plain` 을 만드는 경로는 `setContent()` 하나뿐이다.** 다른 곳에서 저장하지 말 것.
 
 ### 클라이언트
@@ -88,6 +95,14 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **DB 스키마 변경은 `packages/db/migrations/` 에 새 번호로 추가.** 적용된 SQL 은 고치지 않는다.
 - **비밀 값은 커밋 금지.** `infra/.env` 는 git 무시. 예시는 `infra/.env.example` 에만.
 - 고양이 이름(냥이·캣타워·모래상자·츄르)은 **UI 문구에서만**. DB 컬럼·코드 식별자는 평범한 영어로.
+
+## 환경과 비밀값
+
+- **환경은 `NYANOTION_ENV` 하나로 갈린다** — `dev` · `beta` · `prod`. DB·포트·도메인·빌드 폴더가 전부 다르다 (`docs/07-environments.md`).
+- **마이그레이션은 `beta` 에서 먼저 돌린다.** 적용된 SQL 은 고치지 않으므로, 잘못 쓴 것을 알아차리는 가장 싼 자리가 거기다.
+- 설정을 읽는 차례: 셸 → `$NYANOTION_SECRETS_DIR/<환경>.env` → `.env.<환경>` → `.env`. 먼저 잡힌 값이 이긴다.
+- **저장소는 공개돼 있다.** 비밀번호·토큰을 코드·문서·스크립트에 적지 말 것. 본보기에는 `change_me` 만 둔다.
+- **`BETTER_AUTH_SECRET` 을 바꾸면 모두 로그아웃된다.** 세션 쿠키를 그 값으로 서명한다.
 
 ## 명령
 
