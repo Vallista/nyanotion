@@ -66,7 +66,7 @@ $env:PGPASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
 & $psql -U postgres -h 127.0.0.1 -d nyanotion -c "CREATE EXTENSION IF NOT EXISTS vector;"
 Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue
 
-$env:PGPASSWORD = "nyanotion_dev"
+$env:PGPASSWORD = $env:PGPASSWORD   # 미리 넣어 두세요 — 저장소에 비밀번호를 적지 않습니다
 & $psql -U nyanotion -h 127.0.0.1 -d nyanotion `
   -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';"
 Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue

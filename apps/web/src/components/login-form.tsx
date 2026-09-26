@@ -6,16 +6,17 @@ import { authClient } from "@/lib/auth-client";
 import { CatMark } from "./cat-mark";
 
 /**
- * 로그인, 그리고 **초대 링크를 타고 왔을 때만** 가입.
+ * 로그인, 그리고 **초대 링크를 타고 왔거나 이 서버의 첫 계정일 때만** 가입.
  * 가입 자체를 막는 건 서버(`lib/auth.ts` 의 가입 훅)다 — 여기 화면은 안내일 뿐이다.
  */
-export function LoginForm() {
+export function LoginForm({ bootstrap = false }: { bootstrap?: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const invite = params.get("invite");
   const invitedEmail = params.get("email");
 
-  const [mode, setMode] = useState<"in" | "up">(invite === null ? "in" : "up");
+  const canSignUp = invite !== null || bootstrap;
+  const [mode, setMode] = useState<"in" | "up">(canSignUp ? "up" : "in");
   const [email, setEmail] = useState(invitedEmail ?? "");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -148,8 +149,14 @@ export function LoginForm() {
           </button>
         </form>
 
-        {invite !== null ? (
+        {canSignUp ? (
           <div style={{ marginTop: 20, textAlign: "center" }}>
+            {bootstrap && invite === null && (
+              <p style={{ fontSize: 12.5, lineHeight: 1.7, color: "var(--ink-3)", marginBottom: 10 }}>
+                이 서버에는 아직 계정이 없습니다. 지금 만드는 것이 <b style={{ fontWeight: 500 }}>첫 계정</b>이고,
+                그다음부터는 초대를 받아야 들어올 수 있어요.
+              </p>
+            )}
             <button
               onClick={() => {
                 setMode((value) => (value === "up" ? "in" : "up"));

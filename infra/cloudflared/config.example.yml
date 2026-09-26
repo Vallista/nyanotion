@@ -24,9 +24,21 @@ ingress:
       connectTimeout: 30s
       noTLSVerify: false
 
-  # 웹
+  # 웹 (운영)
   - hostname: <도메인>
     service: http://127.0.0.1:3000
+
+  # ── 베타 ─────────────────────────────────────────────────────────────────
+  # **밖에서 볼 일이 없으면 이 두 줄을 넣지 말 것.** localhost:3100 으로 쓰는 편이 안전하다.
+  # 넣으려면 DNS 도 같이 걸어야 한다:
+  #   cloudflared tunnel route dns nyanotion beta.<도메인>
+  #   cloudflared tunnel route dns nyanotion collab-beta.<도메인>
+  # - hostname: collab-beta.<도메인>
+  #   service: ws://127.0.0.1:1334
+  #   originRequest:
+  #     connectTimeout: 30s
+  # - hostname: beta.<도메인>
+  #   service: http://127.0.0.1:3100
 
   # 나머지는 받지 않는다
   - service: http_status:404

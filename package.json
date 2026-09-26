@@ -3,16 +3,20 @@
   "private": true,
   "packageManager": "pnpm@9.7.0",
   "scripts": {
-    "dev": "pnpm --filter @nyanotion/web dev",
+    "setup": "pwsh scripts/setup.ps1",
+    "dev": "pwsh scripts/run.ps1 -Env dev",
+    "dev:web": "pnpm --filter @nyanotion/web dev",
+    "dev:collab": "pnpm --filter @nyanotion/collab dev",
+    "serve:beta": "pwsh scripts/run.ps1 -Env beta -Build",
+    "serve:prod": "pwsh scripts/run.ps1 -Env prod -Build",
+    "stop:beta": "pwsh scripts/run.ps1 -Env beta -Stop",
+    "stop:prod": "pwsh scripts/run.ps1 -Env prod -Stop",
     "build": "pnpm --filter @nyanotion/web build",
-    "start": "pnpm --filter @nyanotion/web start",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r --if-present smoke",
     "db:generate": "pnpm --filter @nyanotion/db generate",
     "db:migrate": "pnpm --filter @nyanotion/db migrate",
     "db:studio": "pnpm --filter @nyanotion/db studio",
-    "db:up": "docker compose --env-file .env -f infra/docker-compose.yml up -d postgres",
-    "db:down": "docker compose --env-file .env -f infra/docker-compose.yml down",
-    "typecheck": "pnpm -r typecheck",
-    "db:logs": "docker compose --env-file .env -f infra/docker-compose.yml logs -f postgres",
-    "dev:collab": "pnpm --filter @nyanotion/collab dev"
+    "db:seed": "pnpm --filter @nyanotion/db seed"
   }
 }

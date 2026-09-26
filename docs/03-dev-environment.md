@@ -32,7 +32,7 @@
 ```powershell
 # 1) PostgreSQL 17 (Windows 설치본) — DB 와 역할을 한 번만 만든다. 관리자 PowerShell.
 & "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -h 127.0.0.1 `
-  -c "CREATE ROLE nyanotion LOGIN PASSWORD 'nyanotion_dev' CREATEDB;" `
+  -c "CREATE ROLE nyanotion LOGIN PASSWORD '<직접 만든 비밀번호>' CREATEDB;" `
   -c "CREATE DATABASE nyanotion OWNER nyanotion;"
 
 # 2) 환경 변수 — 저장소 루트에 .env 하나 (infra/ 안이 아니다)

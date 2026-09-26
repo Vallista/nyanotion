@@ -6,14 +6,16 @@ out/
 .turbo/
 *.tsbuildinfo
 
+# 설정·비밀값 — 본보기(.env*.example)만 커밋한다.
 .env
+.env.*
+!.env.example
+!.env.*.example
+
 infra/data/
 .data/
 apps/web/.data/
 infra/cloudflared/config.yml
-.env
-.env.local
-.env.*.local
 
 *.log
 npm-debug.log*
@@ -33,3 +35,7 @@ next-env.d.ts
 # 점검 스크립트 산출물 (스크린샷·리포트)
 apps/web/scripts/*.png
 apps/web/scripts/editor-report.json
+
+# 환경별 빌드 출력
+.next-*/
+apps/web/.next-*/

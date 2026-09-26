@@ -1,0 +1,40 @@
+# 타입과 빌드만 본다.
+#
+# DB 스모크는 여기서 돌리지 않는다 — 실제 PostgreSQL 과 한국어 콜레이션
+# (Korean_Korea.949) 이 있어야 뜻이 있는 시험이라, 서비스 컨테이너로 흉내 내면
+# 통과해도 집 서버에서 통과한다는 보장이 없다. 그건 집에서 `pnpm test` 로 돌린다.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: 타입 확인
+        run: pnpm typecheck
+
+      - name: 빌드
+        # 빌드는 설정을 읽지만 DB 에 붙지는 않는다. 형식만 갖춘 값을 넣어 준다.
+        env:
+          NYANOTION_ENV: dev
+          DATABASE_URL: postgres://nyanotion:ci@localhost:5432/nyanotion_ci
+          BETTER_AUTH_SECRET: ci-only-not-a-real-secret-0000000000
+          BETTER_AUTH_URL: http://localhost:3000
+        run: pnpm build

@@ -6,6 +6,14 @@ loadEnv();
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /**
+   * 환경마다 **다른 출력 폴더**를 쓴다.
+   *
+   * 기본값 하나를 같이 쓰면 `next build` 가 돌고 있는 `next dev` 의 상태를 지워 버려서
+   * 그때부터 모든 요청이 500 이 된다 (실제로 겪었다). 베타를 빌드하는 동안 운영이 죽는 것도
+   * 같은 이유다. scripts/run.ps1 이 NEXT_DIST_DIR 을 넣어 준다.
+   */
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   transpilePackages: [
     "@nyanotion/db",
     "@nyanotion/shared",

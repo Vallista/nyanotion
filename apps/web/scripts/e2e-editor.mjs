@@ -4,10 +4,7 @@
  *   node apps/web/scripts/e2e-editor.mjs
  */
 import { chromium, devices } from "playwright";
-
-const BASE = process.env.INSPECT_URL ?? "http://localhost:3000";
-const EMAIL = process.env.INSPECT_EMAIL ?? "mgh950714@gmail.com";
-const PASSWORD = process.env.INSPECT_PASSWORD ?? "nyanotion-first";
+import { BASE, focusLastLine, signIn } from "./lib.mjs";
 
 const browser = await chromium.launch();
 const page = await browser.newPage({
@@ -31,11 +28,7 @@ const check = (label, ok, detail) => {
   }
 };
 
-await page.goto(`${BASE}/login`, { waitUntil: "networkidle" });
-await page.fill('input[name="email"]', EMAIL);
-await page.fill('input[name="password"]', PASSWORD);
-await page.click('button[type="submit"]');
-await page.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 30000 });
+console.log(await signIn(page));
 
 // --- 임시 문서 ---
 await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
@@ -53,17 +46,6 @@ console.log("임시 문서:", docId, "\n");
 await page.waitForSelector(".bn-editor", { timeout: 30000 });
 await page.waitForTimeout(2500);
 
-/** 글을 칠 수 있는 마지막 줄에 커서를 놓는다 (표·수식 블록은 contenteditable 이 아니다). */
-async function focusLastLine() {
-  const line = page.locator('.bn-editor [data-content-type="paragraph"]').last();
-  // 표·달력이 길면 문단이 화면 밖에 있다 — 그대로 누르면 엉뚱한 곳이 눌린다.
-  await line.scrollIntoViewIfNeeded();
-  await line.click();
-  await page.keyboard.press("End");
-  // 표 블록이 다시 그려지는 중이면 첫 글자가 삼켜진다 — 가라앉을 때까지 기다린다.
-  await page.waitForTimeout(900);
-}
-
 /**
  * 슬래시 메뉴로 블록 하나를 넣는다. 메뉴에 보이던 글을 돌려준다.
  *
@@ -71,7 +53,7 @@ async function focusLastLine() {
  * 지연 없이 치면 첫 글자가 삼켜진다 — 사람은 이렇게 빨리 칠 수 없으므로 제품 문제는 아니다.
  */
 async function slash(query) {
-  await focusLastLine();
+  await focusLastLine(page);
   await page.keyboard.type("/", { delay: 45 });
   await page.waitForTimeout(400);
   // 첫 글자가 삼켜졌으면 한 번 더 — 브라우저가 다시 그리는 중이면 생긴다.
@@ -166,7 +148,7 @@ console.log("\n수식");
 
 console.log("\n@ 멘션");
 {
-  await focusLastLine();
+  await focusLastLine(page);
   await page.keyboard.type("@", { delay: 45 });
   const opened = await page
     .waitForSelector(".bn-suggestion-menu", { timeout: 8000 })
