@@ -78,6 +78,20 @@
       "when": 1790486217750,
       "tag": "0010_push_subscription",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790486968331,
+      "tag": "0011_purchase",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790487450839,
+      "tag": "0012_purchase_history_outlives",
+      "breakpoints": true
     }
   ]
 }

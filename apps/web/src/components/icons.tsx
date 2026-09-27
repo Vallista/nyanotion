@@ -212,3 +212,14 @@ export function TableIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 살 것 — 장바구니 */
+export function CartIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M1.9 2.4h1.8l1.7 7.4h6.3l1.6-5.3H4.4" />
+      <circle cx="6.4" cy="12.7" r="1.1" />
+      <circle cx="11.2" cy="12.7" r="1.1" />
+    </Svg>
+  );
+}

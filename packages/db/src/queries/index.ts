@@ -1,6 +1,30 @@
 export { createPersonalSpace, hasOpenInvitation, isFirstUser } from "./accounts";
 export { saveYdoc } from "./collab";
 export {
+  appendOffers,
+  approve,
+  awaitingApprovalCount,
+  cancelOrder,
+  chooseOffer,
+  chosenOffer,
+  createItem,
+  documentOfItem,
+  documentOfOrder,
+  getItem,
+  listItems,
+  listOrders,
+  markOrderFailed,
+  markOrderPlaced,
+  ordersReadyToPlace,
+  removeItem,
+  replaceOffers,
+  updateItem,
+  watchersOfDocument,
+  type ItemRow,
+  type OfferRow,
+  type OrderRow,
+} from "./purchases";
+export {
   removeSubscription,
   removeSubscriptions,
   saveSubscription,

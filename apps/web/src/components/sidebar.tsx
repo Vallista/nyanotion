@@ -23,6 +23,7 @@ import {
   CollectionIcon,
   DotsIcon,
   FamilyIcon,
+  CartIcon,
   InstallIcon,
   LitterBoxIcon,
   PageIcon,
@@ -78,6 +79,7 @@ export function Sidebar({
   spaces,
   nodes,
   archivedCount,
+  awaitingApproval,
   favorites,
   tags,
   collections,
@@ -88,6 +90,8 @@ export function Sidebar({
   spaces: SidebarSpace[];
   nodes: SidebarNode[];
   archivedCount: number;
+  /** 승인을 기다리는 살 것 수. 0 이면 배지를 안 단다. */
+  awaitingApproval: number;
   favorites: { id: string; title: string; icon: string | null }[];
   tags: { id: string; name: string; count: number }[];
   collections: { id: string; name: string }[];
@@ -423,6 +427,12 @@ export function Sidebar({
           icon={<LitterBoxIcon />}
           label="모래상자"
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
+        />
+        <SideLink
+          href="/buy"
+          icon={<CartIcon />}
+          label="살 것"
+          trailing={awaitingApproval > 0 ? String(awaitingApproval) : undefined}
         />
         <SideLink href="/install" icon={<InstallIcon />} label="앱으로 설치" />
         <GpuModeToggle mode={gpuMode} reachable={aiReachable} />
