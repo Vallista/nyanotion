@@ -1,6 +1,8 @@
 export * from "./ai-tasks";
 export * from "./ticket";
 export * from "./blocks";
+export * from "./chunk";
+export * from "./rag-prompts";
 export * from "./position";
 
 /**

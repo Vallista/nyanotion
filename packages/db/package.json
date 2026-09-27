@@ -11,14 +11,15 @@
   },
   "scripts": {
     "generate": "drizzle-kit generate",
-    "migrate": "drizzle-kit migrate",
+    "migrate": "drizzle-kit migrate && tsx scripts/sync-vector.ts",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit",
     "smoke": "pnpm smoke:documents && pnpm smoke:search && pnpm smoke:props",
     "seed": "tsx scripts/seed-welcome.ts",
     "smoke:search": "tsx scripts/smoke-search.ts",
     "smoke:props": "tsx scripts/smoke-properties.ts",
-    "smoke:documents": "tsx scripts/smoke-documents.ts"
+    "smoke:documents": "tsx scripts/smoke-documents.ts",
+    "vector": "tsx scripts/sync-vector.ts"
   },
   "dependencies": {
     "@nyanotion/shared": "workspace:^",

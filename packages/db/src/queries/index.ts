@@ -83,6 +83,36 @@ export {
   setIcon,
   type TreeNode,
 } from "./documents";
+export {
+  chunkCount,
+  claimJob,
+  enqueueJob,
+  enqueueSuggestIfUseful,
+  enqueueUnindexed,
+  failJob,
+  finishJob,
+  pruneJobs,
+  queueDepth,
+  requeueJob,
+  retrievePassages,
+  storedChunks,
+  trimChunks,
+  upsertChunk,
+  type ChunkWrite,
+  type ClaimedJob,
+  type Passage,
+  type QueueDepth,
+  type RetrieveOptions,
+  type StoredChunk,
+} from "./rag";
+export {
+  acceptSuggestion,
+  dismissSuggestion,
+  getSuggestion,
+  putSuggestion,
+  type Accepted,
+  type SuggestionRow,
+} from "./suggestions";
 export { searchDocuments, type SearchHit } from "./search";
 export {
   attachTag,

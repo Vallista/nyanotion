@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../client";
 import { document } from "../schema/index";
+import { enqueueJob, enqueueSuggestIfUseful } from "./rag";
 
 /**
  * Hocuspocus(apps/collab) 가 쓰는 질의.
@@ -30,4 +31,9 @@ export async function saveYdoc(input: {
       updatedAt: new Date(),
     })
     .where(eq(document.id, input.documentId));
+
+  // 색인도 파생값이다 — 본문이 바뀌면 다시 만들어야 한다. 여기서는 **적어 두고 끝낸다**:
+  // 임베딩은 GPU 를 쓰므로 저장을 붙잡고 있으면 타자가 멈춘다 (`apps/worker`).
+  await enqueueJob("index", input.documentId);
+  await enqueueSuggestIfUseful(input.documentId);
 }

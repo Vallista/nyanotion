@@ -10,3 +10,5 @@ export * from "./attachment";
 export * from "./comment";
 export * from "./push";
 export * from "./purchase";
+export * from "./rag";
+export * from "./suggestion";

@@ -3,6 +3,7 @@ import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../client";
 import { newId } from "../id";
 import { document, space, type Document } from "../schema/index";
+import { enqueueJob, enqueueSuggestIfUseful } from "./rag";
 
 /** 사이드바 트리에 필요한 것만. `content_json` 은 넣지 않는다 — 무겁다. */
 export type TreeNode = {
@@ -142,6 +143,10 @@ export async function setContent(
     .update(document)
     .set({ contentJson, textPlain, title, updatedBy: userId, updatedAt: new Date() })
     .where(eq(document.id, id));
+
+  // 색인·추천은 적어 두고 끝낸다 (`saveYdoc` 과 같은 이유 — 임베딩이 저장을 붙잡으면 안 된다).
+  await enqueueJob("index", id);
+  await enqueueSuggestIfUseful(id);
   return { title };
 }
 
