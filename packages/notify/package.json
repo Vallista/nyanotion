@@ -1,0 +1,27 @@
+{
+  "name": "@nyanotion/notify",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "keys": "tsx scripts/vapid-keys.ts",
+    "smoke": "tsx scripts/smoke-push.ts"
+  },
+  "dependencies": {
+    "@nyanotion/db": "workspace:*",
+    "@nyanotion/shared": "workspace:*",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/web-push": "^3.6.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

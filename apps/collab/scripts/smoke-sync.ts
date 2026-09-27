@@ -20,7 +20,12 @@ import * as Y from "yjs";
 
 loadEnv();
 
-const WEB = process.env.SMOKE_WEB_URL ?? "http://localhost:3000";
+/**
+ * 웹 서버 주소. **환경 설정의 PORT 를 따른다** — 베타(3100)와 운영(3000)이 같이 도는데
+ * 3000 으로 못 박으면 베타에서 만든 문서의 표를 운영에 달라고 해서 404 가 난다.
+ */
+const WEB =
+  process.env.SMOKE_WEB_URL ?? `http://localhost:${process.env.PORT ?? "3000"}`;
 const WS =
   process.env.NEXT_PUBLIC_COLLAB_URL !== undefined && process.env.NEXT_PUBLIC_COLLAB_URL !== ""
     ? process.env.NEXT_PUBLIC_COLLAB_URL

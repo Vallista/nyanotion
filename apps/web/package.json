@@ -20,6 +20,7 @@
     "@nyanotion/db": "workspace:*",
     "@nyanotion/editor": "workspace:*",
     "@nyanotion/editor-schema": "workspace:*",
+    "@nyanotion/notify": "workspace:*",
     "@nyanotion/shared": "workspace:*",
     "better-auth": "^1.2.7",
     "next": "^15.1.0",

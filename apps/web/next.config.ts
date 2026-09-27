@@ -19,6 +19,7 @@ const nextConfig: NextConfig = {
     "@nyanotion/shared",
     "@nyanotion/editor-schema",
     "@nyanotion/editor",
+    "@nyanotion/notify",
   ],
   // BlockNote 는 ESM 으로만 배포된다.
   experimental: { optimizePackageImports: ["@blocknote/core", "@blocknote/react", "@blocknote/ariakit"] },
