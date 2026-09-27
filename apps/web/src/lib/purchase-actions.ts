@@ -12,6 +12,7 @@ import {
   documentOfItem,
   documentOfOrder,
   getItem,
+  recordAudit,
   removeItem,
   replaceOffers,
   updateItem,
@@ -199,6 +200,19 @@ export async function approvePurchaseAction(itemId: string): Promise<void> {
     graceMs: GRACE_MS,
   });
 
+  // **돈이 나가는 쪽으로 한 걸음.** 누가 승인했는지는 주문에도 남지만,
+  // 살 것이 지워져도 남도록 감사 로그에도 적는다.
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "purchase.approve",
+    spaceId: item.spaceId,
+    subjectType: "purchase_item",
+    subjectId: itemId,
+    summary: `${item.title} 을 ${won(offer.totalKrw)} 에 승인했다`,
+    detail: { source: offer.source, url: offer.url, totalKrw: offer.totalKrw },
+  });
+
   await notifyWatchers(
     documentId,
     {
@@ -222,6 +236,17 @@ export async function rejectPurchaseAction(
   await updateItem(itemId, { state: "rejected", note: reason.slice(0, 200) });
 
   const item = await getItem(itemId, viewer.spaceIds);
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "purchase.reject",
+    spaceId: item?.spaceId ?? null,
+    subjectType: "purchase_item",
+    subjectId: itemId,
+    summary: `${item?.title ?? "살 것"} 을 승인하지 않았다`,
+    detail: reason === "" ? {} : { reason },
+  });
+
   await notifyWatchers(
     documentId,
     {
@@ -255,6 +280,15 @@ export async function cancelOrderAction(orderId: string): Promise<void> {
 
   const ok = await cancelOrder(orderId, viewer.userId);
   if (!ok) throw new Error("이미 주문됐거나 취소된 건입니다.");
+
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "purchase.cancel",
+    subjectType: "purchase_order",
+    subjectId: orderId,
+    summary: "승인한 주문을 유예 시간 안에 물렀다",
+  });
 
   await notifyWatchers(
     documentId,

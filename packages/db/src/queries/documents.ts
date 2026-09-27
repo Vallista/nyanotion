@@ -267,9 +267,12 @@ export async function countArchived(spaceIds: readonly string[]): Promise<number
 }
 
 /** 모래상자 비우기 — 여기서만 하드 삭제한다. 하위는 FK cascade 로 함께 사라진다. */
-export async function emptyTrash(spaceIds: readonly string[]): Promise<void> {
-  if (spaceIds.length === 0) return;
-  await db
+/** 몇 개가 사라졌는지 돌려준다 — 되돌릴 수 없는 일이라 기록에 남길 값이 필요하다. */
+export async function emptyTrash(spaceIds: readonly string[]): Promise<number> {
+  if (spaceIds.length === 0) return 0;
+  const gone = await db
     .delete(document)
-    .where(and(inArray(document.spaceId, [...spaceIds]), sql`${document.archivedAt} is not null`));
+    .where(and(inArray(document.spaceId, [...spaceIds]), sql`${document.archivedAt} is not null`))
+    .returning({ id: document.id });
+  return gone.length;
 }

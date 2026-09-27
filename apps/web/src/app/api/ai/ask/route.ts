@@ -8,6 +8,7 @@ import {
 } from "@nyanotion/ai";
 import { retrievePassages } from "@nyanotion/db";
 import { requireViewer } from "@/lib/session";
+import { take, tooManyRequests } from "@/lib/rate-limit";
 
 /**
  * 문서에 물어보기. **근거를 먼저 보내고 답을 흘려보낸다.**
@@ -46,6 +47,10 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return Response.json({ error: "잘못된 요청입니다" }, { status: 400 });
   }
+
+  // 물어보기는 임베딩 + 생성이라 GPU 를 두 번 쓴다 — 한 사람이 다 먹지 않게 한다.
+  const verdict = take("ask", viewer.userId);
+  if (!verdict.ok) return tooManyRequests(verdict, "물어보기");
 
   const input = body as { question?: unknown };
   const question =

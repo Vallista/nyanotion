@@ -2,6 +2,7 @@ import { COLLAB_TICKET_TTL_MS, signCollabTicket } from "@nyanotion/shared";
 import { NextResponse } from "next/server";
 import { canWrite } from "@nyanotion/auth";
 import { requireViewer } from "@/lib/session";
+import { take } from "@/lib/rate-limit";
 
 /**
  * 동기화 서버에 붙을 표를 발급한다. 쿠키로 인증하고, 문서 하나·수십 초로 범위를 좁힌다.
@@ -14,6 +15,16 @@ export async function GET(request: Request): Promise<NextResponse> {
   }
 
   const viewer = await requireViewer();
+
+  // 표는 수십 초짜리라 자주 다시 받는다. 그래도 상한은 둔다 —
+  // 붙었다 끊기를 되풀이하는 기기 하나가 서명만 하루 종일 시키지 않도록.
+  const verdict = take("ticket", viewer.userId);
+  if (!verdict.ok) {
+    return NextResponse.json(
+      { error: "표를 너무 자주 받았습니다.", retryAfter: verdict.retryAfterSeconds },
+      { status: 429, headers: { "retry-after": String(verdict.retryAfterSeconds) } },
+    );
+  }
 
   // 고칠 수 없는 문서면 표를 주지 않는다 — 동기화는 쓰기다. 서버도 같은 확인을 한 번 더 한다.
   if (!(await canWrite(viewer.userId, documentId))) {

@@ -186,6 +186,28 @@ export async function enqueueUnindexed(limit = 200): Promise<number> {
   return Array.from(rows)[0]?.added ?? 0;
 }
 
+export type IndexCoverage = {
+  /** 본문이 있는 살아 있는 문서 수. 빈 문서는 색인할 것이 없으니 세지 않는다. */
+  total: number;
+  /** 그중 토막이 하나라도 있는 문서 수. */
+  indexed: number;
+  chunks: number;
+};
+
+/** 색인이 얼마나 따라왔는가 — 상태 화면이 본다. */
+export async function indexCoverage(): Promise<IndexCoverage> {
+  const rows = await db.execute<{ total: number; indexed: number; chunks: number }>(sql`
+    select
+      (select count(*)::int from ${document}
+        where archived_at is null and text_plain <> '') as total,
+      (select count(distinct c.document_id)::int from ${documentChunk} c
+        join ${document} d on d.id = c.document_id where d.archived_at is null) as indexed,
+      (select count(*)::int from ${documentChunk}) as chunks
+  `);
+  const row = Array.from(rows)[0];
+  return { total: row?.total ?? 0, indexed: row?.indexed ?? 0, chunks: row?.chunks ?? 0 };
+}
+
 /* --------------------------------------------------------------- 토막 */
 
 /**

@@ -2,6 +2,7 @@ import { writeFile } from "node:fs/promises";
 import { createAttachment } from "@nyanotion/db";
 import { NextResponse } from "next/server";
 import { assertCanWrite } from "@/lib/session";
+import { take } from "@/lib/rate-limit";
 import {
   MAX_UPLOAD_BYTES,
   ensureUploadDir,
@@ -35,6 +36,18 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   // 권한이 없으면 여기서 끝 — 파일을 받아 보지도 않는다.
   const viewer = await assertCanWrite(documentId);
+
+  // 파일 하나하나는 25MB 로 막혀 있지만, 빠르게 되풀이하면 디스크가 찬다.
+  const verdict = take("upload", viewer.userId);
+  if (!verdict.ok) {
+    return NextResponse.json(
+      {
+        error: `파일을 너무 자주 올렸습니다. ${verdict.retryAfterSeconds}초 뒤에 다시 해 주세요.`,
+        retryAfter: verdict.retryAfterSeconds,
+      },
+      { status: 429, headers: { "retry-after": String(verdict.retryAfterSeconds) } },
+    );
+  }
 
   if (file.size > MAX_UPLOAD_BYTES) {
     return NextResponse.json(

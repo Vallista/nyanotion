@@ -1,6 +1,7 @@
 import { listTree, searchDocuments } from "@nyanotion/db";
 import { NextResponse } from "next/server";
 import { requireViewer } from "@/lib/session";
+import { take } from "@/lib/rate-limit";
 import { displayTitle, pathTo } from "@/lib/tree";
 
 /**
@@ -15,6 +16,10 @@ import { displayTitle, pathTo } from "@/lib/tree";
 export async function GET(request: Request): Promise<NextResponse> {
   const query = new URL(request.url).searchParams.get("q") ?? "";
   const viewer = await requireViewer();
+
+  // 글자를 칠 때마다 부른다 — 싸지만 상한은 둔다.
+  const verdict = take("mention", viewer.userId);
+  if (!verdict.ok) return NextResponse.json({ documents: [] }, { status: 429 });
 
   const [hits, nodes] = await Promise.all([
     searchDocuments(viewer.spaceIds, query, { limit: 8 }),

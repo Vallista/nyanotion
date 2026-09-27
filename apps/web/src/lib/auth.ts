@@ -30,6 +30,15 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 10,
   },
+  /**
+   * 로그인·가입 시도에 상한을 둔다. 비밀번호를 찍어 보는 것을 늦추는 용도다 —
+   * 가족이 쓰다가 걸릴 만한 숫자는 아니다 (1분에 10번).
+   */
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 10,
+  },
   plugins: [organization(), nextCookies()],
   databaseHooks: {
     user: {

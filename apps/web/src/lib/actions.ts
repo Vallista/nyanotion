@@ -20,6 +20,7 @@ import {
   ensureTag,
   getCollection,
   getDocumentById,
+  recordAudit,
   inviteToFamily,
   moveDocument,
   moveInCollection,
@@ -121,7 +122,15 @@ export async function restoreDocumentAction(id: string): Promise<void> {
 /** 모래상자 비우기 — 내가 들어갈 수 있는 space 들에서만. */
 export async function emptyTrashAction(): Promise<void> {
   const viewer = await requireViewer();
-  await emptyTrash(viewer.spaceIds);
+  const gone = await emptyTrash(viewer.spaceIds);
+  // 되돌릴 수 없다. 몇 개가 사라졌는지라도 남겨 둔다.
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "trash.empty",
+    spaceId: viewer.personalSpace.id,
+    summary: `모래상자를 비웠다 (${gone}개)`,
+  });
   revalidatePath("/", "layout");
 }
 
@@ -245,6 +254,15 @@ export async function inviteToFamilyAction(
     role: role === "admin" || role === "guest" ? role : "member",
     inviterId: viewer.userId,
   });
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "family.invite",
+    subjectType: "organization",
+    subjectId: organizationId,
+    summary: `${email} 을 가족으로 초대했다`,
+    detail: { email, role },
+  });
   revalidatePath("/", "layout");
   return { token };
 }
@@ -269,6 +287,15 @@ export async function setMemberRoleAction(
     throw new Error("자기 역할은 스스로 낮출 수 없습니다.");
   }
   await setMemberRole(organizationId, userId, role);
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "family.role",
+    subjectType: "organization",
+    subjectId: organizationId,
+    summary: `가족 구성원의 역할을 ${role} 로 바꿨다`,
+    detail: { userId, role },
+  });
   revalidatePath("/", "layout");
 }
 
@@ -276,6 +303,15 @@ export async function removeMemberAction(organizationId: string, userId: string)
   const viewer = await requireFamilyAdmin(organizationId);
   if (userId === viewer.userId) throw new Error("자기 자신을 내보낼 수 없습니다.");
   await removeMember(organizationId, userId);
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "family.remove",
+    subjectType: "organization",
+    subjectId: organizationId,
+    summary: "가족에서 내보냈다",
+    detail: { userId },
+  });
   revalidatePath("/", "layout");
 }
 
@@ -285,8 +321,40 @@ export async function acceptInvitationAction(
 ): Promise<{ ok: boolean; reason?: string }> {
   const viewer = await requireViewer();
   const result = await acceptInvitation(token, viewer.userId, viewer.email);
+  if (result.ok) {
+    await recordAudit({
+      actorId: viewer.userId,
+      actorName: viewer.name,
+      action: "family.join",
+      summary: `${viewer.email} 이 가족에 들어왔다`,
+    });
+  }
   revalidatePath("/", "layout");
   return result.ok ? { ok: true } : { ok: false, reason: result.reason };
+}
+
+/**
+ * 감사 로그에 한 줄. **로그가 실패해도 하던 일은 되돌리지 않는다** (`recordAudit` 안에서 삼킨다).
+ * 문서 기준의 일은 그 문서의 공간을 붙여 둔다 — 그래야 "내가 볼 수 있는 로그"를 가를 수 있다.
+ */
+async function auditForDocument(
+  viewer: { userId: string; name: string },
+  documentId: string,
+  action: Parameters<typeof recordAudit>[0]["action"],
+  summary: string,
+  detail?: Record<string, unknown>,
+): Promise<void> {
+  const doc = await getDocumentById(documentId);
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action,
+    spaceId: doc?.spaceId ?? null,
+    subjectType: "document",
+    subjectId: documentId,
+    summary,
+    detail,
+  });
 }
 
 /* ------------------------------------------------------------------ 공유 */
@@ -307,6 +375,11 @@ export async function shareWithPersonAction(
     subjectId: target.id,
     role,
     createdBy: viewer.userId,
+  });
+  await auditForDocument(viewer, documentId, "share.grant", `${email} 에게 ${role} 로 공유`, {
+    subjectType: "user",
+    email,
+    role,
   });
   revalidatePath("/", "layout");
   return { ok: true };
@@ -329,25 +402,34 @@ export async function shareWithFamilyAction(
     role,
     createdBy: viewer.userId,
   });
+  await auditForDocument(viewer, documentId, "share.grant", `가족 전체에 ${role} 로 공유`, {
+    subjectType: "org",
+    organizationId,
+    role,
+  });
   revalidatePath("/", "layout");
 }
 
 export async function removeShareAction(documentId: string, shareId: string): Promise<void> {
-  await requireDocumentOwner(documentId);
+  const viewer = await requireDocumentOwner(documentId);
   await removeShare(shareId, documentId);
+  await auditForDocument(viewer, documentId, "share.revoke", "공유를 거뒀다", { shareId });
   revalidatePath("/", "layout");
 }
 
 export async function createPublicLinkAction(documentId: string): Promise<{ token: string }> {
   const viewer = await requireDocumentOwner(documentId);
   const token = await createPublicLink({ documentId, createdBy: viewer.userId });
+  // **로그인 없이 열리는 문**이다. 이건 반드시 기록으로 남아야 한다.
+  await auditForDocument(viewer, documentId, "link.create", "공개 링크를 만들었다 (로그인 없이 열린다)");
   revalidatePath("/", "layout");
   return { token };
 }
 
 export async function revokePublicLinkAction(documentId: string, linkId: string): Promise<void> {
-  await requireDocumentOwner(documentId);
+  const viewer = await requireDocumentOwner(documentId);
   await revokePublicLink(linkId, documentId);
+  await auditForDocument(viewer, documentId, "link.revoke", "공개 링크를 닫았다", { linkId });
   revalidatePath("/", "layout");
 }
 
@@ -360,9 +442,17 @@ export async function revokePublicLinkAction(documentId: string, linkId: string)
  * 아무 의미가 없다. **문서 편집·동기화·검색은 어느 모드에서도 그대로 돈다.**
  */
 export async function setGpuModeAction(mode: "free" | "gaming"): Promise<void> {
-  await requireViewer(); // 가족 누구나 바꿀 수 있다 — 집 한 대의 공용 스위치다
+  const viewer = await requireViewer(); // 가족 누구나 바꿀 수 있다 — 집 한 대의 공용 스위치다
   await setGpuMode(mode);
   if (mode === "gaming") await unloadModels();
+  // "그때 왜 냥이가 안 됐지"의 답이 된다.
+  await recordAudit({
+    actorId: viewer.userId,
+    actorName: viewer.name,
+    action: "gpu.mode",
+    summary: mode === "gaming" ? "GPU 를 게임에 넘겼다" : "GPU 를 냥이에게 돌려줬다",
+    detail: { mode },
+  });
   revalidatePath("/", "layout");
 }
 

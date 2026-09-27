@@ -234,3 +234,12 @@ export function AskIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 상태 — 맥박 한 줄. */
+export function PulseIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M1.6 8h3l1.6-4.4 2.6 8.8L10.9 8h3.5" />
+    </Svg>
+  );
+}

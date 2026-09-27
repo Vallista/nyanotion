@@ -1,4 +1,11 @@
 export { createPersonalSpace, hasOpenInvitation, isFirstUser } from "./accounts";
+export {
+  listAudit,
+  pruneAudit,
+  recordAudit,
+  type AuditInput,
+  type AuditRow,
+} from "./audit";
 export { saveYdoc } from "./collab";
 export {
   appendOffers,
@@ -91,6 +98,7 @@ export {
   enqueueUnindexed,
   failJob,
   finishJob,
+  indexCoverage,
   pruneJobs,
   queueDepth,
   requeueJob,
@@ -100,6 +108,7 @@ export {
   upsertChunk,
   type ChunkWrite,
   type ClaimedJob,
+  type IndexCoverage,
   type Passage,
   type QueueDepth,
   type RetrieveOptions,
