@@ -5,12 +5,13 @@
 
 .DESCRIPTION
   지금은 사람이 터미널에서 띄우고 있어서, **PC 를 껐다 켜면 가족이 들어오지 못한다.**
-  아래 넷을 로그온 시 자동 시작으로 걸어 둔다:
+  아래를 로그온 시 자동 시작으로 걸어 둔다:
 
     Nyanotion-Collab      Yjs 동기화 (먼저 떠야 한다 — 웹이 붙을 곳)
     Nyanotion-Web         Next 운영 서버
     Nyanotion-Tunnel      Cloudflare Tunnel (밖에서 들어오는 길)
     Nyanotion-Agent       구매 에이전트 (선택 — `-NoAgent` 로 뺄 수 있다)
+    Nyanotion-Worker      색인 워커 (문서 질의의 재료를 만든다)
 
   그리고 매일 한 번 백업:
     Nyanotion-Backup      새벽 4시
@@ -141,6 +142,10 @@ if ($canTunnel) {
   Register-Ours -Name 'Tunnel' -Exe $cloudflared -Delay 'PT20S' `
     -Arguments "--config `"$tunnelConfig`" tunnel run"
 }
+
+# 색인 워커. 웹보다 늦게 띄운다 — 급하지 않고, GPU 도 웹이 먼저 쓰게 한다.
+Register-Ours -Name 'Worker' -Exe 'pwsh.exe' -Delay 'PT40S' `
+  -Arguments "-NoProfile -File `"$launcher`" -What worker -Env prod"
 
 if (-not $NoAgent) {
   Register-Ours -Name 'Agent' -Exe 'pwsh.exe' -Delay 'PT30S' `

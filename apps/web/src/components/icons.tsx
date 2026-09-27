@@ -223,3 +223,14 @@ export function CartIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 물어보기 — 말풍선 안의 물음표. 검색(돋보기)과 구별되어야 한다. */
+export function AskIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2 3.6h12v7.2H7.4L4.3 13.4v-2.6H2z" />
+      <path d="M6.6 6.1a1.5 1.5 0 0 1 2.9.5c0 1-1.4 1-1.4 2" />
+      <circle cx="8.1" cy="9.4" r="0.45" />
+    </Svg>
+  );
+}

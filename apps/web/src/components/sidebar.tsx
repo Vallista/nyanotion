@@ -23,6 +23,7 @@ import {
   CollectionIcon,
   DotsIcon,
   FamilyIcon,
+  AskIcon,
   CartIcon,
   InstallIcon,
   LitterBoxIcon,
@@ -434,6 +435,7 @@ export function Sidebar({
           label="살 것"
           trailing={awaitingApproval > 0 ? String(awaitingApproval) : undefined}
         />
+        <SideLink href="/ask" icon={<AskIcon />} label="물어보기" />
         <SideLink href="/install" icon={<InstallIcon />} label="앱으로 설치" />
         <GpuModeToggle mode={gpuMode} reachable={aiReachable} />
         <div

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createDocumentAction, searchAction } from "@/lib/actions";
 import { displayTitle } from "@/lib/tree";
-import { PageIcon, PlusIcon, SearchIcon } from "./icons";
+import { AskIcon, PageIcon, PlusIcon, SearchIcon } from "./icons";
 
 type Hit = { id: string; title: string; snippet: string; updatedAt: string };
 
@@ -95,10 +95,23 @@ export function CommandPalette() {
   if (!open) return null;
 
   const canCreate = query.trim() !== "";
-  const rowCount = hits.length + (canCreate ? 1 : 0);
+  /**
+   * 찾는 것과 **물어보는 것**은 다르다 — "김장 레시피" 는 검색이고 "김장할 때 배추 얼마나
+   * 절였지" 는 질문이다. 같은 입력창에서 갈라 주되, 물어보기를 문서 아래에 둔다:
+   * 이름을 아는 문서를 찾는 것이 훨씬 잦고 훨씬 빠르다.
+   */
+  const canAsk = query.trim().length >= 2;
+  const askIndex = hits.length;
+  const createIndex = hits.length + (canAsk ? 1 : 0);
+  const rowCount = hits.length + (canAsk ? 1 : 0) + (canCreate ? 1 : 0);
 
   function choose(index: number) {
-    if (canCreate && index === hits.length) {
+    if (canAsk && index === askIndex) {
+      setOpen(false);
+      router.push(`/ask?q=${encodeURIComponent(query.trim())}`);
+      return;
+    }
+    if (canCreate && index === createIndex) {
       setOpen(false);
       startTransition(() => void createDocumentAction(null));
       return;
@@ -216,13 +229,27 @@ export function CommandPalette() {
             />
           ))}
 
+          {canAsk && (
+            <>
+              <SectionLabel>냥이에게</SectionLabel>
+              <Row
+                active={cursor === askIndex}
+                onMouseEnter={() => setCursor(askIndex)}
+                onClick={() => choose(askIndex)}
+                icon={<AskIcon size={15} />}
+                title={<span>“{query.trim()}” 물어보기</span>}
+                subtitle={<span>읽을 수 있는 문서에서 찾아 근거와 함께 답합니다</span>}
+              />
+            </>
+          )}
+
           {canCreate && (
             <>
               <SectionLabel>만들기</SectionLabel>
               <Row
-                active={cursor === hits.length}
-                onMouseEnter={() => setCursor(hits.length)}
-                onClick={() => choose(hits.length)}
+                active={cursor === createIndex}
+                onMouseEnter={() => setCursor(createIndex)}
+                onClick={() => choose(createIndex)}
                 icon={<PlusIcon size={15} />}
                 title={<span>새 문서 만들기</span>}
               />

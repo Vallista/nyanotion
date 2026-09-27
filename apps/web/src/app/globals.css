@@ -161,3 +161,13 @@ kbd {
   }
   .field > input { font-size: 16px; }
 }
+
+/*
+  근거 링크(`/ask`)로 들어왔을 때 그 블록을 잠깐 표시한다 (components/jump-to-block.tsx).
+  글자색·배경을 바꾸지 않고 테두리만 준다 — 편집 중인 글의 모양을 건드리지 않기 위해서.
+*/
+.block-flash {
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px var(--accent);
+  transition: box-shadow 220ms ease-out;
+}

@@ -10,14 +10,14 @@
   값을 제대로 넣고, 무엇을 띄웠는지 로그로 남긴다.
 
 .PARAMETER What
-  web · collab · agent
+  web · collab · agent · worker
 
 .EXAMPLE
   pwsh scripts/serve-one.ps1 -What web -Env prod
 #>
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory)] [ValidateSet('web', 'collab', 'agent')] [string] $What,
+  [Parameter(Mandatory)] [ValidateSet('web', 'collab', 'agent', 'worker')] [string] $What,
   [ValidateSet('dev', 'beta', 'prod')] [string] $Env = 'prod'
 )
 
@@ -43,6 +43,7 @@ $package = switch ($What) {
   'web' { '@nyanotion/web' }
   'collab' { '@nyanotion/collab' }
   'agent' { '@nyanotion/agent' }
+  'worker' { '@nyanotion/worker' }
 }
 $script = if ($What -eq 'web' -and $Env -eq 'dev') { 'dev' } elseif ($What -eq 'web') { 'start' } else { 'start' }
 

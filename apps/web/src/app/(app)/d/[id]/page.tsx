@@ -1,4 +1,5 @@
 import {
+  getSuggestion,
   isFavorite,
   listPublicLinks,
   listShares,
@@ -11,6 +12,7 @@ import {
 import { notFound } from "next/navigation";
 import { DocumentActions } from "@/components/document-actions";
 import { DocumentView } from "@/components/document-view";
+import { JumpToBlock } from "@/components/jump-to-block";
 import { TopBar } from "@/components/top-bar";
 import { formatWhen } from "@/lib/format";
 import { requestOrigin } from "@/lib/origin";
@@ -27,13 +29,15 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const canWrite = role === "editor" || role === "owner";
   const canShare = role === "owner";
 
-  const [nodes, tagMap, allTags, favorite, shares, links] = await Promise.all([
+  const [nodes, tagMap, allTags, favorite, shares, links, suggestion] = await Promise.all([
     listTree(viewer.spaceIds),
     tagsForDocuments([id]),
     listTags(viewer.spaceIds),
     isFavorite(viewer.userId, id),
     canShare ? listShares(id) : Promise.resolve([]),
     canShare ? listPublicLinks(id) : Promise.resolve([]),
+    // 제안은 고칠 수 있는 사람에게만 보여 준다 — 읽기로 받은 문서의 제목을 바꿀 수는 없다.
+    canWrite ? getSuggestion(id) : Promise.resolve(null),
   ]);
 
   // 공유 목록에 사람·가족 이름을 붙인다 (한 번에 가져와 N+1 을 만들지 않는다).
@@ -90,8 +94,13 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         }
       />
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
+        {/* `#block-<id>` 로 들어오면 그 줄까지 데려간다 (`/ask` 의 근거 링크). */}
+        <JumpToBlock />
         <DocumentView
           key={doc.id}
+          suggestion={
+            suggestion === null ? null : { title: suggestion.title, tags: suggestion.tags }
+          }
           id={doc.id}
           initialTitle={doc.title}
           updatedAt={formatWhen(doc.updatedAt)}

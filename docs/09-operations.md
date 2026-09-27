@@ -60,11 +60,14 @@ pwsh scripts/restore.ps1 -From ... -Env prod -Force -Confirm nyanotion
 ### pgvector 는 수퍼유저가 켠다
 
 덤프 안에 `CREATE EXTENSION vector` 가 들어 있지만 앱 역할로는 만들 수 없다.
-복구 뒤 이 경고가 나오면 **문서·권한·구매 기록은 멀쩡하다.** M6(문서 질의)를 쓰려면:
+복구 뒤 이 경고가 나오면 **문서·권한·구매 기록은 멀쩡하다.** 문서 질의도 돈다 —
+확장이 없으면 `real[]` 로 계산한다 (느릴 뿐이다, `docs/10-ask.md`). 되살리려면:
 
 ```powershell
-psql -U postgres -d nyanotion -c "CREATE EXTENSION vector"
+pwsh scripts/enable-vector.ps1 -Env beta
 ```
+
+**다시 임베딩하지 않는다.** 이미 있는 임베딩을 벡터 칼럼으로 옮길 뿐이다.
 
 > 2026-09-27 운영 백업을 베타에 되살려 확인했다 — 계정 2 · 문서 8, 운영과 완전히 같았다.
 
@@ -86,6 +89,7 @@ pwsh scripts/autostart.ps1 -Remove      # 해제
 | `Nyanotion-Web` | 10초 | Next 운영 서버 (3000) |
 | `Nyanotion-Tunnel` | 20초 | Cloudflare Tunnel |
 | `Nyanotion-Agent` | 30초 | 구매 에이전트 |
+| `Nyanotion-Worker` | 40초 | 색인 워커 (문서 질의의 재료) |
 | `Nyanotion-Backup` | 매일 4시 | 백업 |
 
 ### 왜 서비스가 아니라 "로그온 시 작업"인가

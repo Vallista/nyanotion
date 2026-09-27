@@ -313,6 +313,13 @@ export type RetrieveOptions = {
   limit?: number;
   /** 각 길에서 몇 개까지 볼지. */
   candidates?: number;
+  /**
+   * 한 문서에서 가져올 근거의 최대 개수.
+   *
+   * 긴 문서 하나가 근거 자리를 다 차지하면 답이 그 문서만 보고 말한다 — 같은 이야기를
+   * 여섯 번 읽는 셈이라 얻는 것이 없다. 두 토막이면 그 문서가 무슨 말을 하는지는 충분하다.
+   */
+  perDocument?: number;
 };
 
 /** 벡터 리터럴. pgvector 는 매개변수로 배열을 못 받으니 글로 만들어 넣는다. */
@@ -337,6 +344,7 @@ export async function retrievePassages(options: RetrieveOptions): Promise<Passag
   const query = options.query.trim();
   const limit = Math.max(1, Math.min(options.limit ?? 8, 50));
   const candidates = Math.max(limit, Math.min(options.candidates ?? 40, 200));
+  const perDocument = Math.max(1, Math.min(options.perDocument ?? 2, limit));
   const embedding =
     options.queryEmbedding === undefined || options.queryEmbedding === null
       ? null
@@ -441,12 +449,20 @@ export async function retrievePassages(options: RetrieveOptions): Promise<Passag
                     + coalesce(1.0 / (${rrfK} + s.rank), 0) as score
              from lexical l full outer join semantic s on s.id = l.id
          )
-    select c.document_id, d.title, c.chunk_index, c.block_id, c.heading, c.text,
-           f.score::float8 as score, f.lexical_rank, f.semantic_rank
-      from fused f
-      join ${documentChunk} c on c.id = f.id
-      join ${document} d on d.id = c.document_id
-     order by f.score desc, c.document_id, c.chunk_index
+    select document_id, title, chunk_index, block_id, heading, text,
+           score, lexical_rank, semantic_rank
+      from (
+        select c.document_id, d.title, c.chunk_index, c.block_id, c.heading, c.text,
+               f.score::float8 as score, f.lexical_rank, f.semantic_rank,
+               row_number() over (
+                 partition by c.document_id order by f.score desc, c.chunk_index
+               ) as seat
+          from fused f
+          join ${documentChunk} c on c.id = f.id
+          join ${document} d on d.id = c.document_id
+      ) ranked
+     where seat <= ${perDocument}
+     order by score desc, document_id, chunk_index
      limit ${limit}
   `);
 

@@ -93,6 +93,10 @@ NYANOTION_ENV=beta pnpm db:migrate
 - **가족 공유** — 문서에 권한이 붙고 트리를 따라 상속된다. 링크 공개도 된다
 - **냥이(로컬 LLM)** — 요약 · 이어쓰기 · 다듬기 · 번역. 답은 **제안으로만** 나오고
   사람이 수락해야 문서에 들어간다. 게임이 그래픽카드를 쓰면 스스로 비켜 준다
+- **문서에 물어보기** — "작년 김장 레시피 뭐였지"에 **근거와 함께** 답한다.
+  번호를 누르면 그 문서의 **그 줄**로 간다. 읽을 수 있는 문서에서만 찾고,
+  근거가 없으면 지어내지 않는다 (`docs/10-ask.md`)
+- **살 것** — 값을 찾아 오고 가족 누구든 한 명이 승인해야 산다. **결제 버튼은 사람이 누른다**
 
 아직 없는 것과 노션과의 차이는 `docs/06-editor.md` 에 표로 적어 두었다.
 
@@ -113,7 +117,7 @@ NYANOTION_ENV=beta pnpm db:migrate
 
 ```powershell
 pnpm typecheck                              # 전 패키지
-pnpm test                                   # DB · 권한 · 검색 · 동기화 스모크
+pnpm test                                   # DB · 권한 · 검색 · 동기화 · 문서 질의 스모크
 node apps/web/scripts/e2e-editor.mjs        # 에디터 전체 (임시 문서를 만들고 치운다)
 node apps/web/scripts/inspect-editor.mjs    # 계산된 스타일 · 스크린샷
 node apps/web/scripts/audit-blocks.mjs      # 슬래시 메뉴에 실제로 있는 블록
@@ -122,7 +126,7 @@ node apps/web/scripts/audit-blocks.mjs      # 슬래시 메뉴에 실제로 있�
 ## 문서
 
 `docs/README.md` 부터. 데이터 모델 · 마일스톤 · 개발 환경 · 결정 기록 · 클라이언트 전략 ·
-에디터 · 환경 분리.
+에디터 · 환경 분리 · 살 것 · 운영 · 문서 질의.
 
 ## 라이선스
 

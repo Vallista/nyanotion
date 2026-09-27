@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { renameDocumentAction } from "@/lib/actions";
 import { UNTITLED } from "@/lib/tree";
 import { DocumentTags } from "./document-tags";
+import { SuggestionBar } from "./suggestion-bar";
 import type { SyncState } from "@nyanotion/editor";
 
 // BlockNote 와 Yjs 는 DOM 에 의존하므로 서버에서 렌더하지 않는다.
@@ -23,6 +24,7 @@ export function DocumentView({
   tags,
   tagSuggestions,
   canWrite,
+  suggestion,
 }: {
   id: string;
   initialTitle: string;
@@ -32,6 +34,8 @@ export function DocumentView({
   tagSuggestions: { id: string; name: string }[];
   /** 읽기 전용으로 받은 문서면 false — 제목·태그·본문이 전부 잠긴다. */
   canWrite: boolean;
+  /** 냥이가 낸 제목·태그 제안. **누르기 전까지 문서는 안 바뀐다.** */
+  suggestion: { title: string; tags: string[] } | null;
 }) {
   const [title, setTitle] = useState(initialTitle);
   const [sync, setSync] = useState<SyncState>("opening");
@@ -41,6 +45,10 @@ export function DocumentView({
 
   return (
     <article style={{ width: "100%", maxWidth: 720, margin: "0 auto", padding: "56px 16px 120px" }}>
+      {suggestion !== null && (
+        <SuggestionBar documentId={id} title={suggestion.title} tags={suggestion.tags} />
+      )}
+
       <header style={{ marginBottom: 26 }}>
         <input
           value={title}

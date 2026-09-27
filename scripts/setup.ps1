@@ -138,7 +138,7 @@ foreach ($name in @('nyanotion_dev', 'nyanotion_beta', 'nyanotion')) {
   try {
     Psql $name 'CREATE EXTENSION IF NOT EXISTS vector' | Out-Null
   } catch {
-    Warn "$name : pgvector 가 없습니다 — infra/install-pgvector.ps1 을 먼저 돌리세요 (M6 에서 필요)."
+    Warn "$name : pgvector 가 없습니다 — 문서 질의는 돌지만 느립니다. infra/install-pgvector.ps1 → scripts/enable-vector.ps1"
   }
 }
 
