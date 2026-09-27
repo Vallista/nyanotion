@@ -23,6 +23,8 @@
     "agent:once": "pnpm --filter @nyanotion/agent once",
     "worker": "pnpm --filter @nyanotion/worker start",
     "worker:once": "pnpm --filter @nyanotion/worker once",
-    "db:vector": "pnpm --filter @nyanotion/db vector"
+    "db:vector": "pnpm --filter @nyanotion/db vector",
+    "deploy:beta": "pwsh scripts/deploy.ps1 -Env beta",
+    "deploy:prod": "pwsh scripts/deploy.ps1 -Env prod"
   }
 }

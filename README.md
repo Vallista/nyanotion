@@ -44,6 +44,7 @@ pwsh scripts/setup.ps1 -PostgresPassword '<postgres 수퍼유저 비밀번호>'
 
 ```powershell
 pnpm dev          # 로컬 개발   http://localhost:3000
+pnpm worker       # 문서 질의 색인 (따로 띄운다 — GPU 를 쓴다)
 ```
 
 로그인 화면에서 계정을 만들면 된다 — **이 서버의 첫 한 명만** 초대 없이 되고,
@@ -116,6 +117,8 @@ NYANOTION_ENV=beta pnpm db:migrate
 ## 확인하기
 
 ```powershell
+pnpm deploy:beta                            # 베타에 올리고 포트가 열릴 때까지 확인
+pnpm deploy:prod                            # 운영에 (터널 밖까지 확인)
 pnpm typecheck                              # 전 패키지
 pnpm test                                   # DB · 권한 · 검색 · 동기화 · 문서 질의 스모크
 node apps/web/scripts/e2e-editor.mjs        # 에디터 전체 (임시 문서를 만들고 치운다)

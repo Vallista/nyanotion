@@ -20,10 +20,15 @@ dev 와 prod 는 포트가 같다. 같이 띄우지 않기 때문이다 — 운�
 가장 싼 자리가 beta 다. 순서는 늘 같다:
 
 ```powershell
-NYANOTION_ENV=beta pnpm db:migrate     # 먼저
-pnpm serve:beta                        # 열어 보고
-NYANOTION_ENV=prod pnpm db:migrate     # 그다음
+pnpm deploy:beta                       # 마이그레이션 → 빌드 → 세우기 → 확인
+#  열어 보고, 괜찮으면
+pnpm deploy:prod
 ```
+
+`scripts/deploy.ps1` 이 네 가지를 순서대로 한다 — **마이그레이션을 코드보다 먼저** 돌리고
+(새 코드가 없는 칼럼을 찾는 일이 없게), 빌드가 실패하면 **돌고 있는 서버를 건드리지 않고**
+멈추고, 다시 세운 뒤 **포트가 실제로 열릴 때까지 기다린다.** 운영이면 터널 밖에서도 확인한다.
+안 열리면 0 이 아닌 값으로 끝난다 — "올렸습니다" 라고 말하고 내려가 있으면 안 된다.
 
 빌드 폴더를 나눈 것도 같은 이유다. 예전에는 하나를 같이 써서, **베타를 빌드하면 돌고 있던
 운영이 죽었다**(모든 요청이 500). `next.config.ts` 의 `distDir` 이 `NEXT_DIST_DIR` 을 본다.
@@ -106,12 +111,19 @@ pnpm dev
 
 ---
 
-## 운영을 재부팅해도 살아 있게 (아직 안 함)
+## 운영을 재부팅해도 살아 있게
 
-`docs/02-roadmap.md` M8. 지금은 손으로 띄운다:
+작업 스케줄러에 걸려 있다 — `pwsh scripts/autostart.ps1` (자세한 것은 `docs/09-operations.md`).
+로그온하면 동기화 · 웹 · 터널 · 워커 · 에이전트가 순서대로 뜬다.
 
 ```powershell
-pnpm serve:prod
+pnpm deploy:prod                  # 새 코드를 올릴 때
+Get-ScheduledTask -TaskName Nyanotion-*
 ```
 
-Windows 작업 스케줄러나 서비스로 올리는 것이 M8 의 일이다.
+### 겪은 것 — 죽이자마자 세우면 안 뜬다
+
+프로세스를 `Stop-Process` 하고 곧바로 `Start-ScheduledTask` 를 부르면 **요청이 흘러간다**
+(스케줄러가 아직 그 인스턴스를 정리하는 중이다). `LastTaskResult` 가 `4294967295` 로 남고
+가족 서버는 조용히 내려가 있다. 두 번 겪고 나서 `deploy.ps1` 이 **멈춘 것을 확인하고
+세우도록** 만들었다.
