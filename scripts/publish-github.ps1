@@ -85,7 +85,13 @@ try {
   }
 
   Info ([Environment]::NewLine + '올리기')
-  & git push -u origin main
+
+  # 브랜치 이름을 못 박지 않는다 — 오래된 저장소는 master 일 수 있다.
+  $branch = (& git branch --show-current).Trim()
+  if ($branch -eq '') { throw '지금 브랜치를 알 수 없습니다 (커밋이 없나요?).' }
+  Ok "브랜치 $branch"
+
+  & git push -u origin $branch
   if ($LASTEXITCODE -ne 0) { throw '푸시가 실패했습니다.' }
 
   $url = (& $gh repo view --json url --jq .url)
