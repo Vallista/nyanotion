@@ -7,5 +7,6 @@
 - `05-clients.md` — 데스크탑·iOS 를 어떻게 낼 것인가 (PWA vs 네이티브 셸)
 - `06-editor.md` — 에디터: 노션과 무엇이 같고 다른가, 왜 테마가 안 먹었는가, 점검 도구
 - `07-environments.md` — dev · beta · prod 를 한 대에서 나눠 돌리기, 비밀값 두는 곳
+- `08-purchase.md` — 살 것 · 승인 · 장바구니. 어디서 멈추는지, 왜 결제는 사람이 누르는지
 
 전체 구조와 결정 근거는 루트 `ARCHITECTURE.md`.

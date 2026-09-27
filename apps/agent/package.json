@@ -1,0 +1,25 @@
+{
+  "name": "@nyanotion/agent",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "once": "tsx src/index.ts --once",
+    "login": "tsx src/index.ts --login",
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke-agent.ts"
+  },
+  "dependencies": {
+    "@nyanotion/db": "workspace:*",
+    "@nyanotion/notify": "workspace:*",
+    "@nyanotion/shared": "workspace:*",
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

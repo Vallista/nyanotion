@@ -28,7 +28,8 @@ import { document } from "./document";
  *  searching 가격을 찾는 중 (데스크탑 에이전트가 돌고 있다)
  *  proposed  후보를 찾아 **승인을 기다린다** — 이때 가족에게 알림이 간다
  *  approved  누군가 승인했다. 아직 주문 전 (취소할 수 있는 시간)
- *  ordered   주문을 넣었다
+ *  carted    에이전트가 **장바구니에 담고 결제 화면까지 열어 뒀다.** 결제는 사람이 누른다
+ *  ordered   사람이 결제를 끝냈다고 표시했다
  *  done      받았다
  *  rejected  사람이 거절했다 — 다시 찾으려면 listed 로 되돌린다
  *  failed    찾기나 주문이 실패했다. `note` 에 이유
@@ -38,6 +39,7 @@ export const PURCHASE_STATES = [
   "searching",
   "proposed",
   "approved",
+  "carted",
   "ordered",
   "done",
   "rejected",
@@ -51,6 +53,7 @@ export const OPEN_PURCHASE_STATES: readonly PurchaseState[] = [
   "searching",
   "proposed",
   "approved",
+  "carted",
   "ordered",
 ];
 

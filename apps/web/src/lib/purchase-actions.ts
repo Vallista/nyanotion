@@ -3,6 +3,7 @@
 import {
   appendOffers,
   approve,
+  markOrderPlaced,
   cancelOrder,
   chooseOffer,
   chosenOffer,
@@ -267,5 +268,26 @@ export async function cancelOrderAction(orderId: string): Promise<void> {
     { except: viewer.userId },
   );
 
+  refresh();
+}
+
+/**
+ * **사람이 결제를 끝냈다고 표시한다.**
+ *
+ * 에이전트는 장바구니까지만 한다 — 결제 화면을 열어 두고 거기서 손을 뗀다. 그래서 실제로
+ * 샀는지는 서버가 알 길이 없고, 사람이 알려 줘야 기록이 맞는다.
+ */
+export async function markPlacedAction(orderId: string, externalId = ""): Promise<void> {
+  const documentId = await documentOfOrder(orderId);
+  if (documentId === null) throw new Error("주문을 찾을 수 없습니다.");
+  await assertCanWrite(documentId);
+  await markOrderPlaced(orderId, externalId.trim().slice(0, 60));
+  refresh();
+}
+
+/** 받았다. 여기서 이 살 것은 끝난다. */
+export async function markDoneAction(itemId: string): Promise<void> {
+  await itemGate(itemId);
+  await updateItem(itemId, { state: "done", note: "" });
   refresh();
 }

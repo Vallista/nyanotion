@@ -8,6 +8,31 @@ importers:
 
   .: {}
 
+  apps/agent:
+    dependencies:
+      '@nyanotion/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@nyanotion/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
+      '@nyanotion/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      playwright:
+        specifier: ^1.49.0
+        version: 1.63.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.9.0
+        version: 22.20.4
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.15
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   apps/collab:
     dependencies:
       '@blocknote/server-util':

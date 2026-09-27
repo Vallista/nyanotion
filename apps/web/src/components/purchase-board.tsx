@@ -10,6 +10,8 @@ import {
   approvePurchaseAction,
   cancelOrderAction,
   chooseOfferAction,
+  markDoneAction,
+  markPlacedAction,
   rejectPurchaseAction,
   relistPurchaseAction,
   removePurchaseItemAction,
@@ -36,6 +38,7 @@ const STATE_LABEL: Record<PurchaseState, string> = {
   searching: "찾는 중",
   proposed: "승인 기다림",
   approved: "승인됨",
+  carted: "장바구니에 담김",
   ordered: "주문함",
   done: "받음",
   rejected: "안 사기로 함",
@@ -388,6 +391,42 @@ function ItemCard({
           </Action>
         )}
 
+        {item.state === "carted" && (
+          <>
+            {chosen !== undefined && (
+              <a
+                href={chosen.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                style={{
+                  height: 30,
+                  padding: "0 12px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  borderRadius: "var(--radius)",
+                  fontSize: 12.5,
+                  color: "var(--ink-2)",
+                  border: "1px solid var(--line)",
+                  borderBottom: "1px solid var(--line)",
+                }}
+              >
+                결제하러 가기
+              </a>
+            )}
+            {order !== undefined && (
+              <Action primary disabled={busy} onClick={() => run(() => markPlacedAction(order.id))}>
+                결제했어요
+              </Action>
+            )}
+          </>
+        )}
+
+        {item.state === "ordered" && (
+          <Action disabled={busy} onClick={() => run(() => markDoneAction(item.id))}>
+            받았어요
+          </Action>
+        )}
+
         {(item.state === "rejected" || item.state === "failed") && (
           <Action
             disabled={busy}
@@ -397,7 +436,7 @@ function ItemCard({
           </Action>
         )}
 
-        {item.state !== "ordered" && item.state !== "approved" && (
+        {item.state !== "ordered" && item.state !== "approved" && item.state !== "carted" && (
           <Action
             disabled={busy}
             onClick={() => run(() => removePurchaseItemAction(item.id))}

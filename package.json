@@ -17,6 +17,9 @@
     "db:generate": "pnpm --filter @nyanotion/db generate",
     "db:migrate": "pnpm --filter @nyanotion/db migrate",
     "db:studio": "pnpm --filter @nyanotion/db studio",
-    "db:seed": "pnpm --filter @nyanotion/db seed"
+    "db:seed": "pnpm --filter @nyanotion/db seed",
+    "agent": "pnpm --filter @nyanotion/agent start",
+    "agent:login": "pnpm --filter @nyanotion/agent login",
+    "agent:once": "pnpm --filter @nyanotion/agent once"
   }
 }

@@ -238,6 +238,57 @@ export async function listOrders(
   }));
 }
 
+/**
+ * **시스템 전용** — space 로 좁히지 않고 상태로만 고른다.
+ *
+ * 데스크탑 에이전트가 쓴다. 에이전트는 사람이 아니라 이 집 컴퓨터의 프로세스라서 "누가 볼 수
+ * 있는가" 라는 물음이 성립하지 않는다 — 대신 **무엇을 할 수 있는가**가 상태로 묶여 있다
+ * (`searching` 인 것만 찾고, 유예가 끝난 주문만 담는다).
+ *
+ * 화면에서 부르지 말 것. 사람이 보는 목록은 늘 `listItems(spaceIds)` 다.
+ */
+export async function listItemsForAgent(
+  states: readonly PurchaseState[],
+  limit = 5,
+): Promise<ItemRow[]> {
+  const rows = await db
+    .select({ item: purchaseItem, title: document.title, spaceId: document.spaceId })
+    .from(purchaseItem)
+    .innerJoin(document, eq(purchaseItem.documentId, document.id))
+    .where(and(isNull(document.archivedAt), inArray(purchaseItem.state, [...states])))
+    .orderBy(asc(purchaseItem.updatedAt))
+    .limit(limit);
+
+  return rows.map((row) => ({
+    id: row.item.id,
+    documentId: row.item.documentId,
+    title: row.title,
+    spaceId: row.spaceId,
+    state: asState(row.item.state),
+    quantity: row.item.quantity,
+    maxPriceKrw: row.item.maxPriceKrw,
+    neededBy: row.item.neededBy,
+    note: row.item.note,
+    createdBy: row.item.createdBy,
+    createdAt: row.item.createdAt.toISOString(),
+    updatedAt: row.item.updatedAt.toISOString(),
+    offers: [],
+  }));
+}
+
+/** 장바구니에 담아 결제 화면까지 열어 뒀다. **결제는 사람이 누른다.** */
+export async function markOrderCarted(orderId: string): Promise<void> {
+  const rows = await db
+    .select({ itemId: purchaseOrder.itemId })
+    .from(purchaseOrder)
+    .where(eq(purchaseOrder.id, orderId))
+    .limit(1);
+  const itemId = rows[0]?.itemId ?? null;
+  if (itemId !== null) {
+    await updateItem(itemId, { state: "carted", note: "장바구니에 담아 뒀어요. 결제만 누르면 됩니다." });
+  }
+}
+
 /** 이 살 것의 문서 id. 권한 판정은 그 문서로 한다. */
 export async function documentOfItem(itemId: string): Promise<string | null> {
   const rows = await db
