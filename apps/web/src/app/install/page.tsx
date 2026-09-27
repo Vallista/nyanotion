@@ -6,6 +6,9 @@ import { PersistStorageButton } from "@/components/persist-storage-button";
 
 export const metadata = { title: "Nyanotion 설치하기" };
 
+// 알림 공개키를 빌드에 구우면 키를 바꿨을 때 옛 값이 남는다. 요청마다 읽는다.
+export const dynamic = "force-dynamic";
+
 /**
  * iOS 의 "홈 화면에 추가"는 공유 메뉴 안에 숨어 있어서, 말로 설명하면 가족이 반드시 실패한다.
  * 그래서 화면 하나를 따로 둔다 — docs/05-clients.md §3.

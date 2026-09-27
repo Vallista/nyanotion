@@ -4,19 +4,30 @@
     "jsx": "preserve",
     "allowJs": true,
     "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] }
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
   },
   "include": [
-    "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    ".next-beta/types/**/*.ts",
     // 환경마다 빌드 폴더가 다르다 (next.config.ts 의 distDir).
     // Next 가 만드는 라우트 타입이 그 안에 들어가므로 전부 적어 둔다.
-    ".next/types/**/*.ts",
     ".next-dev/types/**/*.ts",
-    ".next-beta/types/**/*.ts",
-    ".next-prod/types/**/*.ts"
+    ".next-prod/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-cicheck/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

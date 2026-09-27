@@ -3,6 +3,13 @@ import { Suspense } from "react";
 import { LoginForm } from "@/components/login-form";
 
 /**
+ * **요청마다 판단한다.** 정적으로 구우면 "계정이 하나도 없는가" 가 빌드 시점 값으로 굳는다 —
+ * 첫 계정이 생긴 뒤에도 가입 화면이 계속 뜨거나, 반대로 영영 안 뜬다.
+ * (빌드가 DB 에 붙는 것도 곤란하다. CI 에는 DB 가 없다.)
+ */
+export const dynamic = "force-dynamic";
+
+/**
  * 계정이 **하나도 없으면** 첫 계정을 만들 수 있게 열어 준다.
  *
  * 가입은 초대로만 되지만, 그렇게만 두면 막 깔아 놓은 서버에 아무도 못 들어간다 —
