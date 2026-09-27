@@ -25,6 +25,7 @@
     "worker:once": "pnpm --filter @nyanotion/worker once",
     "db:vector": "pnpm --filter @nyanotion/db vector",
     "deploy:beta": "pwsh scripts/deploy.ps1 -Env beta",
-    "deploy:prod": "pwsh scripts/deploy.ps1 -Env prod"
+    "deploy:prod": "pwsh scripts/deploy.ps1 -Env prod",
+    "check": "pwsh scripts/healthcheck.ps1"
   }
 }
