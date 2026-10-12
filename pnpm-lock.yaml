@@ -163,6 +163,9 @@ importers:
       '@nyanotion/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@nyanotion/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
       '@nyanotion/shared':
         specifier: workspace:*
         version: link:../../packages/shared

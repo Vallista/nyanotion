@@ -1,4 +1,5 @@
 import {
+  checklistOfDocument,
   getSuggestion,
   isFavorite,
   listPublicLinks,
@@ -9,8 +10,10 @@ import {
   tagsForDocuments,
   usersByIds,
 } from "@nyanotion/db";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DocumentActions } from "@/components/document-actions";
+import { ChecklistIcon } from "@/components/icons";
 import { DocumentView } from "@/components/document-view";
 import { JumpToBlock } from "@/components/jump-to-block";
 import { TopBar } from "@/components/top-bar";
@@ -29,7 +32,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const canWrite = role === "editor" || role === "owner";
   const canShare = role === "owner";
 
-  const [nodes, tagMap, allTags, favorite, shares, links, suggestion] = await Promise.all([
+  const [nodes, tagMap, allTags, favorite, shares, links, suggestion, checklistId] = await Promise.all([
     listTree(viewer.spaceIds),
     tagsForDocuments([id]),
     listTags(viewer.spaceIds),
@@ -38,6 +41,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
     canShare ? listPublicLinks(id) : Promise.resolve([]),
     // 제안은 고칠 수 있는 사람에게만 보여 준다 — 읽기로 받은 문서의 제목을 바꿀 수는 없다.
     canWrite ? getSuggestion(id) : Promise.resolve(null),
+    checklistOfDocument(id),
   ]);
 
   // 공유 목록에 사람·가족 이름을 붙인다 (한 번에 가져와 N+1 을 만들지 않는다).
@@ -96,6 +100,27 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
         {/* `#block-<id>` 로 들어오면 그 줄까지 데려간다 (`/ask` 의 근거 링크). */}
         <JumpToBlock />
+        {checklistId !== null && (
+          <div style={{ maxWidth: "var(--measure)", margin: "16px auto 0", padding: "0 16px" }}>
+            <Link
+              href={`/lists/${checklistId}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+                padding: "6px 10px",
+                border: "1px solid var(--accent-line)",
+                borderRadius: "var(--radius)",
+                background: "var(--accent-soft)",
+                color: "var(--accent)",
+              }}
+            >
+              <ChecklistIcon size={14} />
+              체크리스트 항목 보기
+            </Link>
+          </div>
+        )}
         <DocumentView
           key={doc.id}
           suggestion={

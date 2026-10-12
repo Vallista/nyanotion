@@ -23,6 +23,10 @@
   --accent-hover: #3a5443;
   --accent-soft: rgba(76, 107, 87, 0.1);
   --accent-line: rgba(76, 107, 87, 0.32);
+  --late: #a8553c;         /* 날짜가 지난 일 — 체크리스트에서만 */
+  /* 인라인 style 로 글자 크기를 준 입력칸용. 인라인은 아래 (pointer: coarse) 규칙을 이기므로
+     값을 변수로 받아야 터치 기기에서 16px 로 커진다 (iOS 가 탭할 때 확대하지 않게). */
+  --input-font: 13px;
 
   --radius: 4px;
   --radius-sm: 3px;
@@ -153,6 +157,7 @@ kbd {
    대신 **터치 기기에서만** 입력 글자를 16px 로 올린다. 데스크탑 모양은 그대로다.
    (에디터 본문은 styles/blocknote.css 에서 이미 16px.) */
 @media (pointer: coarse) {
+  :root { --input-font: 16px; }
   input,
   textarea,
   select,

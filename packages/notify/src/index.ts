@@ -18,7 +18,12 @@ import webpush from "web-push";
  * iOS 는 **홈 화면에 추가한 뒤에야** 푸시를 받는다 (16.4+). 그 안내는 화면 쪽 몫이다.
  */
 
-export type NotificationKind = "purchase-approval" | "purchase-result" | "comment" | "test";
+export type NotificationKind =
+  | "purchase-approval"
+  | "purchase-result"
+  | "comment"
+  | "checklist-due"
+  | "test";
 
 export type Notification = {
   title: string;

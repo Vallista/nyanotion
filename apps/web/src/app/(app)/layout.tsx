@@ -2,11 +2,13 @@ import { aiStatus } from "@nyanotion/ai";
 import {
   awaitingApprovalCount,
   countArchived,
+  dueCount,
   listCollections,
   listFavorites,
   listTags,
   listTree,
 } from "@nyanotion/db";
+import { homeNow } from "@nyanotion/shared";
 import { AppShell } from "@/components/app-shell";
 import { CommandPalette } from "@/components/command-palette";
 import { Sidebar } from "@/components/sidebar";
@@ -15,14 +17,16 @@ import { requireViewer } from "@/lib/session";
 /** 로그인이 필요한 화면 전체의 껍데기. /login 은 이 그룹 밖에 있다. */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
-  const [nodes, archivedCount, favorites, tags, collections, awaitingApproval] = await Promise.all([
-    listTree(viewer.spaceIds),
-    countArchived(viewer.spaceIds),
-    listFavorites(viewer.userId, viewer.spaceIds),
-    listTags(viewer.spaceIds),
-    listCollections(viewer.spaceIds),
-    awaitingApprovalCount(viewer.spaceIds),
-  ]);
+  const [nodes, archivedCount, favorites, tags, collections, awaitingApproval, checklistDue] =
+    await Promise.all([
+      listTree(viewer.spaceIds),
+      countArchived(viewer.spaceIds),
+      listFavorites(viewer.userId, viewer.spaceIds),
+      listTags(viewer.spaceIds),
+      listCollections(viewer.spaceIds),
+      awaitingApprovalCount(viewer.spaceIds),
+      dueCount(viewer.spaceIds, homeNow().day),
+    ]);
   // 냥이 상태는 Ollama 에 짧게 물어본다 (3초 타임아웃) — 꺼져 있어도 화면은 그대로 뜬다.
   const ai = await aiStatus();
 
@@ -39,6 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           nodes={nodes}
           archivedCount={archivedCount}
           awaitingApproval={awaitingApproval}
+          checklistDue={checklistDue}
           favorites={favorites}
           tags={tags}
           collections={collections.map((c) => ({ id: c.id, name: c.name }))}

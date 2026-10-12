@@ -25,6 +25,7 @@ import {
   FamilyIcon,
   AskIcon,
   CartIcon,
+  ChecklistIcon,
   PulseIcon,
   InstallIcon,
   LitterBoxIcon,
@@ -82,6 +83,7 @@ export function Sidebar({
   nodes,
   archivedCount,
   awaitingApproval,
+  checklistDue,
   favorites,
   tags,
   collections,
@@ -94,6 +96,8 @@ export function Sidebar({
   archivedCount: number;
   /** 승인을 기다리는 살 것 수. 0 이면 배지를 안 단다. */
   awaitingApproval: number;
+  /** 오늘까지 할 체크리스트 항목 수 (지난 것 포함). 0 이면 배지를 안 단다. */
+  checklistDue: number;
   favorites: { id: string; title: string; icon: string | null }[];
   tags: { id: string; name: string; count: number }[];
   collections: { id: string; name: string }[];
@@ -429,6 +433,12 @@ export function Sidebar({
           icon={<LitterBoxIcon />}
           label="모래상자"
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
+        />
+        <SideLink
+          href="/lists"
+          icon={<ChecklistIcon />}
+          label="체크리스트"
+          trailing={checklistDue > 0 ? String(checklistDue) : undefined}
         />
         <SideLink
           href="/buy"

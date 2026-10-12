@@ -243,3 +243,40 @@ export function PulseIcon(p: IconProps) {
     </Svg>
   );
 }
+
+/** 체크리스트 — 체크 표시 둘과 줄. */
+export function ChecklistIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2.2 4.2l1.3 1.3 2.2-2.4M2.2 10.2l1.3 1.3 2.2-2.4" />
+      <path d="M8 4.4h6M8 10.4h6" />
+    </Svg>
+  );
+}
+
+/** 빈 체크 상자와 찬 체크 상자. 터치로 누를 자리라 테두리를 굵게 둔다. */
+export function CheckBoxIcon({ size = 18, checked = false }: IconProps & { checked?: boolean }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <rect
+        x="1.75"
+        y="1.75"
+        width="14.5"
+        height="14.5"
+        rx="3.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        fill={checked ? "currentColor" : "none"}
+      />
+      {checked && (
+        <path
+          d="M5.2 9.2l2.5 2.5 5.1-5.4"
+          stroke="var(--paper)"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
+  );
+}

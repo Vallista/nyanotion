@@ -4,6 +4,7 @@ export * from "./blocks";
 export * from "./chunk";
 export * from "./rag-prompts";
 export * from "./position";
+export * from "./checklist";
 
 /**
  * 서버·클라이언트·워커가 함께 쓰는 타입과 규칙.

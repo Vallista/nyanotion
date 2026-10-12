@@ -7,6 +7,7 @@ import {
   cancelOrder,
   chooseOffer,
   chosenOffer,
+  completeItemsForPurchase,
   createDocument,
   createItem,
   documentOfItem,
@@ -319,9 +320,10 @@ export async function markPlacedAction(orderId: string, externalId = ""): Promis
   refresh();
 }
 
-/** 받았다. 여기서 이 살 것은 끝난다. */
+/** 받았다. 여기서 이 살 것은 끝난다. 체크리스트에서 넘어온 것이면 그 항목도 체크한다. */
 export async function markDoneAction(itemId: string): Promise<void> {
-  await itemGate(itemId);
+  const { viewer } = await itemGate(itemId);
   await updateItem(itemId, { state: "done", note: "" });
+  if ((await completeItemsForPurchase(itemId, viewer.userId)) > 0) revalidatePath("/lists", "layout");
   refresh();
 }

@@ -1,5 +1,6 @@
 /**
  * 색인 워커 — 문서를 토막내어 임베딩하고, 제목·태그를 추천한다.
+ * 그리고 체크리스트 일정이 되면 알린다 (`reminders.ts` — GPU 와 무관해 게임 중에도 돈다).
  *
  * **왜 별도 프로세스인가.** 임베딩은 GPU 를 쓴다. 웹 요청 안에서 하면 저장이 느려지고,
  * 게임 중에는 저장 자체가 실패한다. 그래서 웹은 `ai_job` 에 할 일만 적고 즉시 끝내고,
@@ -26,6 +27,7 @@ import {
   type AiJobKind,
 } from "@nyanotion/db";
 import { indexDocument } from "./indexing.ts";
+import { sendDueReminders } from "./reminders.ts";
 import { suggestForDocument } from "./suggest.ts";
 
 loadEnv();
@@ -36,6 +38,24 @@ const IDLE_MS = 5_000;
 /** 게임 중이거나 모델에 닿지 못할 때 쉬는 시간. */
 const BUSY_MS = 60_000;
 const KINDS: readonly AiJobKind[] = ["index", "suggest"];
+/** 일정 알림을 살피는 간격. 알림은 분 단위로 정하므로 이보다 촘촘할 필요가 없다. */
+const REMIND_MS = 60_000;
+let lastRemind = 0;
+
+/**
+ * 때가 된 일정을 알린다. **색인과 따로 논다** — 큐가 밀려 있어도, 게임 중이어도 알림은 제때 가야 한다.
+ * 실패해도 워커를 멈추지 않는다.
+ */
+async function remindIfDue(): Promise<void> {
+  if (Date.now() - lastRemind < REMIND_MS) return;
+  lastRemind = Date.now();
+  try {
+    const result = await sendDueReminders();
+    if (result.items > 0) log(`일정 알림 ${result.items}건 (기기 ${result.sent}대)`);
+  } catch (error) {
+    log(`일정 알림 실패 — ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 function stamp(): string {
   return new Date().toISOString().slice(11, 19);
@@ -106,6 +126,7 @@ async function main(): Promise<void> {
 
   let sinceSweep = 0;
   while (!stopping) {
+    await remindIfDue();
     const result = await step();
     if (result === "did") {
       sinceSweep += 1;

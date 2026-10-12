@@ -113,6 +113,20 @@
       "when": 1790494184912,
       "tag": "0015_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791777404171,
+      "tag": "0016_checklist",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791777934333,
+      "tag": "0017_checklist_repeat_day",
+      "breakpoints": true
     }
   ]
 }

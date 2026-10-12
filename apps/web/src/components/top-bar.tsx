@@ -5,7 +5,8 @@ export function TopBar({
   crumbs,
   right,
 }: {
-  crumbs: { id: string | null; title: string }[];
+  /** `href` 가 있으면 그리로, 없으면 `id` 의 문서로 간다. */
+  crumbs: { id: string | null; title: string; href?: string }[];
   right?: React.ReactNode;
 }) {
   return (
@@ -51,14 +52,18 @@ export function TopBar({
             </span>
           );
           return (
-            <span key={`${crumb.id ?? "root"}-${index}`} style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+            <span
+              key={`${crumb.id ?? "root"}-${index}`}
+              // 섹션으로 돌아가는 빵가루(체크리스트 등)는 짧으니 줄이지 않는다 — 폰에서 잘려 읽히지 않았다.
+              style={{ display: "flex", alignItems: "center", minWidth: 0, flexShrink: crumb.href === undefined ? 1 : 0 }}
+            >
               {index > 0 && (
                 <span style={{ color: "var(--ink-4)", fontSize: 12.5, padding: "0 1px" }}>/</span>
               )}
-              {crumb.id === null || last ? (
+              {last || (crumb.id === null && crumb.href === undefined) ? (
                 label
               ) : (
-                <Link href={`/d/${crumb.id}`} style={{ border: 0, color: "inherit", minWidth: 0 }}>
+                <Link href={crumb.href ?? `/d/${crumb.id}`} style={{ border: 0, color: "inherit", minWidth: 0 }}>
                   {label}
                 </Link>
               )}

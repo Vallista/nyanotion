@@ -14,6 +14,7 @@
   "dependencies": {
     "@nyanotion/ai": "workspace:*",
     "@nyanotion/db": "workspace:*",
+    "@nyanotion/notify": "workspace:*",
     "@nyanotion/shared": "workspace:*"
   },
   "devDependencies": {

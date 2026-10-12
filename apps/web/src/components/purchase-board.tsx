@@ -962,7 +962,7 @@ const inputStyle: React.CSSProperties = {
   background: "var(--card)",
   border: "1px solid var(--line-strong)",
   borderRadius: "var(--radius)",
-  fontSize: 13,
+  fontSize: "var(--input-font)",
   color: "var(--ink)",
 };
 

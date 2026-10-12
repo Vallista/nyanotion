@@ -1,0 +1,212 @@
+"use server";
+
+import {
+  addChecklistItem,
+  clearDoneItems,
+  createChecklist,
+  createDocument,
+  createItem,
+  documentOfChecklist,
+  linkPurchase,
+  listChecklistItems,
+  ownerOfChecklistItem,
+  removeChecklistItem,
+  setChecklistItemDone,
+  updateChecklistItem,
+  updateItem,
+  watchersOfDocument,
+} from "@nyanotion/db";
+import {
+  CHECKLIST_REPEATS,
+  cleanDay,
+  cleanTime,
+  type ChecklistRepeat,
+} from "@nyanotion/shared";
+import { revalidatePath } from "next/cache";
+import { assertCanWrite, requireViewer } from "@/lib/session";
+
+/**
+ * 체크리스트의 서버 동작.
+ *
+ * **체크리스트용 권한을 따로 만들지 않는다.** 체크리스트는 문서 하나에 매여 있고, 그 문서를
+ * 고칠 수 있는 사람이 항목을 다룬다 (`assertCanWrite`). 개인/가족의 구분도 그 문서가 어느
+ * space 에 있느냐가 전부다.
+ */
+
+function refresh(): void {
+  revalidatePath("/lists", "layout");
+  revalidatePath("/", "layout");
+}
+
+async function checklistGate(checklistId: string) {
+  const documentId = await documentOfChecklist(checklistId);
+  if (documentId === null) throw new Error("체크리스트를 찾을 수 없습니다.");
+  const viewer = await assertCanWrite(documentId);
+  return { viewer, documentId };
+}
+
+async function itemGate(itemId: string) {
+  const owner = await ownerOfChecklistItem(itemId);
+  if (owner === null) throw new Error("항목을 찾을 수 없습니다.");
+  const viewer = await assertCanWrite(owner.documentId);
+  return { viewer, ...owner };
+}
+
+function cleanTitle(value: string): string {
+  const title = value.trim().slice(0, 200);
+  if (title === "") throw new Error("무엇을 할지 적어 주세요.");
+  return title;
+}
+
+function cleanRepeat(value: string | undefined): ChecklistRepeat | undefined {
+  if (value === undefined) return undefined;
+  return (CHECKLIST_REPEATS as readonly string[]).includes(value)
+    ? (value as ChecklistRepeat)
+    : "none";
+}
+
+/**
+ * 담당자는 **그 체크리스트를 지켜보는 사람이어야 한다** — 가족 space 면 그 가족, 개인 space 면 나.
+ * 아무 id 나 받으면 남의 집 사람에게 일을 맡기고 알림까지 보내게 된다.
+ */
+async function cleanAssignee(
+  documentId: string,
+  assigneeId: string | null | undefined,
+): Promise<string | null | undefined> {
+  if (assigneeId === undefined || assigneeId === null || assigneeId === "") {
+    return assigneeId === undefined ? undefined : null;
+  }
+  const watchers = await watchersOfDocument(documentId);
+  if (!watchers.includes(assigneeId)) throw new Error("이 체크리스트의 사람이 아닙니다.");
+  return assigneeId;
+}
+
+/** 체크리스트를 만든다. 문서가 같이 생긴다 — 열면 메모를 쓸 수 있다. */
+export async function createChecklistAction(input: {
+  title: string;
+  spaceId?: string;
+}): Promise<string> {
+  const viewer = await requireViewer();
+  const title = input.title.trim().slice(0, 120);
+  if (title === "") throw new Error("체크리스트 이름을 적어 주세요.");
+
+  const spaceId = input.spaceId ?? viewer.personalSpace.id;
+  const target = viewer.spaces.find((space) => space.id === spaceId);
+  // 손님(guest)처럼 그 space 에 쓸 수 없는 사람은 만들지도 못한다.
+  if (target === undefined || (target.baseRole !== "editor" && target.baseRole !== "owner")) {
+    throw new Error("이 공간에 만들 수 없습니다.");
+  }
+
+  const { id } = await createChecklist({ spaceId, userId: viewer.userId, title });
+  refresh();
+  return id;
+}
+
+export async function addChecklistItemAction(
+  checklistId: string,
+  input: {
+    title: string;
+    dueOn?: string | null;
+    dueTime?: string | null;
+    repeat?: string;
+    assigneeId?: string | null;
+  },
+): Promise<string> {
+  const { viewer, documentId } = await checklistGate(checklistId);
+  const id = await addChecklistItem(checklistId, viewer.userId, {
+    title: cleanTitle(input.title),
+    dueOn: cleanDay(input.dueOn),
+    dueTime: cleanTime(input.dueTime),
+    repeat: cleanRepeat(input.repeat),
+    assigneeId: (await cleanAssignee(documentId, input.assigneeId)) ?? null,
+  });
+  refresh();
+  return id;
+}
+
+export async function updateChecklistItemAction(
+  itemId: string,
+  patch: {
+    title?: string;
+    dueOn?: string | null;
+    dueTime?: string | null;
+    repeat?: string;
+    assigneeId?: string | null;
+  },
+): Promise<void> {
+  const { documentId } = await itemGate(itemId);
+  await updateChecklistItem(itemId, {
+    title: patch.title === undefined ? undefined : cleanTitle(patch.title),
+    dueOn: patch.dueOn === undefined ? undefined : cleanDay(patch.dueOn),
+    dueTime: patch.dueTime === undefined ? undefined : cleanTime(patch.dueTime),
+    repeat: cleanRepeat(patch.repeat),
+    assigneeId: await cleanAssignee(documentId, patch.assigneeId),
+  });
+  refresh();
+}
+
+export async function toggleChecklistItemAction(itemId: string, done: boolean): Promise<void> {
+  const { viewer } = await itemGate(itemId);
+  await setChecklistItemDone(itemId, done, viewer.userId);
+  refresh();
+}
+
+export async function removeChecklistItemAction(itemId: string): Promise<void> {
+  await itemGate(itemId);
+  await removeChecklistItem(itemId);
+  refresh();
+}
+
+export async function clearDoneAction(checklistId: string): Promise<void> {
+  await checklistGate(checklistId);
+  await clearDoneItems(checklistId);
+  refresh();
+}
+
+/**
+ * **사야 하는 항목을 구매로 넘긴다.**
+ *
+ * 살 것 문서를 체크리스트 문서 **아래에** 만든다 — 같은 space 에 들어가므로 개인 체크리스트면
+ * 내 구매, 가족 체크리스트면 가족 구매가 되고, 승인 규칙(가족 누구든 한 명)도 그대로 따라온다.
+ *
+ * 곧바로 `searching` 으로 둔다. 그러면 구매 에이전트가 네이버(공식 API)·쿠팡에서 값을 찾아 오고,
+ * 그다음은 기존 구매 흐름 그대로다 — **한도 → 승인 → 5분 유예 → 결제는 사람이.** 여기서 그
+ * 멈출 자리를 하나도 건너뛰지 않는다.
+ */
+export async function sendToPurchaseAction(
+  itemId: string,
+  input: { quantity?: number; maxPriceKrw?: number | null } = {},
+): Promise<string> {
+  const { viewer, documentId, spaceId, checklistId } = await itemGate(itemId);
+
+  const items = await listChecklistItems(checklistId);
+  const item = items.find((row) => row.id === itemId);
+  if (item === undefined) throw new Error("항목을 찾을 수 없습니다.");
+  if (item.purchaseItemId !== null) throw new Error("이미 구매로 넘긴 항목입니다.");
+
+  const maxPriceKrw =
+    input.maxPriceKrw === null || input.maxPriceKrw === undefined
+      ? null
+      : Math.max(0, Math.floor(input.maxPriceKrw));
+
+  const purchaseDocumentId = await createDocument({
+    spaceId,
+    userId: viewer.userId,
+    parentId: documentId,
+    title: item.title,
+  });
+  const purchaseItemId = await createItem({
+    documentId: purchaseDocumentId,
+    createdBy: viewer.userId,
+    quantity: Math.max(1, Math.floor(input.quantity ?? 1)),
+    maxPriceKrw: maxPriceKrw === 0 ? null : maxPriceKrw,
+    // 체크리스트의 날짜가 곧 "언제까지 필요한가"다.
+    neededBy: item.dueOn,
+  });
+  await updateItem(purchaseItemId, { state: "searching", note: "" });
+  await linkPurchase(itemId, purchaseItemId);
+
+  refresh();
+  revalidatePath("/buy");
+  return purchaseItemId;
+}
