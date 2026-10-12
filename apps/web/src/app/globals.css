@@ -158,6 +158,7 @@ kbd {
    (에디터 본문은 styles/blocknote.css 에서 이미 16px.) */
 @media (pointer: coarse) {
   :root { --input-font: 16px; }
+  :root { --row-button: 28px; } /* 사이드바 줄의 + · ⋯ 를 손가락으로 누를 수 있게 */
   input,
   textarea,
   select,

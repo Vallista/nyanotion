@@ -538,6 +538,7 @@ function Row({
   onArchive: () => void;
 }) {
   const [hover, setHover] = useState(false);
+  const touch = useCoarsePointer();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -553,7 +554,9 @@ function Row({
   }
 
   const indent = 6 + item.depth * 12;
-  const showControls = hover || menuOpen;
+  // **마우스를 올릴 때만 보이면 터치 기기에서는 영영 안 보인다** — 지우기·이름 바꾸기가 없는 줄
+  // 알았다. 터치 기기와 지금 연 문서에서는 늘 보인다. 데스크탑은 오른쪽 클릭으로도 연다.
+  const showControls = hover || menuOpen || active || touch;
 
   return (
     <div
@@ -576,6 +579,11 @@ function Row({
 
       <div
         draggable={!renaming}
+        onContextMenu={(e) => {
+          if (renaming) return;
+          e.preventDefault();
+          onMenu();
+        }}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         style={{
@@ -695,7 +703,7 @@ function Row({
           <MenuItem onClick={onStartRename}>이름 변경</MenuItem>
           <MenuItem onClick={onAddChild}>안에 새 문서</MenuItem>
           <div style={{ height: 1, background: "var(--line-soft)", margin: "4px 0" }} />
-          <MenuItem onClick={onArchive}>모래상자로</MenuItem>
+          <MenuItem onClick={onArchive}>모래상자로 보내기 (삭제)</MenuItem>
           <MenuItem onClick={onCloseMenu} muted>
             닫기
           </MenuItem>
@@ -773,8 +781,9 @@ function RowButton({
         onClick();
       }}
       style={{
-        width: 20,
-        height: 20,
+        // 터치 기기에서는 손가락 크기로 (globals.css 의 --row-button).
+        width: "var(--row-button, 20px)",
+        height: "var(--row-button, 20px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -875,4 +884,17 @@ function SideLink({
       {inner}
     </Link>
   );
+}
+
+/** 손가락으로 쓰는 기기인가 — 마우스를 올리는 동작이 없는 기기. 서버에서는 false. */
+function useCoarsePointer(): boolean {
+  const [coarse, setCoarse] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(pointer: coarse)");
+    setCoarse(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setCoarse(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return coarse;
 }
