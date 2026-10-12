@@ -13,9 +13,11 @@ export function LoginForm({ bootstrap = false }: { bootstrap?: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const invite = params.get("invite");
+  // 어드민이 만든 계정 초대 (/join/…). 가족 초대와 달리 가입하면 그걸로 끝이다.
+  const join = params.get("join");
   const invitedEmail = params.get("email");
 
-  const canSignUp = invite !== null || bootstrap;
+  const canSignUp = invite !== null || join !== null || bootstrap;
   const [mode, setMode] = useState<"in" | "up">(canSignUp ? "up" : "in");
   const [email, setEmail] = useState(invitedEmail ?? "");
   const [name, setName] = useState("");

@@ -3,7 +3,16 @@ import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins/organization";
-import { createPersonalSpace, db, hasOpenInvitation, isFirstUser, schema } from "@nyanotion/db";
+import {
+  createPersonalSpace,
+  db,
+  hasOpenAccountInvite,
+  hasOpenInvitation,
+  isAccountDisabled,
+  isFirstUser,
+  markAccountInviteUsed,
+  schema,
+} from "@nyanotion/db";
 
 /** 가족만 쓴다 — 초대 없이는 계정이 생기지 않는다. ARCHITECTURE.md §7 */
 const allowPublicSignup = process.env.ALLOW_PUBLIC_SIGNUP === "true";
@@ -47,12 +56,30 @@ export const auth = betterAuth({
           if (allowPublicSignup) return;
           if (await isFirstUser()) return;
           if (await hasOpenInvitation(newUser.email)) return;
+          // 어드민이 만든 계정 초대 — 가족 없이 계정만. 이것도 초대다 (공개 가입이 아니다).
+          if (await hasOpenAccountInvite(newUser.email)) return;
           throw new APIError("FORBIDDEN", {
             message: "초대를 받은 주소만 가입할 수 있습니다.",
           });
         },
         async after(createdUser) {
           await createPersonalSpace(createdUser.id);
+          await markAccountInviteUsed(createdUser.email, createdUser.id);
+        },
+      },
+    },
+    session: {
+      create: {
+        /**
+         * **막힌 계정은 로그인하지 못한다.** 막을 때 세션을 이미 다 지웠으므로(`setAccountDisabled`)
+         * 여기만 막으면 다시 들어올 길이 없다.
+         */
+        async before(newSession) {
+          if (await isAccountDisabled(newSession.userId)) {
+            throw new APIError("FORBIDDEN", {
+              message: "이 계정은 막혀 있습니다. 어드민에게 물어 주세요.",
+            });
+          }
         },
       },
     },

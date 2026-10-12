@@ -127,6 +127,13 @@
       "when": 1791777934333,
       "tag": "0017_checklist_repeat_day",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791779670672,
+      "tag": "0018_admin",
+      "breakpoints": true
     }
   ]
 }

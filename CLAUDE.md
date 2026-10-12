@@ -26,6 +26,9 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **문서 조회는 전부 `readableDocumentIds()` 를 먼저 통과한다.** 특히 **벡터 검색은 권한으로 좁힌 뒤에** — 순서가 바뀌면 임베딩 유사도로 남의 문서가 샌다.
 - 가족 역할(`owner/admin/member/guest`)은 가족 수준 행위에만. 문서 권한(`viewer/commenter/editor/owner`)과 섞지 말 것.
 - **공개 가입 없음.** 가입은 초대 토큰이 있어야만. `ALLOW_PUBLIC_SIGNUP` 을 true 로 만드는 코드 경로를 만들지 말 것.
+- **서버 어드민(`/admin`, `docs/12-admin.md`)은 가족 역할과 다른 축이다.** 누가 어드민인지는 설정 `ADMIN_EMAILS` 만 정한다(비면 첫 계정) — DB 칸이나 화면에서 어드민을 늘리는 길을 만들지 말 것. 어드민 화면·동작은 `requireAdmin`/`assertAdmin` 을 먼저 지나고, 아니면 404.
+- 어드민도 **계정을 지우지 않고(막기만) 문서 내용을 보지 않는다.** `packages/db/src/queries/admin.ts` 의 질의는 어드민 화면 전용이다.
+- 계정을 막는 길은 `setAccountDisabled` 하나 — **세션을 전부 지우고**, 새 로그인은 `auth.ts` 의 세션 훅이 막는다. 둘 중 하나만 하면 이미 들어와 있던 기기가 살아남거나 다시 들어온다.
 
 ### 콘텐츠
 - **콘텐츠 원본은 `ydoc_state`(Yjs).** `content_json` 과 `text_plain` 은 저장 시마다 갱신하는 **파생값**이다. 검색·렌더·API·LLM 은 파생값만 본다 — CRDT 를 몰라야 한다.

@@ -28,6 +28,12 @@ export const AUDIT_ACTIONS = [
   "purchase.cancel",
   "trash.empty", // 되돌릴 수 없다
   "gpu.mode", // 게임 모드 전환 — 왜 그때 AI 가 안 됐는지의 답
+  "admin.invite", // 어드민이 계정 초대를 만들었다
+  "admin.revoke",
+  "admin.disable", // 계정을 막았다 — 그 사람의 모든 기기가 끊긴다
+  "admin.enable",
+  "admin.password", // 임시 비밀번호를 만들었다
+  "admin.family", // 가족에 넣거나 빼거나 역할을 바꿨다
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

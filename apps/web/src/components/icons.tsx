@@ -280,3 +280,13 @@ export function CheckBoxIcon({ size = 18, checked = false }: IconProps & { check
     </svg>
   );
 }
+
+/** 어드민 — 열쇠. */
+export function KeyIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <circle cx="5.2" cy="8" r="2.6" />
+      <path d="M7.8 8h6.4M11.6 8v2.2M13.6 8v1.6" />
+    </Svg>
+  );
+}

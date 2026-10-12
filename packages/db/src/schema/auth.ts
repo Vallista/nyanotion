@@ -19,6 +19,12 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  /**
+   * 어드민이 막은 계정 (0018). 막으면 세션을 전부 지우고 새로 로그인하지 못한다
+   * (`apps/web/src/lib/auth.ts` 의 세션 훅). **지우지 않는다** — 그 사람이 쓴 문서와 기록이 남아야 한다.
+   * Better Auth 가 모르는 칼럼이라 null 을 허용해야 가입이 깨지지 않는다.
+   */
+  disabledAt: timestamp("disabled_at", { withTimezone: true }),
 });
 
 export const session = pgTable(

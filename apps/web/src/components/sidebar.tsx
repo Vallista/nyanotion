@@ -26,6 +26,7 @@ import {
   AskIcon,
   CartIcon,
   ChecklistIcon,
+  KeyIcon,
   PulseIcon,
   InstallIcon,
   LitterBoxIcon,
@@ -84,6 +85,7 @@ export function Sidebar({
   archivedCount,
   awaitingApproval,
   checklistDue,
+  isAdmin,
   favorites,
   tags,
   collections,
@@ -98,6 +100,8 @@ export function Sidebar({
   awaitingApproval: number;
   /** 오늘까지 할 체크리스트 항목 수 (지난 것 포함). 0 이면 배지를 안 단다. */
   checklistDue: number;
+  /** 서버 어드민이면 어드민 링크를 보여 준다. 아니면 링크 자체가 없다 (화면도 404). */
+  isAdmin: boolean;
   favorites: { id: string; title: string; icon: string | null }[];
   tags: { id: string; name: string; count: number }[];
   collections: { id: string; name: string }[];
@@ -448,6 +452,7 @@ export function Sidebar({
         />
         <SideLink href="/ask" icon={<AskIcon />} label="물어보기" />
         <SideLink href="/status" icon={<PulseIcon />} label="상태" />
+        {isAdmin && <SideLink href="/admin" icon={<KeyIcon />} label="어드민" />}
         <SideLink href="/install" icon={<InstallIcon />} label="앱으로 설치" />
         <GpuModeToggle mode={gpuMode} reachable={aiReachable} />
         <div
@@ -462,18 +467,22 @@ export function Sidebar({
           }}
         >
           <span className="dot dot-synced" />
-          <span
+          {/* 누르면 내 계정 — 비밀번호 바꾸기. */}
+          <Link
+            href="/account"
             style={{
               flexGrow: 1,
               minWidth: 0,
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
+              border: 0,
+              color: "inherit",
             }}
-            title={email}
+            title={`${email} — 내 계정`}
           >
             {email}
-          </span>
+          </Link>
           <SignOutButton />
         </div>
       </div>
