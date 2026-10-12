@@ -96,6 +96,16 @@ try {
   if ($Env -eq 'prod') {
     Write-Step '작업 다시 세우기'
     # **멈춘 것을 확인하고 세운다.** 죽이자마자 Start 를 부르면 스케줄러가 요청을 흘린다.
+    #
+    # **프로세스 트리째 내린다.** Stop-ScheduledTask 는 맨 위 pwsh 만 죽이고 그 아래
+    # pnpm → node 는 고아로 살아남는다. web·collab 은 아래 Stop-Port 가 잡지만 워커는 포트가 없어서
+    # 배포할 때마다 옛 코드로 도는 워커가 하나씩 쌓였다 (2026-10-12 에 넷이 돌고 있었다 —
+    # 체크리스트 알림이 겹쳐 갈 수 있다).
+    foreach ($what in 'web', 'collab', 'worker') {
+      Get-CimInstance Win32_Process -Filter "Name='pwsh.exe'" |
+        Where-Object { $_.CommandLine -like "*serve-one.ps1*-What $what*-Env $Env*" } |
+        ForEach-Object { taskkill /PID $_.ProcessId /T /F 2>&1 | Out-Null }
+    }
     foreach ($name in 'Nyanotion-Web', 'Nyanotion-Collab', 'Nyanotion-Worker') {
       Stop-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
     }

@@ -79,6 +79,19 @@ if ($Env -eq 'prod') {
   if ($null -eq $backup) { Meh 'Nyanotion-Backup 작업이 없습니다' } else { Good 'Nyanotion-Backup 등록됨' }
 }
 
+# ── 워커가 하나인가 (운영만) ────────────────────────────────────────────────
+# 배포가 옛 워커를 고아로 남기던 때가 있었다 — 넷이 같이 돌면 일정 알림이 겹쳐 간다.
+# (dev 에서 `pnpm worker` 를 따로 돌리고 있다면 그 하나는 더 있어도 된다.)
+if ($Env -eq 'prod') {
+  $workers = @(Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+      Where-Object { $_.CommandLine -like '*apps\worker*tsx*cli.mjs*' })
+  if ($workers.Count -le 1) { Good '워커' ("{0}개" -f $workers.Count) }
+  else {
+    Bad "워커가 $($workers.Count)개 돌고 있습니다" (
+      'pid ' + (($workers | ForEach-Object { "$($_.ProcessId)($($_.CreationDate.ToString('MM-dd HH:mm')))" }) -join ', '))
+  }
+}
+
 # ── 포트 ─────────────────────────────────────────────────────────────────────
 Write-Step '포트'
 foreach ($pair in @(@{ n = '동기화'; p = $collabPort }, @{ n = '웹'; p = $port })) {
