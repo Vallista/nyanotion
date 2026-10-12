@@ -32,6 +32,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\_env.ps1"
 $root = Split-Path -Parent $PSScriptRoot
 $marker = "NYANOTION_RUN=$Env"
 
@@ -45,13 +46,44 @@ function Find-Ours {
 }
 
 if ($Stop) {
-  $found = Get-CimInstance Win32_Process -Filter "name='node.exe'" -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -like "*$root*" }
-  foreach ($p in $found) {
-    try { Stop-Process -Id $p.ProcessId -Force -ErrorAction Stop; Ok "멈춤 $($p.ProcessId)" } catch { }
+  <#
+    **그 환경의 것만 멈춘다.** 전에는 저장소 안의 node 를 전부 죽였는데, 모든 환경이 같은 저장소에서
+    돌기 때문에 `-Env beta -Stop` 이 **운영까지 내렸다** (2026-10-12, 2분). node 의 명령줄에는 환경이
+    안 보이므로 두 가지로만 가린다:
+      1. 그 환경의 런처(`serve-one.ps1 … -Env <환경>`) — 트리째
+      2. 그 환경의 포트(웹·동기화)를 잡은 프로세스 — `pnpm dev` 처럼 런처 없이 띄운 것
+  #>
+  $stopped = 0
+  # 런처는 `pwsh -File …serve-one.ps1 -What … -Env <환경>` 꼴이다. `-Command` 로 도는 셸은 명령 문자열에
+  # 같은 글자가 들어 있을 수 있어(이 스크립트를 부른 셸 자신 등) 빼야 한다.
+  $launchers = @(Get-CimInstance Win32_Process -Filter "Name='pwsh.exe'" -ErrorAction SilentlyContinue |
+      Where-Object {
+        $_.ProcessId -ne $PID -and
+        $_.CommandLine -match '-File\s+"?[^"]*serve-one\.ps1"?\s+-What\s+\w+\s+-Env\s+' + [regex]::Escape($Env) + '(\s|$)' -and
+        $_.CommandLine -notmatch '\s-Command\s'
+      })
+  foreach ($one in $launchers) {
+    taskkill /PID $one.ProcessId /T /F 2>&1 | Out-Null
+    Ok "멈춤 런처 $($one.ProcessId)"
+    $stopped += 1
   }
-  Info "$Env 관련 프로세스를 멈췄습니다."
-  return
+
+  $ports = @(
+    [int] (Get-NyanotionSetting -Name 'PORT' -Env $Env -Fallback $(if ($Env -eq 'beta') { '3100' } else { '3000' })),
+    [int] (Get-NyanotionSetting -Name 'COLLAB_PORT' -Env $Env -Fallback $(if ($Env -eq 'beta') { '1334' } else { '1234' }))
+  )
+  # 런처를 내리면 포트도 곧 놓인다 — 잠깐 기다렸다가 아직 잡고 있는 것만 내린다.
+  if ($stopped -gt 0) { Start-Sleep -Seconds 2 }
+  foreach ($port in $ports) {
+    foreach ($conn in @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)) {
+      taskkill /PID $conn.OwningProcess /T /F 2>&1 | Out-Null
+      Ok "멈춤 포트 $port ($($conn.OwningProcess))"
+      $stopped += 1
+    }
+  }
+  Info $(if ($stopped -eq 0) { "$Env 는 이미 멈춰 있습니다." } else { "$Env 를 멈췄습니다. 다른 환경은 건드리지 않았습니다." })
+  # taskkill 은 이미 끝난 자식에 대해 0 이 아닌 값을 남긴다 — 멈추는 일 자체는 끝났다.
+  exit 0
 }
 
 $env:NYANOTION_ENV = $Env
