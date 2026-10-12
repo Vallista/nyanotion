@@ -21,6 +21,8 @@ import {
   listChecklistItems,
   listChecklists,
   markReminded,
+  openItems,
+  primaryChecklist,
   ownerOfChecklistItem,
   setChecklistItemDone,
   updateChecklistItem,
@@ -128,6 +130,12 @@ async function main(): Promise<void> {
   check("**B 일정에는 없다**", (await agenda([b.spaceId], addDays(today, 7))).length === 0);
   check("오늘까지 할 일 2", (await dueCount([a.spaceId], today)) === 2);
   check("B 는 0", (await dueCount([b.spaceId], today)) === 0);
+  const open = await openItems([a.spaceId]);
+  check("첫 화면 목록에 안 한 것 넷 (날짜 없는 것까지)", open.length === 4, open.length);
+  check("날짜 있는 것이 먼저, 이른 순", open[0]?.id === rent && open[1]?.id === call, open.map((r) => r.title));
+  check("**B 첫 화면에는 없다**", (await openItems([b.spaceId])).length === 0);
+  check("기본 체크리스트는 가장 먼저 만든 것", (await primaryChecklist(a.spaceId))?.id === list.id);
+  check("체크리스트가 없는 공간은 null", (await primaryChecklist(b.spaceId)) === null);
   check("항목 → 문서를 찾는다 (권한 판정용)", (await ownerOfChecklistItem(milk))?.documentId === list.documentId);
 
   console.log("\n체크와 반복");

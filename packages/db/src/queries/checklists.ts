@@ -206,6 +206,64 @@ export async function agenda(
   }));
 }
 
+/**
+ * 아직 안 한 항목 전부 — 날짜가 없는 것까지. **첫 화면(캣타워)** 이 공간마다 묶어 보여 준다.
+ * 날짜가 있는 것 먼저(이른 순), 그다음 날짜 없는 것을 적은 순서로.
+ */
+export async function openItems(spaceIds: readonly string[], limit = 300): Promise<AgendaRow[]> {
+  if (spaceIds.length === 0) return [];
+  const rows = await db
+    .select({
+      item: checklistItem,
+      purchaseState: purchaseItem.state,
+      checklistTitle: document.title,
+      documentId: document.id,
+      spaceId: document.spaceId,
+    })
+    .from(checklistItem)
+    .innerJoin(checklist, eq(checklistItem.checklistId, checklist.id))
+    .innerJoin(document, eq(checklist.documentId, document.id))
+    .leftJoin(purchaseItem, eq(checklistItem.purchaseItemId, purchaseItem.id))
+    .where(
+      and(
+        inArray(document.spaceId, [...spaceIds]),
+        isNull(document.archivedAt),
+        eq(checklistItem.done, false),
+      ),
+    )
+    .orderBy(
+      sql`${checklistItem.dueOn} is null`,
+      asc(checklistItem.dueOn),
+      asc(checklistItem.dueTime),
+      asc(checklistItem.createdAt),
+    )
+    .limit(limit);
+
+  return rows.map((row) => ({
+    ...toItem(row.item, row.purchaseState),
+    checklistTitle: row.checklistTitle,
+    documentId: row.documentId,
+    spaceId: row.spaceId,
+  }));
+}
+
+/**
+ * 그 공간의 **기본 체크리스트** — 첫 화면에서 바로 적은 항목이 들어갈 곳. 가장 먼저 만든 것.
+ * 없으면 null (부르는 쪽이 "할 일" 을 만든다).
+ */
+export async function primaryChecklist(
+  spaceId: string,
+): Promise<{ id: string; documentId: string } | null> {
+  const rows = await db
+    .select({ id: checklist.id, documentId: checklist.documentId })
+    .from(checklist)
+    .innerJoin(document, eq(checklist.documentId, document.id))
+    .where(and(eq(document.spaceId, spaceId), isNull(document.archivedAt)))
+    .orderBy(asc(checklist.createdAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 /** 오늘까지 할 일(지난 것 포함) 수. 사이드바 배지에 쓴다. */
 export async function dueCount(spaceIds: readonly string[], today: string): Promise<number> {
   if (spaceIds.length === 0) return 0;

@@ -293,6 +293,14 @@ export function Sidebar({
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
         <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
         <SideLink href="/" icon={<TowerIcon />} label="캣타워" active={pathname === "/"} />
+        {/* 체크리스트가 이 앱의 주 기능이다 — 캣타워 바로 밑. */}
+        <SideLink
+          href="/lists"
+          icon={<ChecklistIcon />}
+          label="체크리스트"
+          active={pathname.startsWith("/lists")}
+          trailing={checklistDue > 0 ? String(checklistDue) : undefined}
+        />
       </div>
 
       <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>
@@ -437,12 +445,6 @@ export function Sidebar({
           icon={<LitterBoxIcon />}
           label="모래상자"
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
-        />
-        <SideLink
-          href="/lists"
-          icon={<ChecklistIcon />}
-          label="체크리스트"
-          trailing={checklistDue > 0 ? String(checklistDue) : undefined}
         />
         <SideLink
           href="/buy"

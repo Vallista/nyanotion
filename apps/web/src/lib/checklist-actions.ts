@@ -10,6 +10,7 @@ import {
   linkPurchase,
   listChecklistItems,
   ownerOfChecklistItem,
+  primaryChecklist,
   removeChecklistItem,
   setChecklistItemDone,
   updateChecklistItem,
@@ -100,6 +101,34 @@ export async function createChecklistAction(input: {
   const { id } = await createChecklist({ spaceId, userId: viewer.userId, title });
   refresh();
   return id;
+}
+
+/**
+ * **첫 화면에서 바로 적기.** 그 공간(내 문서 / 가족)의 기본 체크리스트(가장 먼저 만든 것)에 넣는다.
+ * 아직 하나도 없으면 "할 일" 을 만들어 거기 넣는다 — 체크리스트를 먼저 만들라고 시키지 않는다.
+ * 권한은 다른 길과 같다: 그 문서를 고칠 수 있어야 한다.
+ */
+export async function quickAddAction(
+  spaceId: string,
+  input: { title: string; dueOn?: string | null },
+): Promise<void> {
+  const viewer = await requireViewer();
+  const target = viewer.spaces.find((space) => space.id === spaceId);
+  if (target === undefined) throw new Error("이 공간에 적을 수 없습니다.");
+
+  let found = await primaryChecklist(spaceId);
+  if (found === null) {
+    if (target.baseRole !== "editor" && target.baseRole !== "owner") {
+      throw new Error("이 공간에 적을 수 없습니다.");
+    }
+    found = await createChecklist({ spaceId, userId: viewer.userId, title: "할 일" });
+  }
+  await assertCanWrite(found.documentId);
+  await addChecklistItem(found.id, viewer.userId, {
+    title: cleanTitle(input.title),
+    dueOn: cleanDay(input.dueOn),
+  });
+  refresh();
 }
 
 export async function addChecklistItemAction(
