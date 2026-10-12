@@ -3,6 +3,8 @@
 import { randomInt } from "node:crypto";
 import {
   createAccountInvite,
+  createFamily,
+  userByEmail,
   inviteToFamily,
   listAllFamilies,
   ownerCount,
@@ -75,11 +77,13 @@ export async function adminInviteAction(input: {
     const family = families.find((item) => item.id === input.organizationId);
     if (family === undefined) throw new Error("그런 가족이 없습니다.");
     const role = cleanRole(input.role);
-    // 가족 초대로 owner 를 줄 수는 없다 — owner 는 이미 계정이 있는 사람을 "가족에 넣기"로만.
+    // 초대로 owner 를 주는 것은 **owner 가 아직 없는 가족**(첫 구성원)일 때만. 나머지는 이미 계정이
+    // 있는 사람을 "가족에 넣기"로 — 링크가 새 나가면 그 가족을 통째로 넘기게 된다.
+    const canOwn = role === "owner" && (await ownerCount(family.id)) === 0;
     const token = await inviteToFamily({
       organizationId: family.id,
       email,
-      role: role === "owner" ? "admin" : role,
+      role: role === "owner" && !canOwn ? "admin" : role,
       inviterId: admin.userId,
     });
     path = `/invite/${token}`;
@@ -232,4 +236,49 @@ export async function adminRemoveFromFamilyAction(
     summary: `${await nameOf(userId)} 을 가족에서 뺐다`,
   });
   refresh();
+}
+
+/**
+ * **가족을 만들고 첫 구성원(owner)을 정한다.**
+ *
+ * 사이드바의 "가족 만들기"는 만든 사람이 owner 가 된다. 어드민은 남의 가족을 대신 세워 줄 수
+ * 있어야 한다 — 그래서 첫 구성원을 고른다:
+ * - 이미 계정이 있는 주소면 그 사람이 곧바로 owner.
+ * - 아직 계정이 없으면 **아무도 없는 가족**을 만들고 그 주소로 owner 초대를 만든다. 링크를 타고
+ *   가입하면 owner 로 들어온다. 그때까지 화면은 "owner 없음"으로 짚어 준다.
+ * 어드민 자신은 고르지 않는 한 그 가족에 들어가지 않는다.
+ */
+export async function adminCreateFamilyAction(input: {
+  name: string;
+  ownerEmail: string;
+}): Promise<{ organizationId: string; path: string | null }> {
+  const admin = await assertAdmin();
+  const name = input.name.trim().slice(0, 60);
+  if (name === "") throw new Error("가족 이름을 적어 주세요.");
+  const email = cleanEmail(input.ownerEmail);
+
+  const existing = await userByEmail(email);
+  let path: string | null = null;
+  let organizationId: string;
+  if (existing !== null) {
+    ({ organizationId } = await createFamily({ name, ownerUserId: existing.id }));
+  } else {
+    ({ organizationId } = await createFamily({ name, ownerUserId: null }));
+    const token = await inviteToFamily({ organizationId, email, role: "owner", inviterId: admin.userId });
+    path = `/invite/${token}`;
+  }
+
+  await recordAudit({
+    actorId: admin.userId,
+    actorName: admin.name,
+    action: "admin.family",
+    subjectType: "organization",
+    subjectId: organizationId,
+    summary:
+      existing !== null
+        ? `${name} 가족을 만들고 ${email} 을 owner 로 두었다`
+        : `${name} 가족을 만들고 ${email} 에게 owner 초대를 만들었다`,
+  });
+  refresh();
+  return { organizationId, path };
 }

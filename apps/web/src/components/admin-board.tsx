@@ -1,9 +1,10 @@
 "use client";
 
-import type { AdminAccount, PendingInvite } from "@nyanotion/db";
+import type { AdminAccount, AdminFamily, PendingInvite } from "@nyanotion/db";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
+  adminCreateFamilyAction,
   adminInviteAction,
   adminPutInFamilyAction,
   adminRemoveFromFamilyAction,
@@ -21,7 +22,7 @@ import { PlusIcon } from "./icons";
  * 임시 비밀번호는 한 번만 보여 준다 — 저장하지 않는다.
  */
 
-type Family = { id: string; name: string };
+type Family = AdminFamily;
 type Account = AdminAccount & { admin: boolean };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -89,6 +90,8 @@ export function AdminBoard({
       </p>
 
       <InviteForm origin={origin} families={families} />
+
+      <FamiliesSection origin={origin} families={families} accounts={accounts} />
 
       {invites.length > 0 && (
         <Section title={`기다리는 초대 ${invites.length}`}>
@@ -245,6 +248,10 @@ function InviteForm({ origin, families }: { origin: string; families: Family[] }
             <option value="member">member</option>
             <option value="admin">admin</option>
             <option value="guest">손님</option>
+            {/* owner 초대는 owner 가 아직 없는 가족에만 (서버가 한 번 더 본다). */}
+            {families.find((f) => f.id === familyId)?.members.every((m) => m.role !== "owner") && (
+              <option value="owner">owner (첫 구성원)</option>
+            )}
           </select>
         )}
         <button
@@ -533,5 +540,167 @@ function Badge({
     >
       {children}
     </span>
+  );
+}
+
+/**
+ * 가족 — **만들면서 첫 구성원(owner)을 정한다.** 이미 계정이 있는 주소면 바로 owner,
+ * 없으면 owner 초대 링크가 나온다. owner 가 없는 가족은 짚어 준다.
+ */
+function FamiliesSection({
+  origin,
+  families,
+  accounts,
+}: {
+  origin: string;
+  families: Family[];
+  accounts: Account[];
+}) {
+  const { busy, problem, setProblem, startTransition, router } = useAction();
+  const [name, setName] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [made, setMade] = useState<{ name: string; email: string; url: string | null } | null>(null);
+  const known = accounts.some((a) => a.email.toLowerCase() === ownerEmail.trim().toLowerCase());
+
+  function submit(): void {
+    if (name.trim() === "" || ownerEmail.trim() === "") return;
+    startTransition(async () => {
+      setProblem(null);
+      try {
+        const result = await adminCreateFamilyAction({ name, ownerEmail });
+        setMade({
+          name: name.trim(),
+          email: ownerEmail.trim(),
+          url: result.path === null ? null : `${origin}${result.path}`,
+        });
+        setName("");
+        setOwnerEmail("");
+        router.refresh();
+      } catch (error) {
+        setProblem(error instanceof Error ? error.message : "만들지 못했어요.");
+      }
+    });
+  }
+
+  return (
+    <section style={{ marginBottom: 30 }}>
+      <h2 style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-3)", marginBottom: 10 }}>
+        가족 {families.length}
+      </h2>
+
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="새 가족 이름"
+          aria-label="새 가족 이름"
+          style={{ ...inputStyle, flex: "1 1 140px" }}
+        />
+        <input
+          type="email"
+          list="admin-account-emails"
+          value={ownerEmail}
+          onChange={(event) => setOwnerEmail(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.nativeEvent.isComposing) submit();
+          }}
+          placeholder="첫 구성원(owner) 이메일"
+          aria-label="첫 구성원 이메일"
+          style={{ ...inputStyle, flex: "1 1 220px" }}
+        />
+        <datalist id="admin-account-emails">
+          {accounts
+            .filter((a) => a.disabledAt === null)
+            .map((a) => (
+              <option key={a.id} value={a.email}>
+                {a.name}
+              </option>
+            ))}
+        </datalist>
+        <button
+          onClick={submit}
+          disabled={busy || name.trim() === "" || ownerEmail.trim() === ""}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            height: 34,
+            padding: "0 12px",
+            borderRadius: "var(--radius)",
+            background: "var(--ink)",
+            color: "var(--paper)",
+            fontSize: 13,
+            fontWeight: 500,
+            opacity: busy || name.trim() === "" || ownerEmail.trim() === "" ? 0.45 : 1,
+          }}
+        >
+          <PlusIcon size={13} />
+          가족 만들기
+        </button>
+      </div>
+      {ownerEmail.trim() !== "" && (
+        <p style={{ fontSize: 12, color: "var(--ink-3)", marginTop: 6 }}>
+          {known
+            ? "이미 있는 계정이라 바로 owner 가 됩니다."
+            : "아직 계정이 없어요 — owner 초대 링크를 만들어 드려요. 그 링크로 가입하면 owner 로 들어옵니다."}
+        </p>
+      )}
+      <Problem text={problem} />
+      {made !== null && (
+        <div
+          style={{
+            marginTop: 12,
+            padding: 12,
+            border: "1px solid var(--accent-line)",
+            background: "var(--accent-soft)",
+            borderRadius: "var(--radius)",
+            fontSize: 13,
+            color: "var(--ink-2)",
+            lineHeight: 1.6,
+          }}
+        >
+          {made.url === null ? (
+            <>
+              <b style={{ fontWeight: 500 }}>{made.name}</b> 가족을 만들고 {made.email} 을 owner 로
+              두었어요. 이제 그 사람이 가족 화면에서 다른 가족을 초대할 수 있어요.
+            </>
+          ) : (
+            <>
+              <b style={{ fontWeight: 500 }}>{made.name}</b> 가족을 만들었어요. {made.email} 에게 이
+              링크를 보내세요 — 가입하면 owner 로 들어옵니다.
+              <CopyLink url={made.url} />
+            </>
+          )}
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 14 }}>
+        {families.map((family) => {
+          const owners = family.members.filter((m) => m.role === "owner");
+          return (
+            <Card key={family.id}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 14.5, fontWeight: 500 }}>{family.name}</span>
+                <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
+                  {family.members.length}명 · 만든 때 {when(family.createdAt)}
+                </span>
+                {owners.length === 0 && <Badge late>owner 없음 — 첫 구성원 초대를 기다려요</Badge>}
+              </div>
+              {family.members.length > 0 && (
+                <p style={{ fontSize: 12.5, color: "var(--ink-2)", marginTop: 6, lineHeight: 1.7 }}>
+                  {family.members.map((m, i) => (
+                    <span key={m.userId}>
+                      {i > 0 && " · "}
+                      {m.name}
+                      <span style={{ color: "var(--ink-4)" }}> {ROLE_LABEL[m.role] ?? m.role}</span>
+                    </span>
+                  ))}
+                </p>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    </section>
   );
 }

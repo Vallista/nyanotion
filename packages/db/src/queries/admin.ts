@@ -87,6 +87,45 @@ export async function listAccounts(): Promise<AdminAccount[]> {
   }));
 }
 
+export type AdminFamily = {
+  id: string;
+  name: string;
+  createdAt: string;
+  members: { userId: string; name: string; email: string; role: string }[];
+};
+
+/**
+ * 가족과 구성원. **owner 가 없는 가족**(첫 구성원 초대를 기다리는 중)을 화면이 짚어 줄 수 있게
+ * 구성원을 같이 가져온다.
+ */
+export async function listFamiliesWithMembers(): Promise<AdminFamily[]> {
+  const [families, members] = await Promise.all([
+    db
+      .select({ id: organization.id, name: organization.name, createdAt: organization.createdAt })
+      .from(organization)
+      .orderBy(asc(organization.createdAt)),
+    db
+      .select({
+        organizationId: member.organizationId,
+        userId: member.userId,
+        name: user.name,
+        email: user.email,
+        role: member.role,
+      })
+      .from(member)
+      .innerJoin(user, eq(user.id, member.userId))
+      .orderBy(asc(member.createdAt)),
+  ]);
+  return families.map((family) => ({
+    id: family.id,
+    name: family.name,
+    createdAt: family.createdAt.toISOString(),
+    members: members
+      .filter((m) => m.organizationId === family.id)
+      .map((m) => ({ userId: m.userId, name: m.name, email: m.email, role: m.role })),
+  }));
+}
+
 /** 가족 전부 — 초대·배정할 때 고르는 칸. */
 export async function listAllFamilies(): Promise<{ id: string; name: string }[]> {
   return db

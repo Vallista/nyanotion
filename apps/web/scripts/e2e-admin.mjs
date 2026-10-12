@@ -37,7 +37,12 @@ const errors = [];
 admin.on("pageerror", (e) => errors.push("pageerror: " + String(e).slice(0, 200)));
 
 console.log(await signIn(admin));
-const card = () => admin.locator("article", { hasText: NEW_EMAIL }).first();
+// **계정 카드만** — 가족 카드·초대 줄에도 같은 주소가 보일 수 있다. 계정 카드에만 이 단추가 있다.
+const card = () =>
+  admin
+    .locator("article", { hasText: NEW_EMAIL })
+    .filter({ has: admin.getByRole("button", { name: "임시 비밀번호" }) })
+    .first();
 
 /** 새 사람 — 쿠키를 나누지 않는 다른 브라우저 창. */
 async function stranger() {
@@ -103,7 +108,12 @@ console.log("\n초대받은 사람이 가입");
     .waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 15000 })
     .then(() => true)
     .catch(() => false);
-  check("가입되고 들어간다", landed, page.url());
+  // 주소가 바뀐 것만으로는 부족하다 — **그 계정으로 들어왔는지** 사이드바의 주소로 본다.
+  // (레이트 리밋에 걸린 가입을 "들어갔다"로 센 적이 있다.)
+  const formText = landed ? "" : await page.locator("form").innerText().catch(() => "");
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  const signedInAs = await page.locator(`a[title^="${NEW_EMAIL}"]`).count();
+  check("가입되고 그 계정으로 들어간다", landed && signedInAs === 1, `${page.url()} ${formText.replace(/\s+/g, " ").slice(-80)}`);
 
   await page.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
   const notFound = (await page.locator("h1", { hasText: "어드민" }).count()) === 0;
@@ -114,6 +124,44 @@ console.log("\n초대받은 사람이 가입");
   await page.context().clearCookies();
   await page.goto(joinUrl, { waitUntil: "networkidle" });
   check("**쓴 초대 링크는 다시 안 열린다**", (await page.locator("text=쓸 수 없는 초대장").count()) > 0);
+  await page.context().close();
+}
+
+console.log("\n가족 만들기 — 첫 구성원");
+{
+  await admin.goto(`${BASE}/admin`, { waitUntil: "networkidle" });
+  const famA = `시험 가족 A ${stamp}`;
+  await admin.locator('input[aria-label="새 가족 이름"]').fill(famA);
+  await admin.locator('input[aria-label="첫 구성원 이메일"]').fill(NEW_EMAIL);
+  check("이미 있는 계정이라고 알려 준다", (await admin.locator("text=이미 있는 계정이라 바로 owner").count()) === 1);
+  await admin.getByRole("main").getByRole("button", { name: "가족 만들기" }).click();
+  await admin.waitForTimeout(2000);
+  const textA = (await admin.locator("article", { hasText: famA }).first().innerText().catch(() => "")) ?? "";
+  check(
+    "**있는 계정은 바로 owner 로 들어간다**",
+    textA.includes("owner") && !textA.includes("owner 없음"),
+    textA.replace(/\s+/g, " "),
+  );
+
+  const famB = `시험 가족 B ${stamp}`;
+  const firstMember = `e2e-admin-${stamp}-owner@example.invalid`;
+  await admin.locator('input[aria-label="새 가족 이름"]').fill(famB);
+  await admin.locator('input[aria-label="첫 구성원 이메일"]').fill(firstMember);
+  check("없는 계정이면 초대 링크라고 알려 준다", (await admin.locator("text=owner 초대 링크를 만들어").count()) === 1);
+  await admin.getByRole("main").getByRole("button", { name: "가족 만들기" }).click();
+  await admin.waitForTimeout(2000);
+  const ownerLink = (await admin.locator("code", { hasText: "/invite/" }).first().innerText().catch(() => "")).trim();
+  check("owner 초대 링크가 나온다", ownerLink.includes("/invite/"), ownerLink);
+  const cardB = (await admin.locator("article", { hasText: famB }).first().innerText().catch(() => "")) ?? "";
+  check("가족 목록이 owner 없음을 짚어 준다", cardB.includes("owner 없음"), cardB.replace(/\s+/g, " "));
+  const page = await stranger();
+  await page.goto(ownerLink, { waitUntil: "networkidle" });
+  const body = await page.locator("main").innerText();
+  check(
+    "링크를 열면 그 가족 초대다",
+    body.includes(famB) && body.includes(firstMember),
+    body.replace(/\s+/g, " ").slice(0, 120),
+  );
   await page.context().close();
 }
 

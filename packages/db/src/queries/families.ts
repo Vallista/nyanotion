@@ -26,10 +26,15 @@ export type PendingInvitation = {
   inviterId: string;
 };
 
-/** 가족을 만들면 그 가족의 space 하나가 같이 생긴다 — 이후 코드는 space 만 본다. */
+/**
+ * 가족을 만들면 그 가족의 space 하나가 같이 생긴다 — 이후 코드는 space 만 본다.
+ *
+ * `ownerUserId` 가 null 이면 **아무도 없는 가족**이 생긴다. 어드민이 아직 계정이 없는 사람을
+ * 첫 구성원으로 정할 때다 — 바로 뒤에 owner 초대를 만든다 (`adminCreateFamilyAction`).
+ */
 export async function createFamily(input: {
   name: string;
-  ownerUserId: string;
+  ownerUserId: string | null;
 }): Promise<{ organizationId: string; spaceId: string }> {
   const name = input.name.trim().slice(0, 60);
   if (name === "") throw new Error("가족 이름이 비었습니다.");
@@ -37,13 +42,15 @@ export async function createFamily(input: {
   const organizationId = newId();
   const slug = `${organizationId.slice(0, 10)}`;
   await db.insert(organization).values({ id: organizationId, name, slug, createdAt: new Date() });
-  await db.insert(member).values({
-    id: newId(),
-    organizationId,
-    userId: input.ownerUserId,
-    role: "owner",
-    createdAt: new Date(),
-  });
+  if (input.ownerUserId !== null) {
+    await db.insert(member).values({
+      id: newId(),
+      organizationId,
+      userId: input.ownerUserId,
+      role: "owner",
+      createdAt: new Date(),
+    });
+  }
 
   const spaceId = newId();
   await db.insert(space).values({ id: spaceId, kind: "org", organizationId, name: `${name} 문서` });

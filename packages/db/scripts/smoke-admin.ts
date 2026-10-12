@@ -13,6 +13,7 @@ import {
   hasOpenAccountInvite,
   isAccountDisabled,
   listAccounts,
+  listFamiliesWithMembers,
   listPendingInvites,
   markAccountInviteUsed,
   ownerCount,
@@ -21,7 +22,7 @@ import {
   setAccountDisabled,
   setPasswordHash,
 } from "../src/queries/admin.ts";
-import { createFamily, inviteToFamily, roleInFamily } from "../src/queries/families.ts";
+import { acceptInvitation, createFamily, inviteToFamily, roleInFamily } from "../src/queries/families.ts";
 import { accountInvite, account, organization, session, space, user } from "../src/schema/index.ts";
 
 let failures = 0;
@@ -147,6 +148,25 @@ async function main(): Promise<void> {
   const row = accounts.find((a) => a.id === target);
   check("계정 목록에 가족과 역할", row?.families.some((f) => f.role === "admin") === true, row?.families);
   check("문서 수는 숫자다", typeof row?.documentCount === "number");
+
+  console.log("\n첫 구성원이 아직 없는 가족");
+  const empty = await createFamily({ name: `${TAG} 빈 가족`, ownerUserId: null });
+  made.orgs.push(empty.organizationId);
+  check("owner 가 없다", (await ownerCount(empty.organizationId)) === 0);
+  const listedEmpty = (await listFamiliesWithMembers()).find((f) => f.id === empty.organizationId);
+  check("목록에 구성원 0명으로 나온다", listedEmpty?.members.length === 0, listedEmpty);
+  const ownerInvite = await inviteToFamily({
+    organizationId: empty.organizationId,
+    email: mail("first"),
+    role: "owner",
+    inviterId: owner,
+  });
+  const first = await makeUser("first");
+  const accepted = await acceptInvitation(ownerInvite, first, mail("first"));
+  check("owner 초대를 받아들인다", accepted.ok);
+  check("**첫 구성원이 owner 로 들어온다**", (await roleInFamily(empty.organizationId, first)) === "owner");
+  const listedFull = (await listFamiliesWithMembers()).find((f) => f.id === empty.organizationId);
+  check("목록에 owner 가 보인다", listedFull?.members.some((m) => m.userId === first && m.role === "owner") === true);
 }
 
 async function cleanup(): Promise<void> {

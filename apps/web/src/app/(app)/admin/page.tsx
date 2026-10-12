@@ -1,4 +1,4 @@
-import { listAccounts, listAllFamilies, listPendingInvites } from "@nyanotion/db";
+import { listAccounts, listFamiliesWithMembers, listPendingInvites } from "@nyanotion/db";
 import { AdminBoard } from "@/components/admin-board";
 import { TopBar } from "@/components/top-bar";
 import { isAdmin, requireAdmin } from "@/lib/admin";
@@ -15,7 +15,7 @@ export default async function AdminPage() {
   const [accounts, invites, families, origin] = await Promise.all([
     listAccounts(),
     listPendingInvites(),
-    listAllFamilies(),
+    listFamiliesWithMembers(),
     requestOrigin(),
   ]);
   // 누가 어드민인지 화면에 보여 준다 — 막기 단추를 감추는 데에도 쓴다.

@@ -227,6 +227,7 @@ export {
   isAccountDisabled,
   listAccounts,
   listAllFamilies,
+  listFamiliesWithMembers,
   listPendingInvites,
   markAccountInviteUsed,
   ownerCount,
@@ -236,5 +237,6 @@ export {
   setAccountDisabled,
   setPasswordHash,
   type AdminAccount,
+  type AdminFamily,
   type PendingInvite,
 } from "./admin";
