@@ -11,11 +11,13 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "smoke": "tsx scripts/smoke-access.ts",
-    "smoke:family": "tsx scripts/smoke-family.ts"
+    "smoke:family": "tsx scripts/smoke-family.ts",
+    "reset-password": "tsx scripts/reset-password.ts"
   },
   "dependencies": {
     "@nyanotion/db": "workspace:*",
     "@nyanotion/shared": "workspace:*",
+    "better-auth": "^1.2.7",
     "drizzle-orm": "^0.36.4"
   },
   "devDependencies": {

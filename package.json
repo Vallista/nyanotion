@@ -26,6 +26,7 @@
     "db:vector": "pnpm --filter @nyanotion/db vector",
     "deploy:beta": "pwsh scripts/deploy.ps1 -Env beta",
     "deploy:prod": "pwsh scripts/deploy.ps1 -Env prod",
-    "check": "pwsh scripts/healthcheck.ps1"
+    "check": "pwsh scripts/healthcheck.ps1",
+    "reset-password": "pnpm --filter @nyanotion/auth reset-password"
   }
 }
