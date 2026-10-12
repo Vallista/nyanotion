@@ -39,14 +39,29 @@ await page.goto(`${BASE}/lists`, { waitUntil: "networkidle" });
 check("사이드바에 체크리스트가 있다", (await page.locator('a[href="/lists"]').count()) > 0);
 check("제목이 뜬다", (await page.locator("h1", { hasText: "체크리스트" }).count()) > 0);
 
-console.log("\n만들기");
-await page.locator('input[aria-label="새 체크리스트 이름"]').fill(NAME);
-await page.getByRole("button", { name: "만들기", exact: true }).click();
-const moved = await page
-  .waitForURL(/\/lists\/[^/]+$/, { timeout: 15000 })
-  .then(() => true)
-  .catch(() => false);
-check("만들면 그 체크리스트로 간다", moved, page.url());
+console.log("\n나 · 가족으로 나뉜다");
+const mine = page.locator('section[aria-label="나 체크리스트"]');
+check(
+  "나 덩어리가 맨 앞이다",
+  (await page.locator("section[aria-label$=' 체크리스트']").first().getAttribute("aria-label")) === "나 체크리스트",
+);
+
+console.log("\n만들기 — 원하는 곳에");
+await mine.locator('input[aria-label="새 체크리스트 이름"]').fill(NAME);
+await mine.getByRole("button", { name: "새 체크리스트" }).click();
+const panel = mine.locator("article", { hasText: NAME });
+check(
+  "만들면 그 덩어리에 바로 생긴다 (자리를 안 옮긴다)",
+  await panel.first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false),
+);
+await panel.locator('input[aria-label="할 일 적기"]').fill("휴지");
+await page.keyboard.press("Enter");
+check(
+  "목록 화면에서 바로 할 일을 적는다",
+  await panel.locator("li", { hasText: "휴지" }).first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false),
+);
+await panel.locator("a", { hasText: "열기" }).click();
+await page.waitForURL(/\/lists\/[^/]+$/, { timeout: 15000 }).catch(() => {});
 const listUrl = page.url();
 await page.waitForTimeout(800);
 check("이름이 제목으로", (await page.locator("h1").innerText()).includes(NAME));
@@ -101,9 +116,9 @@ check("살 것에 올라온다 (찾는 중 · 한도)", cardText.includes("찾�
 
 console.log("\n모아 보기의 일정");
 await page.goto(`${BASE}/lists`, { waitUntil: "networkidle" });
-const week = await page.locator("section", { hasText: "이번 주" }).first().innerText().catch(() => "");
-check("이번 주에 다음 분리수거가 보인다", week.includes("분리수거") && week.includes(NAME), week.slice(0, 160));
-check("목록 카드가 있다", (await page.locator("a", { hasText: NAME }).count()) > 0);
+const panelText = await mine.locator("article", { hasText: NAME }).first().innerText().catch(() => "");
+check("체크리스트 칸에 다음 분리수거가 보인다", panelText.includes("분리수거"), panelText.slice(0, 160));
+check("목록 칸이 있다", (await page.locator("a", { hasText: NAME }).count()) > 0);
 
 console.log("\n문서 화면");
 await page.goto(listUrl, { waitUntil: "networkidle" });
@@ -111,7 +126,20 @@ await page.locator("a", { hasText: "메모 열기" }).click();
 await page.waitForURL(/\/d\//, { timeout: 15000 }).catch(() => {});
 await page.waitForTimeout(1500);
 check("문서에서 체크리스트로 돌아갈 길이 있다", (await page.locator("a", { hasText: "체크리스트 항목 보기" }).count()) === 1);
-const docUrl = page.url();
+
+console.log("\n탑바의 … 메뉴");
+await page.locator('button[aria-label="더 보기"]').first().click();
+const docTrash = page.locator("button", { hasText: "모래상자로 보내기" }).first();
+const tb = await docTrash.boundingBox().catch(() => null);
+// 보이기만 하는 게 아니라 **그 자리에서 눌리는가** — 잘리거나 다른 것에 덮이면 거기 있는 건 다른 요소다.
+const onTop =
+  tb === null
+    ? ""
+    : await page.evaluate(
+        ([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.textContent ?? "",
+        [tb.x + tb.width / 2, tb.y + tb.height / 2],
+      );
+check("**문서의 … 를 누르면 메뉴가 잘리지 않고 위에 뜬다**", onTop.includes("모래상자로"), JSON.stringify(tb));
 
 console.log("\n폰 화면");
 {
@@ -129,18 +157,22 @@ console.log("\n폰 화면");
 await page.goto(listUrl, { waitUntil: "networkidle" });
 await page.screenshot({ path: "apps/web/scripts/e-checklist.png", fullPage: true });
 
-console.log("\n정리");
-await page.goto(docUrl, { waitUntil: "networkidle" });
-await page.waitForTimeout(1200);
-await page.locator('[aria-label="더 보기"], button[title="더 보기"]').first().click().catch(() => {});
-await page.waitForTimeout(500);
-const trash = page.locator("button", { hasText: "모래상자로 보내기" });
-if ((await trash.count()) > 0) {
-  await trash.first().click();
-  await page.waitForTimeout(1800);
-}
-await page.goto(`${BASE}/lists`, { waitUntil: "networkidle" });
+console.log("\n체크리스트 … — 이름 바꾸기 · 모래상자로");
+await page.goto(listUrl, { waitUntil: "networkidle" });
+const RENAMED = `${NAME} 바꿈`;
+page.once("dialog", (d) => d.accept(RENAMED));
+await page.locator('button[aria-label="체크리스트 메뉴"]').click();
+await page.getByRole("menuitem", { name: "이름 바꾸기" }).click();
+await page.waitForTimeout(1800);
+check("이름이 바뀐다", (await page.locator("h1").innerText()).includes(RENAMED));
+page.once("dialog", (d) => d.accept());
+await page.locator('button[aria-label="체크리스트 메뉴"]').click();
+await page.getByRole("menuitem", { name: "모래상자로 보내기" }).click();
+await page.waitForURL(/\/lists$/, { timeout: 15000 }).catch(() => {});
+await page.waitForTimeout(1000);
 check("모래상자로 보내면 목록에서 빠진다", (await page.locator("a", { hasText: NAME }).count()) === 0);
+const gone = await page.goto(listUrl, { waitUntil: "networkidle" });
+check("보낸 체크리스트는 주소로도 안 열린다", gone?.status() === 404, gone?.status());
 
 console.log(`\n${pass}개 통과, ${fail}개 실패`);
 if (errors.length > 0) {

@@ -23,6 +23,8 @@ export type ChecklistSummary = {
   done: number;
   /** 아직 안 한 것 중 가장 이른 날짜. 없으면 null. */
   nextDueOn: string | null;
+  /** 만든 때. 가장 먼저 만든 것이 그 공간의 기본 체크리스트다 (`primaryChecklist`). */
+  createdAt: string;
 };
 
 export type ChecklistItemRow = {
@@ -95,6 +97,7 @@ export async function listChecklists(spaceIds: readonly string[]): Promise<Check
       open: sql<number>`count(${checklistItem.id}) filter (where ${checklistItem.done} = false)`,
       done: sql<number>`count(${checklistItem.id}) filter (where ${checklistItem.done} = true)`,
       nextDueOn: sql<string | null>`min(${checklistItem.dueOn}) filter (where ${checklistItem.done} = false)`,
+      createdAt: checklist.createdAt,
     })
     .from(checklist)
     .innerJoin(document, eq(checklist.documentId, document.id))
@@ -109,6 +112,7 @@ export async function listChecklists(spaceIds: readonly string[]): Promise<Check
     open: Number(row.open),
     done: Number(row.done),
     nextDueOn: row.nextDueOn ?? null,
+    createdAt: row.createdAt.toISOString(),
   }));
 }
 

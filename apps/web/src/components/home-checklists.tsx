@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { quickAddAction } from "@/lib/checklist-actions";
 import { ChecklistItem, inputStyle, type Person } from "./checklist-item";
+import { NewChecklist } from "./checklist-overview";
 import { FamilyIcon, PlusIcon } from "./icons";
 
 /**
@@ -23,6 +24,8 @@ export type HomeSpace = {
   canWrite: boolean;
   /** 이 공간의 체크리스트 수. 둘 이상이면 항목마다 어느 체크리스트인지 보여 준다. */
   checklistCount: number;
+  /** 적을 곳으로 고를 수 있는 체크리스트들. */
+  checklists: { id: string; title: string }[];
   items: AgendaRow[];
 };
 
@@ -69,6 +72,9 @@ function SpaceCard({
   nameOf: (id: string) => string;
 }) {
   const [all, setAll] = useState(false);
+  const [creating, setCreating] = useState(false);
+  // 적을 곳. 빈 값이면 기본(가장 먼저 만든 것, 없으면 "할 일" 이 생긴다).
+  const [target, setTarget] = useState("");
   const late = space.items.filter((item) => item.dueOn !== null && item.dueOn < today).length;
   const now = space.items.filter((item) => item.dueOn === today).length;
   const shown = all ? space.items : space.items.slice(0, FIRST);
@@ -98,7 +104,28 @@ function SpaceCard({
         </span>
       </header>
 
-      {space.canWrite && <QuickAdd spaceId={space.id} today={today} family={space.kind === "org"} />}
+      {space.canWrite && (
+        <QuickAdd
+          spaceId={space.id}
+          today={today}
+          family={space.kind === "org"}
+          checklists={space.checklists}
+          target={target}
+          onTarget={setTarget}
+        />
+      )}
+      {space.canWrite && creating && (
+        <div style={{ marginTop: 10 }}>
+          <NewChecklist
+            spaceId={space.id}
+            family={space.kind === "org"}
+            onCreated={(id) => {
+              setTarget(id);
+              setCreating(false);
+            }}
+          />
+        </div>
+      )}
 
       {space.items.length === 0 ? (
         <p style={{ fontSize: 13, color: "var(--ink-3)", lineHeight: 1.7, padding: "10px 2px 6px" }}>
@@ -149,15 +176,40 @@ function SpaceCard({
         ) : (
           <span />
         )}
-        <Link href="/lists" style={{ border: 0, color: "var(--ink-3)", padding: "4px 0" }}>
-          {space.checklistCount > 1 ? `체크리스트 ${space.checklistCount}개 ›` : "체크리스트 ›"}
-        </Link>
+        <span style={{ display: "flex", gap: 12 }}>
+          {space.canWrite && (
+            <button
+              onClick={() => setCreating((v) => !v)}
+              aria-expanded={creating}
+              style={{ color: "var(--ink-3)", padding: "4px 0" }}
+            >
+              {creating ? "닫기" : "+ 새 체크리스트"}
+            </button>
+          )}
+          <Link href="/lists" style={{ border: 0, color: "var(--ink-3)", padding: "4px 0" }}>
+            {space.checklistCount > 1 ? `체크리스트 ${space.checklistCount}개 ›` : "체크리스트 ›"}
+          </Link>
+        </span>
       </footer>
     </section>
   );
 }
 
-function QuickAdd({ spaceId, today, family }: { spaceId: string; today: string; family: boolean }) {
+function QuickAdd({
+  spaceId,
+  today,
+  family,
+  checklists,
+  target,
+  onTarget,
+}: {
+  spaceId: string;
+  today: string;
+  family: boolean;
+  checklists: { id: string; title: string }[];
+  target: string;
+  onTarget: (id: string) => void;
+}) {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   const [title, setTitle] = useState("");
@@ -170,7 +222,11 @@ function QuickAdd({ spaceId, today, family }: { spaceId: string; today: string; 
     startTransition(async () => {
       setProblem(null);
       try {
-        await quickAddAction(spaceId, { title: clean, dueOn: forToday ? today : null });
+        await quickAddAction(spaceId, {
+          title: clean,
+          dueOn: forToday ? today : null,
+          checklistId: target === "" ? null : target,
+        });
         setTitle("");
         router.refresh();
       } catch (error) {
@@ -231,6 +287,24 @@ function QuickAdd({ spaceId, today, family }: { spaceId: string; today: string; 
           <PlusIcon size={14} />
         </button>
       </div>
+      {checklists.length > 1 && (
+        <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 6, fontSize: 12, color: "var(--ink-3)" }}>
+          적을 곳
+          <select
+            value={target}
+            onChange={(event) => onTarget(event.target.value)}
+            aria-label="적을 체크리스트"
+            style={{ ...inputStyle, height: 28, flex: "0 1 220px", minWidth: 0 }}
+          >
+            <option value="">기본 ({checklists[0]?.title || "제목 없음"})</option>
+            {checklists.slice(1).map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.title.trim() || "제목 없음"}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {problem !== null && (
         <p role="alert" style={{ fontSize: 12.5, color: "var(--late)", marginTop: 6 }}>
           {problem}

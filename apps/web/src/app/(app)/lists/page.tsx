@@ -1,5 +1,5 @@
-import { agenda, listChecklists, usersByIds } from "@nyanotion/db";
-import { addDays, homeNow } from "@nyanotion/shared";
+import { listChecklists, openItems, usersByIds } from "@nyanotion/db";
+import { homeNow } from "@nyanotion/shared";
 import { ChecklistOverview } from "@/components/checklist-overview";
 import { TopBar } from "@/components/top-bar";
 import { requireViewer } from "@/lib/session";
@@ -7,48 +7,44 @@ import { requireViewer } from "@/lib/session";
 export const metadata = { title: "체크리스트 — Nyanotion" };
 
 /**
- * 체크리스트 모아 보기.
- *
- * 위에는 **일정** — 개인·가족 체크리스트를 가로질러 지난 것 · 오늘 · 이번 주를 한 줄로.
- * 아래에는 체크리스트들 — 내 것과 가족 것을 나눠서.
+ * 체크리스트 — 나 · 가족으로 나눠서, 체크리스트마다 할 일을 펼쳐 둔다.
+ * 맨 위에는 오늘까지 할 일만 짧게.
  */
 export default async function ListsPage() {
   const viewer = await requireViewer();
   const { day: today } = homeNow();
 
-  const [lists, upcoming] = await Promise.all([
+  const [lists, items] = await Promise.all([
     listChecklists(viewer.spaceIds),
-    agenda(viewer.spaceIds, addDays(today, 7)),
+    openItems(viewer.spaceIds),
   ]);
 
   const people = await usersByIds([
-    ...new Set(upcoming.flatMap((row) => (row.assigneeId === null ? [] : [row.assigneeId]))),
+    ...new Set(items.flatMap((row) => (row.assigneeId === null ? [] : [row.assigneeId]))),
   ]);
+
+  // 나 먼저, 가족들 다음. 체크리스트는 만든 순서가 아니라 최근에 고친 것 먼저(listChecklists).
+  const ordered = [
+    ...viewer.spaces.filter((space) => space.kind === "personal"),
+    ...viewer.spaces.filter((space) => space.kind === "org"),
+  ];
 
   return (
     <>
       <TopBar crumbs={[{ id: null, title: "체크리스트" }]} />
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
-        <div style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "48px 16px 120px" }}>
+        <div style={{ width: "100%", maxWidth: 1040, margin: "0 auto", padding: "40px 16px 120px" }}>
           <ChecklistOverview
             today={today}
             lists={lists}
-            agenda={upcoming}
+            items={items}
             people={[...people.entries()].map(([id, info]) => ({ id, name: info.name }))}
-            spaces={viewer.spaces
-              // 쓸 수 없는 space(손님)에는 만들 수 없으므로 고르는 칸에도 안 보인다.
-              .filter((space) => space.baseRole === "editor" || space.baseRole === "owner")
-              .map((space) => ({
-                id: space.id,
-                name: space.kind === "org" ? (space.organizationName ?? space.name) : space.name,
-                kind: space.kind,
-              }))}
-            allSpaces={viewer.spaces.map((space) => ({
+            spaces={ordered.map((space) => ({
               id: space.id,
               name: space.kind === "org" ? (space.organizationName ?? space.name) : space.name,
               kind: space.kind,
+              canWrite: space.baseRole === "editor" || space.baseRole === "owner",
             }))}
-            defaultSpaceId={viewer.personalSpace.id}
             userId={viewer.userId}
           />
         </div>

@@ -2,6 +2,9 @@
 
 import {
   addChecklistItem,
+  archiveDocument,
+  getDocumentById,
+  renameDocument,
   clearDoneItems,
   createChecklist,
   createDocument,
@@ -110,13 +113,25 @@ export async function createChecklistAction(input: {
  */
 export async function quickAddAction(
   spaceId: string,
-  input: { title: string; dueOn?: string | null },
+  input: { title: string; dueOn?: string | null; checklistId?: string | null },
 ): Promise<void> {
   const viewer = await requireViewer();
   const target = viewer.spaces.find((space) => space.id === spaceId);
   if (target === undefined) throw new Error("이 공간에 적을 수 없습니다.");
 
-  let found = await primaryChecklist(spaceId);
+  // 고른 체크리스트가 있으면 거기. **그 공간의 것인지** 확인한다 — 카드가 가리키는 공간과 다른
+  // 체크리스트에 적히면 "내 할 일"이 가족에게 보이는 일이 생긴다.
+  let found: { id: string; documentId: string } | null = null;
+  if (input.checklistId) {
+    const documentId = await documentOfChecklist(input.checklistId);
+    const owner = documentId === null ? null : await getDocumentById(documentId);
+    if (documentId === null || owner === null || owner.spaceId !== spaceId) {
+      throw new Error("그 체크리스트를 찾을 수 없습니다.");
+    }
+    found = { id: input.checklistId, documentId };
+  } else {
+    found = await primaryChecklist(spaceId);
+  }
   if (found === null) {
     if (target.baseRole !== "editor" && target.baseRole !== "owner") {
       throw new Error("이 공간에 적을 수 없습니다.");
@@ -238,4 +253,23 @@ export async function sendToPurchaseAction(
   refresh();
   revalidatePath("/buy");
   return purchaseItemId;
+}
+
+/** 체크리스트 이름 바꾸기 — 곧 그 문서의 제목이다. */
+export async function renameChecklistAction(checklistId: string, title: string): Promise<void> {
+  const { viewer, documentId } = await checklistGate(checklistId);
+  const clean = title.trim().slice(0, 120);
+  if (clean === "") throw new Error("이름을 적어 주세요.");
+  await renameDocument(documentId, clean, viewer.userId);
+  refresh();
+}
+
+/**
+ * 체크리스트를 **모래상자로.** 문서 삭제와 같은 규칙이다 — 하위 문서(구매로 넘긴 살 것)도 같이 가고,
+ * 모래상자에서 되돌릴 수 있다. 목록·첫 화면·알림에서 함께 빠진다.
+ */
+export async function archiveChecklistAction(checklistId: string): Promise<void> {
+  const { documentId } = await checklistGate(checklistId);
+  await archiveDocument(documentId);
+  refresh();
 }

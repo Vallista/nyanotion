@@ -75,6 +75,35 @@ await row(PLAIN_ITEM).first().getByRole("button", { name: "지우기" }).click()
 await page.waitForTimeout(2000);
 check("지운 것은 사라진다", (await row(PLAIN_ITEM).count()) === 0);
 
+console.log("\n카드에서 새 체크리스트 · 적을 곳 고르기");
+{
+  const LIST = `시험 여행 ${stamp}`;
+  const ITEM = `시험 여권 ${stamp}`;
+  await mine().getByRole("button", { name: "+ 새 체크리스트" }).click();
+  await mine().locator('input[aria-label="새 체크리스트 이름"]').fill(LIST);
+  await mine().getByRole("button", { name: "새 체크리스트" }).click();
+  await page.waitForTimeout(2000);
+  const select = mine().locator('select[aria-label="적을 체크리스트"]');
+  check("체크리스트가 둘 이상이면 적을 곳을 고른다", (await select.count()) === 1);
+  const chosen = await select.evaluate((el) => el.options[el.selectedIndex]?.textContent ?? "").catch(() => "");
+  check("방금 만든 것이 골라져 있다", chosen.includes(LIST), chosen);
+  await mine().locator('input[aria-label="할 일 적기"]').fill(ITEM);
+  await page.keyboard.press("Enter");
+  await row(ITEM).first().waitFor({ timeout: 10000 }).catch(() => {});
+  const itemText = await row(ITEM).first().innerText().catch(() => "");
+  check("**고른 체크리스트에 들어간다**", itemText.includes(LIST), itemText);
+
+  // 정리 — 만든 체크리스트를 모래상자로 (항목도 같이 빠진다).
+  await row(ITEM).first().locator("a", { hasText: LIST }).click();
+  await page.waitForURL(/\/lists\/[^/]+$/, { timeout: 15000 }).catch(() => {});
+  page.once("dialog", (d) => d.accept());
+  await page.locator('button[aria-label="체크리스트 메뉴"]').click();
+  await page.getByRole("menuitem", { name: "모래상자로 보내기" }).click();
+  await page.waitForURL(/\/lists$/, { timeout: 15000 }).catch(() => {});
+  await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  check("모래상자로 보내면 첫 화면에서도 빠진다", (await row(ITEM).count()) === 0);
+}
+
 console.log("\n폰 화면");
 {
   const phone = await browser.newPage({ ...devices["iPhone 13"] });

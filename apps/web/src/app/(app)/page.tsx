@@ -39,6 +39,11 @@ export default async function HomePage() {
     kind: space.kind,
     canWrite: space.baseRole === "editor" || space.baseRole === "owner",
     checklistCount: lists.filter((list) => list.spaceId === space.id).length,
+    // 만든 순서 — 맨 앞이 기본 체크리스트(primaryChecklist 와 같은 기준).
+    checklists: lists
+      .filter((list) => list.spaceId === space.id)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map((list) => ({ id: list.id, title: list.title })),
     items: items.filter((item) => item.spaceId === space.id),
   }));
 

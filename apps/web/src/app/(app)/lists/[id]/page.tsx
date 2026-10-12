@@ -7,6 +7,7 @@ import {
 import { homeNow, roleAllows } from "@nyanotion/shared";
 import { notFound } from "next/navigation";
 import { ChecklistBoard } from "@/components/checklist-board";
+import { ChecklistMenu } from "@/components/checklist-menu";
 import { TopBar } from "@/components/top-bar";
 import { requireDocument } from "@/lib/session";
 
@@ -22,6 +23,8 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
   if (documentId === null) notFound();
 
   const { viewer, doc, role } = await requireDocument(documentId);
+  // 모래상자에 간 체크리스트는 열리지 않는다 — 문서 화면과 같은 규칙.
+  if (doc.archivedAt !== null) notFound();
   const space = viewer.spaces.find((item) => item.id === doc.spaceId);
 
   const [items, watchers] = await Promise.all([
@@ -45,6 +48,7 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
           { id: null, title: "체크리스트", href: "/lists" },
           { id: null, title },
         ]}
+        right={roleAllows(role, "editor") ? <ChecklistMenu checklistId={id} title={title} /> : undefined}
       />
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
         <div style={{ width: "100%", maxWidth: 820, margin: "0 auto", padding: "48px 16px 120px" }}>
