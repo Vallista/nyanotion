@@ -18,7 +18,7 @@ credentials-file: C:\Users\<사용자>\.cloudflared\<터널-id>.json
 ingress:
   # 동기화 서버 (WebSocket) — 먼저 와야 한다. 위에서부터 맞는 규칙을 고른다.
   - hostname: collab.<도메인>
-    service: ws://127.0.0.1:1234
+    service: ws://127.0.0.1:15234
     originRequest:
       # Yjs 는 오래 열어 둔다. 기본값(90초)이면 조용할 때 끊긴다.
       connectTimeout: 30s

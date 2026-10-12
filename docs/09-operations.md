@@ -119,8 +119,19 @@ Get-ScheduledTaskInfo -TaskName Nyanotion-Web            # 마지막 결과
 포트가 올라왔는지:
 
 ```powershell
-foreach ($p in 3000, 1234) { Get-NetTCPConnection -LocalPort $p -State Listen -EA SilentlyContinue }
+foreach ($p in 3000, 15234) { Get-NetTCPConnection -LocalPort $p -State Listen -EA SilentlyContinue }
 ```
+
+### `listen EACCES` 로 동기화가 안 뜰 때 (2026-10-12)
+
+Windows 가 포트를 **예약 범위**로 잡아 버린 것이다. 이 PC 는 TCP 동적 포트 범위가 1024 부터
+시작해서(`netsh int ipv4 show dynamicport tcp`), Hyper-V/WinNAT 가 재부팅 때마다 100개씩
+덩어리를 잡는다. 1234 가 그 안(1212–1311)에 들어가 collab 이 `EACCES` 로 죽었고, 작업 스케줄러의
+재시도 3번이 금방 소진됐다.
+
+- 확인: `netsh interface ipv4 show excludedportrange protocol=tcp`
+- 그래서 운영 동기화 포트를 **동적 범위 밖인 15234** 로 옮겼다. 밖에서는 터널 주소로 붙으므로 웹을 다시 빌드할 필요는 없다.
+- 근본 해결은 동적 범위를 Windows 기본값으로 되돌리는 것(관리자): `netsh int ipv4 set dynamicport tcp start=49152 num=16384` 후 재부팅. 웹 3000 도 지금은 같은 위험 안에 있다.
 
 밖에서:
 

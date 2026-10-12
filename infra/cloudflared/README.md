@@ -48,7 +48,7 @@ cloudflared service install    # 관리자 권한
 터널 이름 : nyanotion
 터널 id   : cdb7d097-0249-4567-a033-c379f8e95a50
 호스트    : nyanotion.party        → http://127.0.0.1:3000
-            collab.nyanotion.party → ws://127.0.0.1:1234
+            collab.nyanotion.party → ws://127.0.0.1:15234
 ```
 
 `config.yml` 은 터널 id 를 담고 있어 git 에 올리지 않는다 (`.gitignore`).

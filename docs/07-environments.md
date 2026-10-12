@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | `dev` | `nyanotion_dev` | 3000 | 1234 | `.data/uploads/dev` | `.next-dev` | localhost |
 | `beta` | `nyanotion_beta` | 3100 | 1334 | `.data/uploads/beta` | `.next-beta` | beta.nyanotion.party |
-| `prod` | `nyanotion` | 3000 | 1234 | `.data/uploads/prod` | `.next-prod` | nyanotion.party |
+| `prod` | `nyanotion` | 3000 | 15234 | `.data/uploads/prod` | `.next-prod` | nyanotion.party |
 
 dev 와 prod 는 포트가 같다. 같이 띄우지 않기 때문이다 — 운영이 돌고 있으면 개발은 beta 로 한다.
 
@@ -72,7 +72,7 @@ Cloudflare Tunnel 이 도메인 넷을 집으로 보낸다. `infra/cloudflared/c
 ```yaml
 ingress:
   - hostname: collab.nyanotion.party        # 운영 동기화 (WebSocket — 먼저 와야 한다)
-    service: ws://127.0.0.1:1234
+    service: ws://127.0.0.1:15234
   - hostname: collab-beta.nyanotion.party   # 베타 동기화
     service: ws://127.0.0.1:1334
   - hostname: beta.nyanotion.party          # 베타 웹
