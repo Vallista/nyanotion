@@ -67,5 +67,6 @@ SYNC_BASE=http://localhost:3100 SYNC_TOKEN=nyt_… node apps/admin/scripts/sync-
 
 ## 다음 (2단계)
 
-계획 블록 · 기분/회고 · 건강 · 요약 · Radar · Thoughts · Glean · 라벨 · 피드 구독 · 설정을 서버로.
-클립보드 기록과 메일 계정(맥의 키로 암호화돼 있다)은 옮기지 않는다.
+계획 블록 · 기분/회고 · 요약 · Radar · Thoughts · Glean · 라벨 · 피드 구독 · 설정을 서버로.
+클립보드 기록과 메일 계정(맥의 키로 암호화돼 있다)은 옮기지 않는다. 헬스(`body_log`)와 로컬 LLM 은 Bento 에서
+없어졌으므로(2026-10-13) 옮길 것이 없다.
