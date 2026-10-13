@@ -134,6 +134,13 @@
       "when": 1791779670672,
       "tag": "0018_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791858778013,
+      "tag": "0019_checklist_sync",
+      "breakpoints": true
     }
   ]
 }

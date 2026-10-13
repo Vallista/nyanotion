@@ -1,6 +1,7 @@
 import {
   documentOfChecklist,
   listChecklistItems,
+  listFolders,
   usersByIds,
   watchersOfDocument,
 } from "@nyanotion/db";
@@ -27,9 +28,10 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
   if (doc.archivedAt !== null) notFound();
   const space = viewer.spaces.find((item) => item.id === doc.spaceId);
 
-  const [items, watchers] = await Promise.all([
+  const [items, watchers, folders] = await Promise.all([
     listChecklistItems(id),
     watchersOfDocument(documentId),
+    listFolders(id),
   ]);
   const people = await usersByIds([
     ...new Set([
@@ -67,6 +69,7 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
             family={space?.kind === "org"}
             canWrite={roleAllows(role, "editor")}
             items={items}
+            folders={folders}
             people={[...people.entries()].map(([pid, info]) => ({ id: pid, name: info.name }))}
             members={watchers}
             today={homeNow().day}

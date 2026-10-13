@@ -34,6 +34,8 @@ export const AUDIT_ACTIONS = [
   "admin.enable",
   "admin.password", // 임시 비밀번호를 만들었다
   "admin.family", // 가족에 넣거나 빼거나 역할을 바꿨다
+  "token.create", // 개인 토큰 — 오래 사는 열쇠
+  "token.revoke",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

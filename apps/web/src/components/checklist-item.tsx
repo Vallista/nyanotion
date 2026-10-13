@@ -46,6 +46,7 @@ export function ChecklistItem({
   nameOf,
   members = [],
   context,
+  folders = [],
 }: {
   item: ChecklistItemRow;
   today: string;
@@ -55,6 +56,8 @@ export function ChecklistItem({
   members?: Person[];
   /** 모아 보기에서 쓸 때 — 어느 체크리스트의 항목인지 보여 준다. */
   context?: { title: string; href: string };
+  /** 그 체크리스트의 폴더들 — 주면 `⋯` 에서 폴더를 옮길 수 있다. */
+  folders?: { id: string; label: string }[];
 }) {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
@@ -212,6 +215,7 @@ export function ChecklistItem({
           item={item}
           canWrite={canWrite}
           members={members}
+          folders={folders}
           busy={busy}
           run={run}
           close={() => setOpen(false)}
@@ -225,6 +229,7 @@ function ItemPanel({
   item,
   canWrite,
   members,
+  folders,
   busy,
   run,
   close,
@@ -232,6 +237,7 @@ function ItemPanel({
   item: ChecklistItemRow;
   canWrite: boolean;
   members: Person[];
+  folders: { id: string; label: string }[];
   busy: boolean;
   run: (task: () => Promise<unknown>, after?: () => void) => void;
   close: () => void;
@@ -271,6 +277,28 @@ function ItemPanel({
             aria-label="할 일"
             style={{ ...inputStyle, width: "100%" }}
           />
+          {folders.length > 0 && (
+            <select
+              value={item.folderId ?? ""}
+              disabled={busy}
+              onChange={(event) =>
+                run(() =>
+                  updateChecklistItemAction(item.id, {
+                    folderId: event.target.value === "" ? null : event.target.value,
+                  }),
+                )
+              }
+              aria-label="폴더로 옮기기"
+              style={{ ...inputStyle, width: "100%" }}
+            >
+              <option value="">📁 맨 위</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  📁 {f.label}
+                </option>
+              ))}
+            </select>
+          )}
           <ScheduleFields
             dueOn={dueOn}
             dueTime={dueTime}

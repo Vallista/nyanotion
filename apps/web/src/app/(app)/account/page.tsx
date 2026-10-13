@@ -1,5 +1,8 @@
+import { listApiTokens } from "@nyanotion/db";
+import { ApiTokens } from "@/components/api-tokens";
 import { ChangePassword } from "@/components/change-password";
 import { TopBar } from "@/components/top-bar";
+import { requestOrigin } from "@/lib/origin";
 import { requireViewer } from "@/lib/session";
 
 export const metadata = { title: "내 계정 — Nyanotion" };
@@ -7,6 +10,7 @@ export const metadata = { title: "내 계정 — Nyanotion" };
 /** 내 계정 — 지금은 비밀번호 바꾸기 하나. 어드민이 준 임시 비밀번호를 여기서 바꾼다. */
 export default async function AccountPage() {
   const viewer = await requireViewer();
+  const [tokens, origin] = await Promise.all([listApiTokens(viewer.userId), requestOrigin()]);
   return (
     <>
       <TopBar crumbs={[{ id: null, title: "내 계정" }]} />
@@ -19,6 +23,7 @@ export default async function AccountPage() {
             {viewer.name} · {viewer.email}
           </p>
           <ChangePassword />
+          <ApiTokens tokens={tokens} origin={origin} />
         </div>
       </div>
     </>

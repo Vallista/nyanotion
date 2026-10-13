@@ -126,6 +126,8 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - 날짜는 `YYYY-MM-DD`, 시간은 `HH:MM` 문자열. "오늘"은 `homeNow()` (Asia/Seoul) 로 센다 — `new Date()` 의 날짜를 쓰지 말 것.
 - 반복 항목을 체크하면 **새 줄**이 생긴다. 매달 반복은 `repeat_day` 를 기준으로 한다 (31일이 2월에 당겨져도 3월엔 돌아와야 한다).
 - `dueReminders` 는 워커 전용이다(space 로 좁히지 않는다). 화면에서 부르지 말 것.
+- **체크리스트 항목·폴더를 고치는 질의는 전부 `bump()` 로 새 `rev` 를 받는다.** 빠뜨리면 그 수정은 Bento 로 안 간다. 지우기는 `deleted_at` 표시만 하고, 목록 질의는 전부 `deleted_at is null` 로 거른다 (`docs/13-sync.md`).
+- 개인 토큰(`nyt_…`)은 `/api/sync/*` 에서만 받는다(`lib/api-auth.ts`). 해시만 저장하고, 웹 화면을 토큰으로 열어 주는 길을 만들지 말 것.
 - **인라인 style 로 입력칸 글자 크기를 줄 때는 `var(--input-font)`.** 숫자를 박으면 `(pointer: coarse)` 의 16px 규칙을 이겨서 iPhone 이 탭할 때 확대한다.
 
 ## 운영

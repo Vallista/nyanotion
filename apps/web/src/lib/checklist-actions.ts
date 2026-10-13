@@ -2,6 +2,10 @@
 
 import {
   addChecklistItem,
+  addFolder,
+  deleteFolder,
+  ownerOfFolder,
+  renameFolder,
   archiveDocument,
   getDocumentById,
   renameDocument,
@@ -154,15 +158,21 @@ export async function addChecklistItemAction(
     dueTime?: string | null;
     repeat?: string;
     assigneeId?: string | null;
+    folderId?: string | null;
   },
 ): Promise<string> {
   const { viewer, documentId } = await checklistGate(checklistId);
+  if (input.folderId) {
+    const owner = await ownerOfFolder(input.folderId);
+    if (owner === null || owner.checklistId !== checklistId) throw new Error("그 폴더를 찾을 수 없습니다.");
+  }
   const id = await addChecklistItem(checklistId, viewer.userId, {
     title: cleanTitle(input.title),
     dueOn: cleanDay(input.dueOn),
     dueTime: cleanTime(input.dueTime),
     repeat: cleanRepeat(input.repeat),
     assigneeId: (await cleanAssignee(documentId, input.assigneeId)) ?? null,
+    folderId: input.folderId ?? null,
   });
   refresh();
   return id;
@@ -176,10 +186,18 @@ export async function updateChecklistItemAction(
     dueTime?: string | null;
     repeat?: string;
     assigneeId?: string | null;
+    /** 그 체크리스트 안의 폴더로. null 이면 맨 위로. */
+    folderId?: string | null;
   },
 ): Promise<void> {
-  const { documentId } = await itemGate(itemId);
+  const { documentId, checklistId } = await itemGate(itemId);
+  // 폴더는 **같은 체크리스트의 것**이어야 한다 — 남의 체크리스트 폴더 id 를 넣어 항목을 숨길 수 없게.
+  if (patch.folderId) {
+    const owner = await ownerOfFolder(patch.folderId);
+    if (owner === null || owner.checklistId !== checklistId) throw new Error("그 폴더를 찾을 수 없습니다.");
+  }
   await updateChecklistItem(itemId, {
+    folderId: patch.folderId,
     title: patch.title === undefined ? undefined : cleanTitle(patch.title),
     dueOn: patch.dueOn === undefined ? undefined : cleanDay(patch.dueOn),
     dueTime: patch.dueTime === undefined ? undefined : cleanTime(patch.dueTime),
@@ -271,5 +289,39 @@ export async function renameChecklistAction(checklistId: string, title: string):
 export async function archiveChecklistAction(checklistId: string): Promise<void> {
   const { documentId } = await checklistGate(checklistId);
   await archiveDocument(documentId);
+  refresh();
+}
+
+/* ── 폴더 ─────────────────────────────────────────────────────────────── */
+
+/** 체크리스트 안에 폴더. 위 폴더를 고르면 그 안에 — Bento 의 할 일 폴더와 같은 모양이다. */
+export async function addFolderAction(
+  checklistId: string,
+  name: string,
+  parentId?: string | null,
+): Promise<string> {
+  await checklistGate(checklistId);
+  const id = await addFolder(checklistId, { name, parentId: parentId ?? null });
+  refresh();
+  return id;
+}
+
+async function folderGate(folderId: string) {
+  const owner = await ownerOfFolder(folderId);
+  if (owner === null) throw new Error("폴더를 찾을 수 없습니다.");
+  await assertCanWrite(owner.documentId);
+  return owner;
+}
+
+export async function renameFolderAction(folderId: string, name: string): Promise<void> {
+  await folderGate(folderId);
+  await renameFolder(folderId, name);
+  refresh();
+}
+
+/** 폴더를 지운다. 안의 할 일과 하위 폴더는 **위로 올라간다** — 지워지지 않는다. */
+export async function deleteFolderAction(folderId: string): Promise<void> {
+  await folderGate(folderId);
+  await deleteFolder(folderId);
   refresh();
 }

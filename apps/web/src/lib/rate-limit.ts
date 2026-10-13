@@ -41,6 +41,10 @@ export const LIMITS = {
   upload: { max: 60, windowMs: 10 * 60_000 },
   ticket: { max: 120, windowMs: 60_000 },
   mention: { max: 300, windowMs: 60_000 },
+  /** Bento 같은 앱의 동기화 — 자주 부르지만 한 번이 가볍다. 토큰 하나당. */
+  sync: { max: 600, windowMs: 60_000 },
+  /** 토큰 찍어 보기 — 틀린 토큰으로 두드리는 것을 늦춘다. 주소당. */
+  token: { max: 30, windowMs: 60_000 },
 } as const satisfies Record<string, Limit>;
 
 export type LimitName = keyof typeof LIMITS;
