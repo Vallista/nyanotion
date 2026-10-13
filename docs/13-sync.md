@@ -31,7 +31,8 @@ Bento(맥 앱, `Vallista/vallista-land` 의 `apps/admin`)의 할 일을 냥노�
 - **지운 표시(`deleted_at`).** 동기화하는 쪽이 "지워졌다"를 받아 가야 하므로 줄을 바로 지우지 않는다.
   모든 목록 질의는 `deleted_at is null` 로 거른다.
 - **나중에 고친 쪽이 이긴다.** 올린 것의 `updatedAt` 이 서버 것보다 이르면 버리고 `stale` 로 알린다.
-  받는 쪽은 그 뒤 받기로 서버 값에 맞춰진다. **미래 시각은 지금으로 깎는다** — 시계가 앞선 기기가 영원히 이기지 않게.
+  **버려진 것의 지금 서버 값을 `current` 로 같이 돌려준다** — 받는 쪽은 곧바로 덮어쓴다. 안 주면 그 항목이
+  서버에서 다시 바뀔 때까지 그 기기에 옛 값이 남는다(커서는 이미 지나갔으므로). 시나리오 시험이 잡았다. **미래 시각은 지금으로 깎는다** — 시계가 앞선 기기가 영원히 이기지 않게.
 - **다른 체크리스트의 id 로는 못 덮는다** (`other-checklist`). 모양이 이상한 것은 받지 않는다 (`rejected`).
 - 폴더를 지우면 안의 할 일·하위 폴더는 **위로 올라간다** — Bento 와 같은 규칙.
 - 같은 자리에 같은 이름의 폴더는 안 된다 — Bento 와 같은 규칙.
@@ -45,7 +46,7 @@ Bento(맥 앱, `Vallista/vallista-land` 의 `apps/admin`)의 할 일을 냥노�
 GET  /api/sync/me                              나 · 고칠 수 있는 체크리스트들 · 기본 체크리스트
 POST /api/sync/checklists          {title}     체크리스트 만들기 (맞출 것이 없을 때)
 GET  /api/sync/checklists/:id/changes?since=N  N 다음에 바뀐 폴더·항목 (지운 것 포함), cursor, more
-POST /api/sync/checklists/:id/changes          {folders, items}  → {applied, stale, rejected}
+POST /api/sync/checklists/:id/changes          {folders, items}  → {applied, stale, rejected, current}
 ```
 
 - 순서는 늘 **올리고 → 받기.** `more` 가 true 면 `cursor` 로 이어서 또 받는다.
@@ -59,6 +60,9 @@ POST /api/sync/checklists/:id/changes          {folders, items}  → {applied, s
 ```powershell
 pnpm --filter @nyanotion/db smoke:sync                                   # 32개 — 번호 · 지운 표시 · 이김 · 토큰
 INSPECT_URL=http://localhost:3100 node apps/web/scripts/e2e-sync.mjs        # 20개 — 토큰 → API → 웹 → API
+
+# Bento 엔진까지 — vallista-land 에서. 가짜 Rust 계층 + 진짜 nyanotionSync.ts + 진짜 서버, 맥 두 대 (27개)
+SYNC_BASE=http://localhost:3100 SYNC_TOKEN=nyt_… node apps/admin/scripts/sync-harness/run.mjs
 ```
 
 ## 다음 (2단계)

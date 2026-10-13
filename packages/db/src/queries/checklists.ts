@@ -777,36 +777,44 @@ export async function syncChanges(
   const cursor = Math.max(since, ...keepF.map((f) => Number(f.rev)), ...keepI.map((i) => Number(i.rev)));
 
   return {
-    folders: keepF.map((f) => ({
-      id: f.id,
-      parentId: f.parentId,
-      name: f.name,
-      deleted: f.deletedAt !== null,
-      updatedAt: f.updatedAt.toISOString(),
-      rev: Number(f.rev),
-    })),
-    items: keepI.map((row) => ({
-      id: row.id,
-      title: row.title,
-      done: row.done,
-      dueOn: row.dueOn,
-      dueTime: row.dueTime,
-      startAt: row.startAt,
-      estMin: row.estMin,
-      tags: Array.isArray(row.tags) ? row.tags.filter((t): t is string => typeof t === "string") : [],
-      color: row.color,
-      kind: row.kind,
-      groupName: row.groupName,
-      notes: row.notes,
-      subtasks: toItem(row, null).subtasks,
-      folderId: row.folderId,
-      createdAt: row.createdAt.toISOString(),
-      deleted: row.deletedAt !== null,
-      updatedAt: row.updatedAt.toISOString(),
-      rev: Number(row.rev),
-    })),
+    folders: keepF.map(toSyncFolder),
+    items: keepI.map(toSyncItem),
     cursor,
     more,
+  };
+}
+
+function toSyncFolder(f: typeof checklistFolder.$inferSelect): SyncFolder {
+  return {
+    id: f.id,
+    parentId: f.parentId,
+    name: f.name,
+    deleted: f.deletedAt !== null,
+    updatedAt: f.updatedAt.toISOString(),
+    rev: Number(f.rev),
+  };
+}
+
+function toSyncItem(row: typeof checklistItem.$inferSelect): SyncItem {
+  return {
+    id: row.id,
+    title: row.title,
+    done: row.done,
+    dueOn: row.dueOn,
+    dueTime: row.dueTime,
+    startAt: row.startAt,
+    estMin: row.estMin,
+    tags: Array.isArray(row.tags) ? row.tags.filter((t): t is string => typeof t === "string") : [],
+    color: row.color,
+    kind: row.kind,
+    groupName: row.groupName,
+    notes: row.notes,
+    subtasks: toItem(row, null).subtasks,
+    folderId: row.folderId,
+    createdAt: row.createdAt.toISOString(),
+    deleted: row.deletedAt !== null,
+    updatedAt: row.updatedAt.toISOString(),
+    rev: Number(row.rev),
   };
 }
 
@@ -832,6 +840,11 @@ export type ApplyResult = {
   stale: string[];
   /** 모양이 잘못됐거나 다른 체크리스트의 id 라 받지 않은 것. */
   rejected: { id: string; reason: string }[];
+  /**
+   * 버려진 것들의 **지금 서버 값.** 받는 쪽이 곧바로 덮어쓰게 — 안 주면 그 항목이 서버에서 다시 바뀔 때까지
+   * 그 기기에는 버려진 옛 값이 남는다(커서는 이미 지나갔으므로).
+   */
+  current: { folders: SyncFolder[]; items: SyncItem[] };
 };
 
 type CleanFields = Partial<Omit<SyncItem, "id" | "deleted" | "updatedAt" | "rev" | "createdAt">>;
@@ -847,7 +860,8 @@ export async function applyChanges(
   userId: string,
   incoming: { folders?: IncomingFolder[]; items?: IncomingItem[] },
 ): Promise<ApplyResult> {
-  const result: ApplyResult = { applied: 0, stale: [], rejected: [] };
+  const result: ApplyResult = { applied: 0, stale: [], rejected: [], current: { folders: [], items: [] } };
+  const staleFolders: string[] = [];
   const now = Date.now();
   const when = (iso: unknown): Date | null => {
     if (typeof iso !== "string") return null;
@@ -878,6 +892,7 @@ export async function applyChanges(
     }
     if (existing !== undefined && existing.updatedAt.getTime() > at.getTime()) {
       result.stale.push(id);
+      staleFolders.push(id);
       continue;
     }
     const name = (typeof f.name === "string" ? f.name : (existing?.name ?? "")).trim().slice(0, 120);
@@ -996,6 +1011,19 @@ export async function applyChanges(
       }
     }
     result.applied += 1;
+  }
+
+  if (result.stale.length > 0) {
+    const staleItems = result.stale.filter((id) => !staleFolders.includes(id));
+    const [folders, items] = await Promise.all([
+      staleFolders.length === 0
+        ? []
+        : db.select().from(checklistFolder).where(inArray(checklistFolder.id, staleFolders)),
+      staleItems.length === 0
+        ? []
+        : db.select().from(checklistItem).where(inArray(checklistItem.id, staleItems)),
+    ]);
+    result.current = { folders: folders.map(toSyncFolder), items: items.map(toSyncItem) };
   }
   return result;
 }

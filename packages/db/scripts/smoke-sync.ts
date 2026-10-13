@@ -147,6 +147,7 @@ async function main(): Promise<void> {
   });
   check("**옛 시각의 수정은 버린다**", old.stale.includes(bentoId) && old.applied === 0, old);
   check("서버 것이 남는다", (await listChecklistItems(list.id)).find((i) => i.id === bentoId)?.title === "분리수거");
+  check("**버려진 것의 지금 서버 값을 같이 돌려준다**", old.current.items[0]?.id === bentoId && old.current.items[0]?.title === "분리수거", old.current);
   await applyChanges(list.id, userId, {
     items: [{ id: bentoId, title: "미래 제목", updatedAt: iso(10 * 365 * 86_400_000) }],
   });
