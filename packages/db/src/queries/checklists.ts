@@ -1079,7 +1079,13 @@ function cleanIncoming(it: IncomingItem): CleanFields | null {
     out.subtasks = it.subtasks
       .filter(
         (s): s is SyncSubtask =>
-          typeof s === "object" && s !== null && typeof s.id === "string" && typeof s.title === "string",
+          typeof s === "object" &&
+          s !== null &&
+          typeof s.id === "string" &&
+          s.id !== "" &&
+          typeof s.title === "string" &&
+          // Bento 는 빈 제목 하위 항목을 만들지 못한다 — 받으면 그 할 일의 맞추기가 거기서 멈춘다.
+          s.title.trim() !== "",
       )
       .slice(0, 200)
       .map((s) => ({ id: s.id.slice(0, 100), title: s.title.slice(0, 500), done: s.done === true }));

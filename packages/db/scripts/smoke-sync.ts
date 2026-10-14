@@ -127,7 +127,7 @@ async function main(): Promise<void> {
         tags: ["집"],
         groupName: "생활",
         notes: "토요일 아침",
-        subtasks: [{ id: "s1", title: "캔", done: false }],
+        subtasks: [{ id: "s1", title: "캔", done: false }, { id: "s2", title: "  ", done: false }],
         folderId: "f-bento-1",
         createdAt: "2026-10-01T00:00:00Z",
         updatedAt: iso(),
@@ -137,7 +137,7 @@ async function main(): Promise<void> {
   check("받아 들인다", r1.applied === 2 && r1.rejected.length === 0, r1);
   const got = (await listChecklistItems(list.id)).find((i) => i.id === bentoId);
   check("**Bento 의 id 를 그대로 쓴다**", got !== undefined);
-  check("폴더·메모·하위 항목이 들어간다", got?.folderId === "f-bento-1" && got?.notes === "토요일 아침" && got?.subtasks.length === 1, got);
+  check("폴더·메모·하위 항목이 들어간다 (빈 제목 하위 항목은 버림)", got?.folderId === "f-bento-1" && got?.notes === "토요일 아침" && got?.subtasks.length === 1, got);
   const round = (await syncChanges(list.id, 0)).items.find((i) => i.id === bentoId);
   check("돌려줄 때 Bento 필드가 그대로", round?.startAt === "2026-10-20T08:00:00" && round?.estMin === 15 && round?.groupName === "생활" && round?.tags[0] === "집", round);
 
