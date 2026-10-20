@@ -141,6 +141,13 @@
       "when": 1791858778013,
       "tag": "0019_checklist_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792400000000,
+      "tag": "0020_calendar_feed",
+      "breakpoints": true
     }
   ]
 }

@@ -137,7 +137,7 @@ export default async function InstallPage() {
         </section>
 
         <p style={{ marginTop: 36, fontSize: 13, color: "var(--ink-3)" }}>
-          <Link href="/">캣타워로 돌아가기</Link>
+          <Link href="/">캘린더로 돌아가기</Link>
         </p>
       </div>
     </main>

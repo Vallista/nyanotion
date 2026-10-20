@@ -15,7 +15,8 @@ Bento(맥 앱, `Vallista/vallista-land` 의 `apps/admin`)의 할 일을 냥노�
 |---|---|---|
 | `title` · `done` | `title` · `done` | 체크는 웹과 같은 길(반복이면 다음 줄이 생긴다) |
 | `due` | `dueOn` + `dueTime` | `YYYY-MM-DD` / `YYYY-MM-DDTHH:MM:00` 를 둘로 나눠 싣는다 |
-| `startAt` · `estMin` · `tags` · `color` · `kind` · `group` | 같은 이름 (`group` → `groupName`) | 서버는 해석하지 않고 지킨다 |
+| `estMin` | `estMin` | 웹 캘린더가 칸의 길이로 쓴다 (`docs/14-calendar.md`) |
+| `startAt` · `tags` · `color` · `kind` · `group` | 같은 이름 (`group` → `groupName`) | 서버는 해석하지 않고 지킨다 |
 | `folderId` | `folderId` | |
 | 메모(EventNote `task:<id>`) | `notes` | |
 | 하위 항목(EventSubtask `task:<id>`) | `subtasks` (jsonb) | |

@@ -4,13 +4,14 @@
  *
  * 두 사람(A·B)을 잠깐 만들고 끝나면 치운다. 실제 계정·문서는 건드리지 않는다.
  */
-import { addDays, homeNow, nextDueOn } from "@nyanotion/shared";
+import { addDays, homeNow, nextDueOn, projectRepeats, startOfWeek, visibleRange } from "@nyanotion/shared";
 import { eq, inArray, like, sql } from "drizzle-orm";
 import { db } from "../src/client.ts";
 import { newId } from "../src/id.ts";
 import {
   addChecklistItem,
   agenda,
+  calendarItems,
   checklistOfDocument,
   completeItemsForPurchase,
   createChecklist,
@@ -74,6 +75,18 @@ async function main(): Promise<void> {
   check("12월 → 다음 해 1월", nextDueOn("2026-12-15", "monthly") === "2027-01-15");
   check("매주는 7일 뒤", nextDueOn("2026-10-12", "weekly") === "2026-10-19");
   check("반복 없으면 null", nextDueOn("2026-10-12", "none") === null);
+  check("평일 — 금요일 다음은 월요일", nextDueOn("2026-10-16", "weekdays") === "2026-10-19");
+  check("평일 — 토요일 다음도 월요일", nextDueOn("2026-10-17", "weekdays") === "2026-10-19");
+  check("평일 — 화요일 다음은 수요일", nextDueOn("2026-10-20", "weekdays") === "2026-10-21");
+  check("매년 — 같은 달 같은 날", nextDueOn("2026-05-08", "yearly") === "2027-05-08");
+  check("매년 — 2월 29일은 없는 해에 28일", nextDueOn("2028-02-29", "yearly", 29) === "2029-02-28");
+  check("**매년 — 원래 날(29)로 돌아간다**", nextDueOn("2031-02-28", "yearly", 29) === "2032-02-29");
+  check(
+    "캘린더가 그리는 앞날 — 지금 줄 빼고 범위 안만",
+    projectRepeats("2026-10-06", "weekly", "2026-10-11", "2026-10-31").join() === "2026-10-13,2026-10-20,2026-10-27",
+  );
+  check("주는 일요일에 시작한다", startOfWeek("2026-10-21") === "2026-10-18");
+  check("달 보기는 6주", visibleRange("month", "2026-10-20").from === "2026-09-27" && visibleRange("month", "2026-10-20").to === "2026-11-07");
 
   console.log("\n칼럼");
   const collation = await db.execute(
@@ -154,6 +167,42 @@ async function main(): Promise<void> {
     "푼 줄은 doneBy 가 없다",
     (await listChecklistItems(list.id)).find((i) => i.id === rent)?.doneBy === null,
   );
+
+  console.log("\n캘린더 — 시간 칸에 놓은 할 일");
+  const trash = await addChecklistItem(list.id, a.userId, {
+    title: "분리수거",
+    dueOn: today,
+    dueTime: "14:00",
+    estMin: 90,
+    repeat: "weekly",
+  });
+  const range = await calendarItems([a.spaceId], today, addDays(today, 20));
+  const placed = range.find((r) => r.id === trash);
+  check("범위 안 할 일이 시간·길이와 함께 나온다", placed?.dueTime === "14:00" && placed?.estMin === 90, placed);
+  check("범위 앞이어도 안 한 반복 할 일은 나온다 (앞날을 그려야 하므로)", range.some((r) => r.id === third));
+  check("범위 앞의 한 일은 안 나온다", !range.some((r) => r.id === next));
+  check("날짜 없는 할 일(백로그)은 안 나온다", !range.some((r) => r.id === milk));
+  check("**B 캘린더에는 없다**", (await calendarItems([b.spaceId], today, addDays(today, 20))).length === 0);
+  const nextTrash = await setChecklistItemDone(trash, true, a.userId);
+  const nextTrashRow = (await listChecklistItems(list.id)).find((i) => i.id === nextTrash);
+  check(
+    "반복으로 생긴 다음 줄도 같은 시각·길이",
+    nextTrashRow?.dueOn === addDays(today, 7) && nextTrashRow?.dueTime === "14:00" && nextTrashRow?.estMin === 90,
+    nextTrashRow,
+  );
+  check("그날 한 일은 캘린더에 남는다", (await calendarItems([a.spaceId], today, today)).some((r) => r.id === trash && r.done));
+  await updateChecklistItem(milk, { dueOn: today, dueTime: "09:30", estMin: 30 });
+  check(
+    "백로그에서 놓으면 그 날·시각·길이로",
+    (await calendarItems([a.spaceId], today, today)).some((r) => r.id === milk && r.dueTime === "09:30" && r.estMin === 30),
+  );
+  await updateChecklistItem(milk, { dueOn: null, estMin: null });
+  check(
+    "백로그로 되돌리면 시간도 같이 빠진다",
+    (await listChecklistItems(list.id)).find((i) => i.id === milk)?.dueTime === null,
+  );
+  await setChecklistItemDone(nextTrash!, true, a.userId);
+  await db.update(checklistItem).set({ deletedAt: new Date() }).where(like(checklistItem.title, "분리수거"));
 
   console.log("\n알림");
   const now = homeNow();

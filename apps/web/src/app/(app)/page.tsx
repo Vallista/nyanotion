@@ -1,127 +1,85 @@
-import { listChecklists, listRecent, openItems, usersByIds } from "@nyanotion/db";
-import { homeNow } from "@nyanotion/shared";
-import Link from "next/link";
-import { HomeChecklists, type HomeSpace } from "@/components/home-checklists";
+import {
+  calendarEvents,
+  calendarItems,
+  listCalendarFeeds,
+  openItems,
+  usersByIds,
+} from "@nyanotion/db";
+import { CALENDAR_VIEWS, cleanDay, homeNow, visibleRange, type CalendarView } from "@nyanotion/shared";
+import { CalendarHome } from "@/components/calendar-home";
+import type { CalSpace } from "@/components/calendar-model";
 import { NewDocumentButton } from "@/components/new-document-button";
 import { TopBar } from "@/components/top-bar";
-import { PageIcon } from "@/components/icons";
-import { formatWhen } from "@/lib/format";
 import { requireViewer } from "@/lib/session";
-import { displayTitle } from "@/lib/tree";
 
 /**
- * 캣타워 — **체크리스트가 먼저다.** 열자마자 내 할 일과 가족 할 일이 보이고, 그 자리에서 적고 체크한다.
- * 문서는 그 아래 "최근 고친 문서" 로 조용히.
+ * 첫 화면 — **캘린더.** 가족 캘린더(구독한 iCal)의 일정이 기본으로 보이고, 그 위에 할 일을 놓는다.
  *
- * 공간마다 카드 하나: 내 문서 → 가족들 순서. 손님(guest)으로 들어간 가족은 볼 수만 있다.
+ * 날짜 없는 할 일은 **백로그**다. 백로그에서 끌어(폰에서는 눌러 고르고 칸을 눌러) 시간 칸에 놓으면
+ * 그 날·시각·길이가 할 일에 적힌다 (`due_on` · `due_time` · `est_min`). 반복 할 일은 앞날까지 그려 준다.
+ * 개인·가족의 구분은 체크리스트와 같이 **어느 space 에 있느냐**다 — 캘린더도 같다.
+ *
+ * 보기(`?view=`)를 안 정했으면 화면이 정한다 — 넓으면 주, 좁으면 하루.
+ * 주·하루 보기는 그 주를 통째로 가져온다 (하루씩 넘겨도 같은 주면 같은 데이터).
  */
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string; d?: string }>;
+}) {
   const viewer = await requireViewer();
   const { day: today } = homeNow();
+  const params = await searchParams;
+  const view = (CALENDAR_VIEWS as readonly string[]).includes(params.view ?? "")
+    ? (params.view as CalendarView)
+    : null;
+  const anchor = cleanDay(params.d) ?? today;
+  const range = visibleRange(view === "month" ? "month" : "week", anchor);
 
-  const [items, lists, recent] = await Promise.all([
+  const [events, scheduled, open, feeds] = await Promise.all([
+    calendarEvents(viewer.spaceIds, range.from, range.to),
+    calendarItems(viewer.spaceIds, range.from, range.to),
     openItems(viewer.spaceIds),
-    listChecklists(viewer.spaceIds),
-    listRecent(viewer.spaceIds, 6),
+    listCalendarFeeds(viewer.spaceIds),
   ]);
+
+  const backlog = open.filter((item) => item.dueOn === null);
+  const overdue = open.filter((item) => item.dueOn !== null && item.dueOn < today);
 
   const people = await usersByIds([
-    ...new Set(items.flatMap((item) => (item.assigneeId === null ? [] : [item.assigneeId]))),
+    ...new Set(
+      [...scheduled, ...open].flatMap((item) => (item.assigneeId === null ? [] : [item.assigneeId])),
+    ),
   ]);
 
-  const ordered = [
+  const spaces: CalSpace[] = [
     ...viewer.spaces.filter((space) => space.kind === "personal"),
     ...viewer.spaces.filter((space) => space.kind === "org"),
-  ];
-  const spaces: HomeSpace[] = ordered.map((space) => ({
+  ].map((space) => ({
     id: space.id,
-    name: space.kind === "org" ? (space.organizationName ?? space.name) : space.name,
+    name: space.kind === "org" ? (space.organizationName ?? space.name) : "나",
     kind: space.kind,
     canWrite: space.baseRole === "editor" || space.baseRole === "owner",
-    checklistCount: lists.filter((list) => list.spaceId === space.id).length,
-    // 만든 순서 — 맨 앞이 기본 체크리스트(primaryChecklist 와 같은 기준).
-    checklists: lists
-      .filter((list) => list.spaceId === space.id)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map((list) => ({ id: list.id, title: list.title })),
-    items: items.filter((item) => item.spaceId === space.id),
   }));
-
-  const dueToday = items.filter((item) => item.dueOn !== null && item.dueOn <= today).length;
 
   return (
     <>
-      <TopBar crumbs={[{ id: null, title: "캣타워" }]} right={<NewDocumentButton />} />
-      <div style={{ flexGrow: 1, overflowY: "auto" }}>
-        <div style={{ width: "100%", maxWidth: 960, margin: "0 auto", padding: "40px 16px 120px" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 4 }}>
-            {viewer.name.trim() === "" ? "안녕하세요" : `${viewer.name} 님, 안녕하세요`}
-          </h1>
-          <p style={{ fontSize: 13.5, color: "var(--ink-3)", marginBottom: 24 }}>
-            {dueToday === 0 ? "오늘까지 할 일은 없어요." : `오늘까지 할 일 ${dueToday}개가 있어요.`}
-          </p>
-
-          <HomeChecklists
-            spaces={spaces}
-            today={today}
-            people={[...people.entries()].map(([id, info]) => ({ id, name: info.name }))}
-            userId={viewer.userId}
-          />
-
-          {spaces.every((space) => space.kind === "personal") && (
-            <p style={{ fontSize: 12.5, color: "var(--ink-3)", marginTop: 12, lineHeight: 1.7 }}>
-              가족과 같이 쓰려면 사이드바의 <strong style={{ fontWeight: 500 }}>가족 만들기</strong>로
-              가족을 만들거나 초대를 받으세요. 가족 체크리스트가 여기 나란히 생깁니다.
-            </p>
-          )}
-
-          {recent.length > 0 && (
-            <section style={{ marginTop: 44 }}>
-              <h2 style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-3)", marginBottom: 8 }}>
-                최근 고친 문서
-              </h2>
-              <ul style={{ padding: 0 }}>
-                {recent.map((doc) => (
-                  <li key={doc.id} style={{ listStyle: "none" }}>
-                    <Link
-                      href={`/d/${doc.id}`}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        height: 36,
-                        padding: "0 8px",
-                        border: 0,
-                        color: "var(--ink)",
-                        borderBottom: "1px solid var(--line-soft)",
-                      }}
-                    >
-                      <span style={{ display: "flex", color: "var(--ink-4)" }}>
-                        <PageIcon size={14} />
-                      </span>
-                      <span
-                        style={{
-                          flexGrow: 1,
-                          minWidth: 0,
-                          fontSize: 14,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {displayTitle(doc.title)}
-                      </span>
-                      <span style={{ fontSize: 12, color: "var(--ink-3)", flexShrink: 0 }}>
-                        {formatWhen(doc.updatedAt)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
-      </div>
+      <TopBar crumbs={[{ id: null, title: "캘린더" }]} right={<NewDocumentButton />} />
+      <CalendarHome
+        view={view}
+        anchor={anchor}
+        today={today}
+        range={range}
+        events={events}
+        items={scheduled}
+        backlog={backlog}
+        overdue={overdue}
+        spaces={spaces}
+        feedCount={feeds.length}
+        feedProblems={feeds.filter((feed) => feed.error !== null).length}
+        people={[...people.entries()].map(([id, info]) => ({ id, name: info.name }))}
+        userId={viewer.userId}
+      />
     </>
   );
 }

@@ -50,7 +50,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
               이미 <strong style={{ fontWeight: 500 }}>{session.user.email}</strong> 으로 로그인되어
               있어요. 이 초대는 새 계정을 만드는 것이라 지금 계정에는 쓸 일이 없습니다.
             </p>
-            <Link href="/">캣타워로 가기</Link>
+            <Link href="/">캘린더로 가기</Link>
           </div>
         ) : (
           <>

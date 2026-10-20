@@ -16,3 +16,4 @@ export * from "./audit";
 export * from "./checklist";
 export * from "./admin";
 export * from "./api-token";
+export * from "./calendar";

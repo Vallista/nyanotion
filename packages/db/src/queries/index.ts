@@ -198,6 +198,7 @@ export {
 export {
   addChecklistItem,
   agenda,
+  calendarItems,
   checklistOfDocument,
   clearDoneItems,
   completeItemsForPurchase,
@@ -264,3 +265,19 @@ export {
   type SyncFolder,
   type SyncItem,
 } from "./checklists";
+export {
+  addCalendarFeed,
+  calendarEvents,
+  feedsDueForFetch,
+  listCalendarFeeds,
+  markFeedFailed,
+  removeCalendarFeed,
+  replaceFeedEvents,
+  requestFeedRefresh,
+  spaceOfCalendarFeed,
+  updateCalendarFeed,
+  type CalendarEventRow,
+  type DueFeed,
+  type FeedSummary,
+  type IncomingEvent,
+} from "./calendars";
