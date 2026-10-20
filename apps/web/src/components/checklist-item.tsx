@@ -9,7 +9,7 @@ import {
 } from "@nyanotion/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import {
   removeChecklistItemAction,
   sendToPurchaseAction,
@@ -17,6 +17,7 @@ import {
   updateChecklistItemAction,
 } from "@/lib/checklist-actions";
 import { CartIcon, CheckBoxIcon, DotsIcon } from "./icons";
+import { Spinner } from "./pending";
 
 /**
  * 체크리스트 항목 한 줄. 체크리스트 화면과 "모아 보기"의 일정이 같이 쓴다.
@@ -39,10 +40,13 @@ const PURCHASE_LABEL: Record<PurchaseState, string> = {
 
 export type Person = { id: string; name: string };
 
+/** 서버에 다녀올 일. `before` 는 기다리기 전에 화면에 먼저 그려 둘 것(낙관적 갱신). */
+type RunTask = (key: string, task: () => Promise<unknown>, before?: () => void) => void;
+
 export function ChecklistItem({
   item,
   today,
-  canWrite,
+  canWrite: allowed,
   nameOf,
   members = [],
   context,
@@ -60,31 +64,45 @@ export function ChecklistItem({
   folders?: { id: string; label: string }[];
 }) {
   const router = useRouter();
+  // 방금 적어서 아직 서버가 id 를 주지 않은 줄 — 보여만 주고 누르지는 못한다.
+  const saving = item.id.startsWith("pending:");
+  const canWrite = allowed && !saving;
   const [busy, startTransition] = useTransition();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [, startToggle] = useTransition();
   const [open, setOpen] = useState(false);
+  // 고치기·지우기는 줄부터 바뀌고 서버는 뒤따른다. 실패하면 서버 값으로 돌아가고 문구가 뜬다.
+  const [shown, patch] = useOptimistic(item, (current, change: Partial<ChecklistItemRow>) => ({
+    ...current,
+    ...change,
+  }));
+  const [removed, markRemoved] = useOptimistic(false);
   const [problem, setProblem] = useState<string | null>(null);
   // 화면이 서버를 기다리지 않고 먼저 체크된다 — 체크는 가장 자주 누르는 단추다.
   const [checked, setChecked] = useState(item.done);
   // 다른 기기·가족이 바꾼 것을 새로고침으로 받으면 그걸 따른다.
   useEffect(() => setChecked(item.done), [item.done]);
 
-  const run = (task: () => Promise<unknown>, after?: () => void) =>
+  const run: RunTask = (key, task, before) => {
+    setBusyKey(key);
     startTransition(async () => {
       setProblem(null);
+      before?.();
       try {
         await task();
-        after?.();
         router.refresh();
       } catch (error) {
         setProblem(error instanceof Error ? error.message : "하지 못했어요.");
       }
     });
+  };
+  const isBusy = (key: string) => busy && busyKey === key;
 
   function toggle(): void {
     if (!canWrite) return;
     const next = !checked;
     setChecked(next);
-    startTransition(async () => {
+    startToggle(async () => {
       setProblem(null);
       try {
         await toggleChecklistItemAction(item.id, next);
@@ -96,7 +114,7 @@ export function ChecklistItem({
     });
   }
 
-  const due = item.dueOn === null ? null : describeDue(item.dueOn, today);
+  const due = shown.dueOn === null ? null : describeDue(shown.dueOn, today);
   const dueColor =
     checked || due === null
       ? "var(--ink-4)"
@@ -106,12 +124,14 @@ export function ChecklistItem({
           ? "var(--accent)"
           : "var(--ink-3)";
 
+  if (removed) return null;
+
   return (
     <li
       style={{
         listStyle: "none",
         borderBottom: "1px solid var(--line-soft)",
-        opacity: busy ? 0.6 : 1,
+        opacity: saving ? 0.6 : 1,
       }}
     >
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "9px 2px" }}>
@@ -144,7 +164,7 @@ export function ChecklistItem({
               wordBreak: "break-word",
             }}
           >
-            {item.title}
+            {shown.title}
           </div>
 
           <div
@@ -165,11 +185,11 @@ export function ChecklistItem({
             {due !== null && (
               <span style={{ color: dueColor, fontWeight: due.tone === "late" ? 500 : 400 }}>
                 {due.label}
-                {item.dueTime !== null && ` ${item.dueTime}`}
+                {shown.dueTime !== null && ` ${shown.dueTime}`}
               </span>
             )}
-            {item.repeat !== "none" && <span>↻ {REPEAT_LABEL[item.repeat]}</span>}
-            {item.assigneeId !== null && <span>@{nameOf(item.assigneeId)}</span>}
+            {shown.repeat !== "none" && <span>↻ {REPEAT_LABEL[shown.repeat]}</span>}
+            {shown.assigneeId !== null && <span>@{nameOf(shown.assigneeId)}</span>}
             {item.purchaseState !== null && (
               <Link
                 href={`/buy?item=${item.purchaseItemId}`}
@@ -191,6 +211,7 @@ export function ChecklistItem({
 
         <button
           onClick={() => setOpen((value) => !value)}
+          disabled={saving}
           aria-label="더 보기"
           aria-expanded={open}
           style={{
@@ -216,8 +237,10 @@ export function ChecklistItem({
           canWrite={canWrite}
           members={members}
           folders={folders}
-          busy={busy}
+          isBusy={isBusy}
           run={run}
+          patch={patch}
+          markRemoved={() => markRemoved(true)}
           close={() => setOpen(false)}
         />
       )}
@@ -230,16 +253,20 @@ function ItemPanel({
   canWrite,
   members,
   folders,
-  busy,
+  isBusy,
   run,
+  patch,
+  markRemoved,
   close,
 }: {
   item: ChecklistItemRow;
   canWrite: boolean;
   members: Person[];
   folders: { id: string; label: string }[];
-  busy: boolean;
-  run: (task: () => Promise<unknown>, after?: () => void) => void;
+  isBusy: (key: string) => boolean;
+  run: RunTask;
+  patch: (change: Partial<ChecklistItemRow>) => void;
+  markRemoved: () => void;
   close: () => void;
 }) {
   const [title, setTitle] = useState(item.title);
@@ -280,14 +307,15 @@ function ItemPanel({
           {folders.length > 0 && (
             <select
               value={item.folderId ?? ""}
-              disabled={busy}
-              onChange={(event) =>
-                run(() =>
-                  updateChecklistItemAction(item.id, {
-                    folderId: event.target.value === "" ? null : event.target.value,
-                  }),
-                )
-              }
+              onChange={(event) => {
+                const folderId = event.target.value === "" ? null : event.target.value;
+                // 다른 폴더로 가면 이 줄은 여기서 빠진다 — 서버가 새 자리에 그려 준다.
+                run(
+                  "folder",
+                  () => updateChecklistItemAction(item.id, { folderId }),
+                  () => patch({ folderId }),
+                );
+              }}
               aria-label="폴더로 옮기기"
               style={{ ...inputStyle, width: "100%" }}
             >
@@ -313,28 +341,26 @@ function ItemPanel({
           <div style={{ display: "flex", gap: 6 }}>
             <SmallButton
               primary
-              disabled={busy || !changed || title.trim() === ""}
-              onClick={() =>
-                run(
-                  () =>
-                    updateChecklistItemAction(item.id, {
-                      title,
-                      dueOn: dueOn === "" ? null : dueOn,
-                      dueTime: dueTime === "" ? null : dueTime,
-                      repeat,
-                      assigneeId: assigneeId === "" ? null : assigneeId,
-                    }),
-                  close,
-                )
-              }
+              disabled={!changed || title.trim() === ""}
+              onClick={() => {
+                const change = {
+                  title,
+                  dueOn: dueOn === "" ? null : dueOn,
+                  dueTime: dueTime === "" ? null : dueTime,
+                  repeat,
+                  assigneeId: assigneeId === "" ? null : assigneeId,
+                };
+                // 줄에 먼저 그리고 칸을 닫는다. 서버는 뒤따른다.
+                close();
+                run("save", () => updateChecklistItemAction(item.id, change), () => patch(change));
+              }}
             >
               저장
             </SmallButton>
             <SmallButton
-              disabled={busy}
               onClick={() => {
                 if (window.confirm(`"${item.title}" 을 지울까요?`)) {
-                  run(() => removeChecklistItemAction(item.id));
+                  run("remove", () => removeChecklistItemAction(item.id), markRemoved);
                 }
               }}
             >
@@ -384,9 +410,10 @@ function ItemPanel({
                 />
                 <SmallButton
                   primary
-                  disabled={busy}
+                  disabled={isBusy("purchase")}
+                  busy={isBusy("purchase")}
                   onClick={() =>
-                    run(() =>
+                    run("purchase", () =>
                       sendToPurchaseAction(item.id, {
                         quantity: Number(quantity) || 1,
                         maxPriceKrw:
@@ -395,7 +422,7 @@ function ItemPanel({
                     )
                   }
                 >
-                  구매로 넘기기
+                  {isBusy("purchase") ? "넘기는 중…" : "구매로 넘기기"}
                 </SmallButton>
               </div>
             </>
@@ -494,17 +521,24 @@ export function SmallButton({
   onClick,
   primary = false,
   disabled = false,
+  busy = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   primary?: boolean;
   disabled?: boolean;
+  /** 서버가 답해야 끝나는 일 — 글자 앞에 원을 띄운다. */
+  busy?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      aria-busy={busy}
       style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
         height: 30,
         padding: "0 12px",
         borderRadius: "var(--radius)",
@@ -513,9 +547,10 @@ export function SmallButton({
         background: primary ? "var(--ink)" : "var(--card)",
         color: primary ? "var(--paper)" : "var(--ink-2)",
         border: primary ? "none" : "1px solid var(--line)",
-        opacity: disabled ? 0.45 : 1,
+        opacity: disabled && !busy ? 0.45 : 1,
       }}
     >
+      {busy && <Spinner size={11} />}
       {children}
     </button>
   );

@@ -3,12 +3,14 @@
 import { useTransition } from "react";
 import { createDocumentAction } from "@/lib/actions";
 import { PlusIcon } from "./icons";
+import { Spinner } from "./pending";
 
 export function NewDocumentButton({ parentId = null }: { parentId?: string | null }) {
   const [pending, startTransition] = useTransition();
   return (
     <button
-      onClick={() => startTransition(() => void createDocumentAction(parentId))}
+      onClick={() => startTransition(() => createDocumentAction(parentId))}
+      aria-busy={pending}
       disabled={pending}
       style={{
         display: "flex",
@@ -23,9 +25,9 @@ export function NewDocumentButton({ parentId = null }: { parentId?: string | nul
       }}
     >
       <span style={{ display: "flex", color: "var(--ink-3)" }}>
-        <PlusIcon size={14} />
+        {pending ? <Spinner size={12} /> : <PlusIcon size={14} />}
       </span>
-      새 문서
+      {pending ? "만드는 중…" : "새 문서"}
     </button>
   );
 }

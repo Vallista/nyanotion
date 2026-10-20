@@ -58,7 +58,7 @@ export function ApiTokens({ tokens, origin }: { tokens: ApiTokenRow[]; origin: s
           aria-label="토큰 이름"
           style={{ ...inputStyle, flex: "1 1 auto", minWidth: 0, height: 38 }}
         />
-        <SmallButton primary disabled={busy || name.trim() === ""} onClick={create}>
+        <SmallButton primary disabled={busy || name.trim() === ""} busy={busy} onClick={create}>
           토큰 만들기
         </SmallButton>
       </div>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { createFamilyAction } from "@/lib/actions";
 import { PlusIcon } from "./icons";
+import { Spinner } from "./pending";
 
 /** 가족을 만들면 그 가족의 문서 공간이 같이 생긴다. */
 export function NewFamilyButton() {
@@ -14,6 +15,8 @@ export function NewFamilyButton() {
     return (
       <button
         onClick={() => setOpen(true)}
+        disabled={pending}
+        aria-busy={pending}
         style={{
           display: "flex",
           alignItems: "center",
@@ -27,9 +30,9 @@ export function NewFamilyButton() {
         }}
       >
         <span style={{ display: "flex", color: "var(--ink-4)" }}>
-          <PlusIcon size={14} />
+          {pending ? <Spinner size={12} /> : <PlusIcon size={14} />}
         </span>
-        가족 만들기
+        {pending ? "가족 만드는 중…" : "가족 만들기"}
       </button>
     );
   }
@@ -41,7 +44,11 @@ export function NewFamilyButton() {
         const clean = name.trim();
         if (clean === "") return;
         setOpen(false);
-        startTransition(() => void createFamilyAction(clean));
+        // 입력칸은 닫고, 새 화면으로 넘어갈 때까지 단추 자리에 원을 띄운다.
+        startTransition(async () => {
+          await createFamilyAction(clean);
+          setName("");
+        });
       }}
       style={{ padding: "2px 0" }}
     >

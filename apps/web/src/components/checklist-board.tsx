@@ -4,7 +4,7 @@ import type { ChecklistItemRow, FolderRow } from "@nyanotion/db";
 import type { ChecklistRepeat } from "@nyanotion/shared";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import {
   addChecklistItemAction,
   addFolderAction,
@@ -36,8 +36,8 @@ export function ChecklistBoard({
   spaceName,
   family,
   canWrite,
-  items,
-  folders,
+  items: serverItems,
+  folders: serverFolders,
   people,
   members,
   today,
@@ -62,6 +62,29 @@ export function ChecklistBoard({
   const nameOf = (id: string) =>
     id === userId ? "나" : (people.find((p) => p.id === id)?.name ?? "누군가");
   const memberList = members.map((id) => ({ id, name: nameOf(id) }));
+
+  // 적기·한 것 치우기·폴더 고치기는 화면부터 바뀌고 서버는 뒤따른다. 답이 오면 서버 값으로
+  // 바뀌고, 실패하면 원래대로 돌아간 채 문구가 뜬다.
+  const [items, changeItems] = useOptimistic(
+    serverItems,
+    (list, change: { add: ChecklistItemRow } | { clearDone: true }) =>
+      "add" in change ? [...list, change.add] : list.filter((item) => !item.done),
+  );
+  const [folders, changeFolders] = useOptimistic(
+    serverFolders,
+    (
+      list,
+      change:
+        | { add: FolderRow }
+        | { rename: string; name: string }
+        | { remove: string },
+    ) =>
+      "add" in change
+        ? [...list, change.add]
+        : "rename" in change
+          ? list.map((f) => (f.id === change.rename ? { ...f, name: change.name } : f))
+          : list.filter((f) => f.id !== change.remove),
+  );
 
   const open = items.filter((item) => !item.done);
   const done = items.filter((item) => item.done);
@@ -88,9 +111,10 @@ export function ChecklistBoard({
   };
   walk(null, "");
 
-  function folderTask(task: () => Promise<unknown>): void {
+  function folderTask(task: () => Promise<unknown>, before: () => void): void {
     startTransition(async () => {
       setProblem(null);
+      before();
       try {
         await task();
         router.refresh();
@@ -102,7 +126,11 @@ export function ChecklistBoard({
   function newFolder(parentId: string | null): void {
     const name = window.prompt(parentId === null ? "새 폴더 이름" : "하위 폴더 이름");
     if (name === null || name.trim() === "") return;
-    folderTask(() => addFolderAction(checklistId, name, parentId));
+    const clean = name.trim();
+    folderTask(
+      () => addFolderAction(checklistId, clean, parentId),
+      () => changeFolders({ add: pendingFolder(checklistId, clean, parentId) }),
+    );
   }
 
   return (
@@ -131,6 +159,8 @@ export function ChecklistBoard({
       {canWrite && (
         <AddItem
           checklistId={checklistId}
+          userId={userId}
+          onAdd={(row) => changeItems({ add: row })}
           members={memberList}
           defaultAssignee=""
           folders={folderOptions}
@@ -187,8 +217,18 @@ export function ChecklistBoard({
           )}
           canWrite={canWrite}
           onNewChild={(parentId) => newFolder(parentId)}
-          onRename={(id, name) => folderTask(() => renameFolderAction(id, name))}
-          onDelete={(id) => folderTask(() => deleteFolderAction(id))}
+          onRename={(id, name) =>
+            folderTask(
+              () => renameFolderAction(id, name),
+              () => changeFolders({ rename: id, name: name.trim() }),
+            )
+          }
+          onDelete={(id) =>
+            folderTask(
+              () => deleteFolderAction(id),
+              () => changeFolders({ remove: id }),
+            )
+          }
         />
       ))}
 
@@ -209,7 +249,9 @@ export function ChecklistBoard({
             >
               {showDone ? "▾" : "▸"} 한 것 {done.length}
             </button>
-            {canWrite && showDone && <ClearDone checklistId={checklistId} />}
+            {canWrite && showDone && (
+              <ClearDone checklistId={checklistId} onClear={() => changeItems({ clearDone: true })} />
+            )}
           </div>
           {showDone && (
             <ul style={{ padding: 0, margin: "6px 0 0" }}>
@@ -233,18 +275,23 @@ export function ChecklistBoard({
 
 function AddItem({
   checklistId,
+  userId,
+  onAdd,
   members,
   defaultAssignee,
   folders,
 }: {
   checklistId: string;
+  userId: string;
+  /** 서버가 답하기 전에 목록에 먼저 그릴 줄 — 낙관적 갱신. 전환 안에서 불러야 한다. */
+  onAdd: (row: ChecklistItemRow) => void;
   members: Person[];
   defaultAssignee: string;
   folders: { id: string; label: string }[];
 }) {
   const [folderId, setFolderId] = useState("");
   const router = useRouter();
-  const [busy, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [title, setTitle] = useState("");
   const [more, setMore] = useState(false);
   const [dueOn, setDueOn] = useState("");
@@ -257,22 +304,27 @@ function AddItem({
   function submit(): void {
     const clean = title.trim();
     if (clean === "") return;
+    const input = {
+      title: clean,
+      dueOn: dueOn === "" ? null : dueOn,
+      dueTime: dueTime === "" ? null : dueTime,
+      repeat,
+      assigneeId: assigneeId === "" ? null : assigneeId,
+      folderId: folderId === "" ? null : folderId,
+    };
+    // 칸은 바로 비운다 — 다음 것을 이어서 적을 수 있게. 날짜·담당은 남겨 둔다
+    // (같은 날 장볼 것을 이어서 적는 일이 많다).
+    setTitle("");
     startTransition(async () => {
       setProblem(null);
+      onAdd(pendingItem(checklistId, userId, input));
       try {
-        const id = await addChecklistItemAction(checklistId, {
-          title: clean,
-          dueOn: dueOn === "" ? null : dueOn,
-          dueTime: dueTime === "" ? null : dueTime,
-          repeat,
-          assigneeId: assigneeId === "" ? null : assigneeId,
-          folderId: folderId === "" ? null : folderId,
-        });
+        const id = await addChecklistItemAction(checklistId, input);
         if (buy) await sendToPurchaseAction(id);
-        // 날짜·담당은 남겨 둔다 — 같은 날 장볼 것을 이어서 적는 일이 많다.
-        setTitle("");
         router.refresh();
       } catch (error) {
+        // 적은 글을 잃지 않게 칸에 되돌려 놓는다 (그새 다른 걸 적고 있었으면 그대로 둔다).
+        setTitle((current) => (current === "" ? clean : current));
         setProblem(error instanceof Error ? error.message : "적지 못했어요.");
       }
     });
@@ -294,7 +346,7 @@ function AddItem({
         />
         <button
           onClick={submit}
-          disabled={busy || title.trim() === ""}
+          disabled={title.trim() === ""}
           aria-label="적기"
           style={{
             display: "inline-flex",
@@ -308,7 +360,7 @@ function AddItem({
             color: "var(--paper)",
             fontSize: 13,
             fontWeight: 500,
-            opacity: busy || title.trim() === "" ? 0.45 : 1,
+            opacity: title.trim() === "" ? 0.45 : 1,
           }}
         >
           <PlusIcon size={13} />
@@ -379,7 +431,7 @@ function AddItem({
   );
 }
 
-function ClearDone({ checklistId }: { checklistId: string }) {
+function ClearDone({ checklistId, onClear }: { checklistId: string; onClear: () => void }) {
   const router = useRouter();
   const [busy, startTransition] = useTransition();
   return (
@@ -388,6 +440,7 @@ function ClearDone({ checklistId }: { checklistId: string }) {
       onClick={() => {
         if (!window.confirm("한 것을 모두 치울까요? 반복 항목의 지난 기록도 사라집니다.")) return;
         startTransition(async () => {
+          onClear();
           await clearDoneAction(checklistId);
           router.refresh();
         });
@@ -496,4 +549,37 @@ function FolderSection({
       )}
     </section>
   );
+}
+
+/* ---------------------------------------------------------------- 낙관적 갱신용 임시 줄 */
+
+let pendingSeq = 0;
+
+/** 서버가 id 를 주기 전까지 목록에 그려 두는 줄. id 가 `pending:` 으로 시작하면 아직 서버에 없다. */
+function pendingItem(
+  checklistId: string,
+  userId: string,
+  input: Pick<ChecklistItemRow, "title" | "dueOn" | "dueTime" | "repeat" | "assigneeId" | "folderId">,
+): ChecklistItemRow {
+  return {
+    id: `pending:${++pendingSeq}`,
+    checklistId,
+    done: false,
+    doneAt: null,
+    doneBy: null,
+    // 서버가 맨 끝에 붙이므로 화면에서도 맨 끝에 둔다.
+    position: "\uffff",
+    purchaseItemId: null,
+    purchaseState: null,
+    estMin: null,
+    repeatDay: null,
+    createdBy: userId,
+    notes: "",
+    subtasks: [],
+    ...input,
+  };
+}
+
+function pendingFolder(checklistId: string, name: string, parentId: string | null): FolderRow {
+  return { id: `pending:${++pendingSeq}`, checklistId, name, parentId, position: "￿" };
 }

@@ -7,6 +7,7 @@ import { useState, useTransition } from "react";
 import { addChecklistItemAction, createChecklistAction } from "@/lib/checklist-actions";
 import { ChecklistItem, inputStyle, type Person } from "./checklist-item";
 import { ChecklistIcon, FamilyIcon, PlusIcon } from "./icons";
+import { Spinner } from "./pending";
 
 export type OverviewSpace = {
   id: string;
@@ -264,20 +265,22 @@ function ListPanel({
 
 function AddToList({ checklistId }: { checklistId: string }) {
   const router = useRouter();
-  const [busy, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [title, setTitle] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
 
   function submit(): void {
     const clean = title.trim();
     if (clean === "") return;
+    // 칸은 바로 비워 다음 것을 이어 적게 한다. 서버는 뒤따르고, 실패하면 글을 되돌려 놓는다.
+    setTitle("");
     startTransition(async () => {
       setProblem(null);
       try {
         await addChecklistItemAction(checklistId, { title: clean });
-        setTitle("");
         router.refresh();
       } catch (error) {
+        setTitle((current) => (current === "" ? clean : current));
         setProblem(error instanceof Error ? error.message : "적지 못했어요.");
       }
     });
@@ -291,7 +294,6 @@ function AddToList({ checklistId }: { checklistId: string }) {
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.nativeEvent.isComposing) submit();
         }}
-        disabled={busy}
         placeholder="+ 할 일 적고 Enter"
         aria-label="할 일 적기"
         style={{ ...inputStyle, width: "100%", height: 32, border: "1px dashed var(--line-strong)" }}
@@ -352,6 +354,7 @@ export function NewChecklist({
         <button
           onClick={submit}
           disabled={busy || title.trim() === ""}
+          aria-busy={busy}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -364,11 +367,11 @@ export function NewChecklist({
             color: "var(--paper)",
             fontSize: 13,
             fontWeight: 500,
-            opacity: busy || title.trim() === "" ? 0.45 : 1,
+            opacity: !busy && title.trim() === "" ? 0.45 : 1,
           }}
         >
-          <PlusIcon size={13} />
-          새 체크리스트
+          {busy ? <Spinner size={12} /> : <PlusIcon size={13} />}
+          {busy ? "만드는 중…" : "새 체크리스트"}
         </button>
       </div>
       {problem !== null && (

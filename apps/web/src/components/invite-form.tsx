@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { inviteToFamilyAction, revokeInvitationAction } from "@/lib/actions";
+import { Spinner } from "./pending";
 
 export type PendingRow = { id: string; email: string; role: string; expiresAt: string };
 
@@ -11,7 +12,7 @@ export type PendingRow = { id: string; email: string; role: string; expiresAt: s
  */
 export function InviteForm({
   organizationId,
-  pending,
+  pending: serverPending,
 }: {
   organizationId: string;
   pending: PendingRow[];
@@ -21,7 +22,12 @@ export function InviteForm({
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [busy, startTransition] = useTransition();
+  const [busy, startInvite] = useTransition();
+  // 초대 취소는 줄부터 치우고 서버는 뒤따른다.
+  const [, startTransition] = useTransition();
+  const [pending, hideInvite] = useOptimistic(serverPending, (list, id: string) =>
+    list.filter((item) => item.id !== id),
+  );
 
   function invite() {
     const clean = email.trim();
@@ -29,7 +35,7 @@ export function InviteForm({
     setError(null);
     setLink(null);
     setCopied(false);
-    startTransition(async () => {
+    startInvite(async () => {
       try {
         const { token } = await inviteToFamilyAction(organizationId, clean, role);
         setLink(`${window.location.origin}/invite/${token}`);
@@ -84,7 +90,11 @@ export function InviteForm({
         <button
           onClick={invite}
           disabled={busy}
+          aria-busy={busy}
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
             height: 34,
             padding: "0 14px",
             borderRadius: "var(--radius)",
@@ -92,10 +102,10 @@ export function InviteForm({
             color: "var(--paper)",
             fontSize: 13,
             fontWeight: 500,
-            opacity: busy ? 0.6 : 1,
           }}
         >
-          초대장 만들기
+          {busy && <Spinner size={11} />}
+          {busy ? "만드는 중…" : "초대장 만들기"}
         </button>
       </div>
 
@@ -193,7 +203,10 @@ export function InviteForm({
               </span>
               <button
                 onClick={() =>
-                  startTransition(() => void revokeInvitationAction(organizationId, item.id))
+                  startTransition(async () => {
+                    hideInvite(item.id);
+                    await revokeInvitationAction(organizationId, item.id);
+                  })
                 }
                 style={{ fontSize: 12.5, color: "var(--ink-3)", padding: "4px 6px" }}
               >

@@ -1,14 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { deleteTagAction, renameTagAction } from "@/lib/actions";
 import { DotsIcon } from "./icons";
+import { Spinner, usePending } from "./pending";
 
 /** 태그 이름 바꾸기·지우기. 지워도 문서는 남는다 — 태그만 떨어진다. */
 export function TagActions({ id, name }: { id: string; name: string }) {
   const router = useRouter();
-  const [, startTransition] = useTransition();
+  const { busy, run } = usePending();
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -22,7 +23,7 @@ export function TagActions({ id, name }: { id: string; name: string }) {
           setRenaming(false);
           const next = event.currentTarget.value.trim();
           if (next !== "" && next !== name) {
-            startTransition(() => void renameTagAction(id, next));
+            run("rename", () => renameTagAction(id, next));
           }
         }}
         onKeyDown={(event) => {
@@ -49,6 +50,8 @@ export function TagActions({ id, name }: { id: string; name: string }) {
       <button
         aria-label="태그 설정"
         onClick={() => setOpen((value) => !value)}
+        disabled={busy("rename")}
+        aria-busy={busy("rename")}
         style={{
           width: 28,
           height: 28,
@@ -59,7 +62,7 @@ export function TagActions({ id, name }: { id: string; name: string }) {
           color: "var(--ink-2)",
         }}
       >
-        <DotsIcon />
+        {busy("rename") ? <Spinner size={13} /> : <DotsIcon />}
       </button>
 
       {open && (
@@ -95,10 +98,9 @@ export function TagActions({ id, name }: { id: string; name: string }) {
                 onClick={() => {
                   setOpen(false);
                   setConfirming(false);
-                  startTransition(async () => {
-                    await deleteTagAction(id);
-                    router.push("/");
-                  });
+                  // 기다리지 않고 캣타워로 옮긴다. 지우는 일은 서버가 뒤에서 한다.
+                  router.push("/");
+                  deleteTagAction(id).catch(console.error);
                 }}
                 style={{ padding: "7px 8px", borderRadius: 3, fontSize: 13, color: "var(--ink)" }}
               >

@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { archiveDocumentAction, createDocumentAction, toggleFavoriteAction } from "@/lib/actions";
 import { ChuruIcon, DotsIcon, LitterBoxIcon, PlusIcon, ShareIcon } from "./icons";
+import { Spinner, usePending } from "./pending";
 import { ShareDialog, type LinkEntry, type ShareEntry } from "./share-dialog";
 
 /** 상단 바 오른쪽. 댓글은 M6 에서 들어온다. */
@@ -25,6 +27,8 @@ export function DocumentActions({
   links: LinkEntry[];
 }) {
   const [, startTransition] = useTransition();
+  const router = useRouter();
+  const { pending, busy, run } = usePending();
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [starred, setStarred] = useState(favorite);
@@ -75,7 +79,9 @@ export function DocumentActions({
         <>
           <BarButton
             label="안에 새 문서"
-            onClick={() => startTransition(() => void createDocumentAction(id))}
+            busy={busy("child")}
+            disabled={pending}
+            onClick={() => run("child", () => createDocumentAction(id))}
           >
             <PlusIcon />
           </BarButton>
@@ -110,7 +116,9 @@ export function DocumentActions({
             <button
               onClick={() => {
                 setMenuOpen(false);
-                startTransition(() => void archiveDocumentAction(id));
+                // 기다리지 않고 캣타워로 옮긴다. 모래상자로 보내는 일은 서버가 뒤에서 한다.
+                router.push("/");
+                archiveDocumentAction(id, false).catch(console.error);
               }}
               style={{
                 display: "flex",
@@ -158,17 +166,23 @@ function BarButton({
   label,
   onClick,
   color,
+  busy = false,
+  disabled = false,
   children,
 }: {
   label: string;
   onClick: () => void;
   color?: string;
+  busy?: boolean;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       aria-label={label}
       title={label}
+      aria-busy={busy}
+      disabled={disabled || busy}
       onClick={onClick}
       style={{
         width: 28,
@@ -180,7 +194,7 @@ function BarButton({
         color: color ?? "var(--ink-2)",
       }}
     >
-      {children}
+      {busy ? <Spinner size={13} /> : children}
     </button>
   );
 }

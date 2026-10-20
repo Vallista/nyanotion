@@ -1,15 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import { emptyTrashAction, restoreDocumentAction } from "@/lib/actions";
 import { LitterBoxIcon, PageIcon } from "./icons";
+import { Spinner, usePending } from "./pending";
 
 export function TrashList({
-  items,
+  items: serverItems,
 }: {
   items: { id: string; title: string; archivedAt: string }[];
 }) {
-  const [pending, startTransition] = useTransition();
+  const { busy, run } = usePending();
+  // 되돌리기는 줄을 먼저 치우고 서버는 뒤따른다. 비우기는 되돌릴 수 없으니 끝날 때까지 기다린다.
+  const [items, hide] = useOptimistic(serverItems, (list, id: string) =>
+    list.filter((item) => item.id !== id),
+  );
   const [confirming, setConfirming] = useState(false);
 
   if (items.length === 0) {
@@ -58,8 +63,13 @@ export function TrashList({
               {item.archivedAt}
             </span>
             <button
-              onClick={() => startTransition(() => void restoreDocumentAction(item.id))}
-              disabled={pending}
+              onClick={() =>
+                run(item.id, async () => {
+                  hide(item.id);
+                  await restoreDocumentAction(item.id);
+                })
+              }
+              disabled={busy("empty")}
               style={{
                 fontSize: 12.5,
                 color: "var(--accent)",
@@ -91,12 +101,16 @@ export function TrashList({
           </p>
           <div style={{ display: "flex", gap: 8 }}>
             <button
-              onClick={() => {
+              onClick={() => run("empty", async () => {
+                await emptyTrashAction();
                 setConfirming(false);
-                startTransition(() => void emptyTrashAction());
-              }}
-              disabled={pending}
+              })}
+              disabled={busy("empty")}
+              aria-busy={busy("empty")}
               style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
                 height: 32,
                 padding: "0 14px",
                 borderRadius: "var(--radius)",
@@ -106,10 +120,12 @@ export function TrashList({
                 fontWeight: 500,
               }}
             >
-              비우기
+              {busy("empty") && <Spinner size={11} />}
+              {busy("empty") ? "비우는 중…" : "비우기"}
             </button>
             <button
               onClick={() => setConfirming(false)}
+              disabled={busy("empty")}
               style={{
                 height: 32,
                 padding: "0 12px",

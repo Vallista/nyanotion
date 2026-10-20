@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState } from "react";
 import { addTagAction, removeTagAction } from "@/lib/actions";
 import { PlusIcon } from "./icons";
+import { usePending } from "./pending";
 
 type TagRef = { id: string; name: string; color: string | null };
 
@@ -13,7 +14,7 @@ type TagRef = { id: string; name: string; color: string | null };
  */
 export function DocumentTags({
   documentId,
-  tags,
+  tags: serverTags,
   suggestions,
   canWrite,
 }: {
@@ -24,7 +25,15 @@ export function DocumentTags({
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
-  const [, startTransition] = useTransition();
+  const { run } = usePending();
+  // 태그 달기·떼기는 칩부터 바뀌고 서버는 뒤따른다. 새 태그의 진짜 id 는 답이 와야 생긴다.
+  const [tags, changeTags] = useOptimistic(
+    serverTags,
+    (list, change: { add: string } | { remove: string }) =>
+      "add" in change
+        ? [...list, { id: `pending:${change.add}`, name: change.add, color: null }]
+        : list.filter((t) => t.id !== change.remove),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   const taken = new Set(tags.map((t) => t.name));
@@ -38,7 +47,10 @@ export function DocumentTags({
     setDraft("");
     setAdding(false);
     if (clean === "" || taken.has(clean)) return;
-    startTransition(() => void addTagAction(documentId, clean));
+    run("add", async () => {
+      changeTags({ add: clean });
+      await addTagAction(documentId, clean);
+    });
   }
 
   return (
@@ -68,7 +80,13 @@ export function DocumentTags({
           {canWrite && (
           <button
             aria-label={`${tag.name} 떼기`}
-            onClick={() => startTransition(() => void removeTagAction(documentId, tag.id))}
+            onClick={() =>
+              run("remove", async () => {
+                changeTags({ remove: tag.id });
+                await removeTagAction(documentId, tag.id);
+              })
+            }
+            disabled={tag.id.startsWith("pending:")}
             style={{
               width: 14,
               height: 14,
