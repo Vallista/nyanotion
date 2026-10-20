@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { archiveChecklistAction, renameChecklistAction } from "@/lib/checklist-actions";
 import { DotsIcon, LitterBoxIcon } from "./icons";
+import { Spinner } from "./pending";
 
 /** 체크리스트 화면 탑바의 `…` — 이름 바꾸기 · 모래상자로. 문서의 `…` 와 같은 모양. */
 export function ChecklistMenu({ checklistId, title }: { checklistId: string; title: string }) {
@@ -30,9 +31,11 @@ export function ChecklistMenu({ checklistId, title }: { checklistId: string; tit
         aria-label="체크리스트 메뉴"
         aria-expanded={open}
         disabled={busy}
+        aria-busy={busy}
         style={{ display: "flex", padding: 6, borderRadius: "var(--radius)", color: "var(--ink-3)" }}
       >
-        <DotsIcon />
+        {/* 이름은 이 단추 밖(탑바 제목)에 있어서 바뀔 때까지 여기에 원을 띄운다. */}
+        {busy ? <Spinner size={14} /> : <DotsIcon />}
       </button>
       {open && (
         <>
@@ -79,15 +82,11 @@ export function ChecklistMenu({ checklistId, title }: { checklistId: string; tit
               onClick={() => {
                 setOpen(false);
                 if (!window.confirm(`"${title}" 체크리스트를 모래상자로 보낼까요? 모래상자에서 되돌릴 수 있어요.`)) return;
-                startTransition(async () => {
-                  try {
-                    await archiveChecklistAction(checklistId);
-                    router.push("/lists");
-                    router.refresh();
-                  } catch (error) {
-                    setProblem(error instanceof Error ? error.message : "보내지 못했어요.");
-                  }
-                });
+                // 기다리지 않고 목록으로 옮긴다. 모래상자로 보내는 일은 서버가 뒤에서 한다.
+                router.push("/lists");
+                archiveChecklistAction(checklistId)
+                  .then(() => router.refresh())
+                  .catch(console.error);
               }}
             >
               <span style={{ display: "flex", color: "var(--ink-4)" }}>

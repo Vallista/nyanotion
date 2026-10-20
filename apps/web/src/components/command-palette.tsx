@@ -1,10 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createDocumentAction, searchAction } from "@/lib/actions";
 import { displayTitle } from "@/lib/tree";
 import { AskIcon, PageIcon, PlusIcon, SearchIcon } from "./icons";
+import { Spinner } from "./pending";
 
 type Hit = { id: string; title: string; snippet: string; updatedAt: string };
 
@@ -30,7 +31,10 @@ export function CommandPalette() {
   const [hits, setHits] = useState<Hit[]>([]);
   const [cursor, setCursor] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [, startTransition] = useTransition();
+  // 새 문서는 서버가 id 를 정해야 열 수 있다 — 그동안 창을 열어 둔 채 그 줄에 원을 띄운다.
+  const [creating, startTransition] = useTransition();
+  const pathname = usePathname();
+  useEffect(() => setOpen(false), [pathname]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,8 +116,11 @@ export function CommandPalette() {
       return;
     }
     if (canCreate && index === createIndex) {
-      setOpen(false);
-      startTransition(() => void createDocumentAction(null));
+      if (creating) return;
+      startTransition(async () => {
+        await createDocumentAction(null);
+        setOpen(false);
+      });
       return;
     }
     const hit = hits[index];
@@ -250,8 +257,8 @@ export function CommandPalette() {
                 active={cursor === createIndex}
                 onMouseEnter={() => setCursor(createIndex)}
                 onClick={() => choose(createIndex)}
-                icon={<PlusIcon size={15} />}
-                title={<span>새 문서 만들기</span>}
+                icon={creating ? <Spinner size={13} /> : <PlusIcon size={15} />}
+                title={<span>{creating ? "만드는 중…" : "새 문서 만들기"}</span>}
               />
             </>
           )}

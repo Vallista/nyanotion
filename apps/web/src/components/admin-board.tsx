@@ -14,6 +14,7 @@ import {
 } from "@/lib/admin-actions";
 import { SmallButton, inputStyle } from "./checklist-item";
 import { PlusIcon } from "./icons";
+import { Spinner } from "./pending";
 
 /**
  * 어드민 — **초대 · 기다리는 초대 · 계정.**
@@ -268,10 +269,11 @@ function InviteForm({ origin, families }: { origin: string; families: Family[] }
             color: "var(--paper)",
             fontSize: 13,
             fontWeight: 500,
-            opacity: busy || email.trim() === "" ? 0.45 : 1,
+            opacity: !busy && email.trim() === "" ? 0.45 : 1,
           }}
+          aria-busy={busy}
         >
-          <PlusIcon size={13} />
+          {busy ? <Spinner size={12} /> : <PlusIcon size={13} />}
           초대 링크 만들기
         </button>
       </div>
@@ -631,10 +633,11 @@ function FamiliesSection({
             color: "var(--paper)",
             fontSize: 13,
             fontWeight: 500,
-            opacity: busy || name.trim() === "" || ownerEmail.trim() === "" ? 0.45 : 1,
+            opacity: !busy && (name.trim() === "" || ownerEmail.trim() === "") ? 0.45 : 1,
           }}
+          aria-busy={busy}
         >
-          <PlusIcon size={13} />
+          {busy ? <Spinner size={12} /> : <PlusIcon size={13} />}
           가족 만들기
         </button>
       </div>

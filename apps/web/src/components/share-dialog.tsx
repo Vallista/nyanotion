@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
+import { Spinner, usePending } from "./pending";
 import {
   createPublicLinkAction,
   removeShareAction,
@@ -34,9 +35,9 @@ export type LinkEntry = { id: string; url: string; expiresAt: string | null };
  */
 export function ShareDialog({
   documentId,
-  shares,
+  shares: serverShares,
   families,
-  links,
+  links: serverLinks,
   onClose,
 }: {
   documentId: string;
@@ -49,7 +50,17 @@ export function ShareDialog({
   const [role, setRole] = useState("viewer");
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const [busy, startTransition] = useTransition();
+  const { busy, run } = usePending();
+  // 가족에게 열기·닫기·링크 끄기는 목록부터 바뀐다. 이메일로 추가(계정이 없을 수 있다)와
+  // 링크 만들기(주소를 서버가 정한다)만 답을 기다린다.
+  const [shares, changeShares] = useOptimistic(
+    serverShares,
+    (list, change: { add: ShareEntry } | { remove: string }) =>
+      "add" in change ? [...list, change.add] : list.filter((s) => s.shareId !== change.remove),
+  );
+  const [links, hideLink] = useOptimistic(serverLinks, (list, id: string) =>
+    list.filter((l) => l.id !== id),
+  );
 
   const sharedFamilies = new Set(shares.filter((s) => s.kind === "org").map((s) => s.subjectId));
 
@@ -57,7 +68,7 @@ export function ShareDialog({
     const clean = email.trim();
     if (clean === "") return;
     setError(null);
-    startTransition(async () => {
+    run("person", async () => {
       const result = await shareWithPersonAction(documentId, clean, role);
       if (result.ok) {
         setEmail("");
@@ -153,8 +164,12 @@ export function ShareDialog({
           </select>
           <button
             onClick={addPerson}
-            disabled={busy}
+            disabled={busy("person")}
+            aria-busy={busy("person")}
             style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
               height: 34,
               padding: "0 12px",
               borderRadius: "var(--radius)",
@@ -162,9 +177,9 @@ export function ShareDialog({
               color: "var(--paper)",
               fontSize: 13,
               fontWeight: 500,
-              opacity: busy ? 0.6 : 1,
             }}
           >
+            {busy("person") && <Spinner size={11} />}
             추가
           </button>
         </div>
@@ -182,9 +197,21 @@ export function ShareDialog({
               {families.map((family) => (
                 <button
                   key={family.id}
-                  disabled={sharedFamilies.has(family.id) || busy}
+                  disabled={sharedFamilies.has(family.id)}
                   onClick={() =>
-                    startTransition(() => void shareWithFamilyAction(documentId, family.id, role))
+                    run("family", async () => {
+                      changeShares({
+                        add: {
+                          shareId: `pending:${family.id}`,
+                          subjectId: family.id,
+                          kind: "org",
+                          label: family.name,
+                          sub: "가족 전체",
+                          role,
+                        },
+                      });
+                      await shareWithFamilyAction(documentId, family.id, role);
+                    })
                   }
                   style={{
                     height: 28,
@@ -252,8 +279,12 @@ export function ShareDialog({
                     {DOC_ROLES.find((r) => r.value === item.role)?.label ?? item.role}
                   </span>
                   <button
+                    disabled={item.shareId.startsWith("pending:")}
                     onClick={() =>
-                      startTransition(() => void removeShareAction(documentId, item.shareId))
+                      run("unshare", async () => {
+                        changeShares({ remove: item.shareId });
+                        await removeShareAction(documentId, item.shareId);
+                      })
                     }
                     style={{ fontSize: 12.5, color: "var(--ink-3)", padding: "4px 6px" }}
                   >
@@ -273,9 +304,13 @@ export function ShareDialog({
                 로그인 없이 볼 수 있는 링크를 만듭니다. 읽기만 됩니다.
               </p>
               <button
-                onClick={() => startTransition(() => void createPublicLinkAction(documentId))}
-                disabled={busy}
+                onClick={() => run("link", () => createPublicLinkAction(documentId))}
+                disabled={busy("link")}
+                aria-busy={busy("link")}
                 style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                   height: 30,
                   padding: "0 12px",
                   borderRadius: "var(--radius)",
@@ -284,7 +319,8 @@ export function ShareDialog({
                   color: "var(--ink-2)",
                 }}
               >
-                링크 만들기
+                {busy("link") && <Spinner size={11} />}
+                {busy("link") ? "만드는 중…" : "링크 만들기"}
               </button>
             </>
           ) : (
@@ -328,7 +364,10 @@ export function ShareDialog({
                     </button>
                     <button
                       onClick={() =>
-                        startTransition(() => void revokePublicLinkAction(documentId, link.id))
+                        run("revoke", async () => {
+                          hideLink(link.id);
+                          await revokePublicLinkAction(documentId, link.id);
+                        })
                       }
                       style={{ fontSize: 12, color: "var(--ink-3)", padding: "4px 6px" }}
                     >

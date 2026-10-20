@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useOptimistic, useState } from "react";
 import { deleteCollectionAction, updateCollectionAction } from "@/lib/actions";
 import { DotsIcon } from "./icons";
+import { Spinner, usePending } from "./pending";
 
 /**
  * 모음 이름·보기 방식 바꾸기, 지우기. 지워도 문서는 그대로다.
@@ -13,7 +15,7 @@ import { DotsIcon } from "./icons";
 export function CollectionActions({
   id,
   name,
-  view,
+  view: serverView,
   showViewToggle = true,
 }: {
   id: string;
@@ -21,7 +23,10 @@ export function CollectionActions({
   view: "list" | "table" | "board" | "calendar";
   showViewToggle?: boolean;
 }) {
-  const [, startTransition] = useTransition();
+  const router = useRouter();
+  const { busy, run } = usePending();
+  // 보기 전환은 단추부터 바뀐다. 이름 바꾸기는 제목이 이 컴포넌트 밖에 있어서 답이 올 때까지 원을 띄운다.
+  const [view, setView] = useOptimistic(serverView);
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -35,7 +40,7 @@ export function CollectionActions({
           setRenaming(false);
           const next = event.currentTarget.value.trim();
           if (next !== "" && next !== name) {
-            startTransition(() => void updateCollectionAction(id, { name: next }));
+            run("rename", () => updateCollectionAction(id, { name: next }));
           }
         }}
         onKeyDown={(event) => {
@@ -71,7 +76,12 @@ export function CollectionActions({
         {(["list", "table"] as const).map((option) => (
           <button
             key={option}
-            onClick={() => startTransition(() => void updateCollectionAction(id, { view: option }))}
+            onClick={() =>
+              run("view", async () => {
+                setView(option);
+                await updateCollectionAction(id, { view: option });
+              })
+            }
             style={{
               height: 26,
               padding: "0 10px",
@@ -89,6 +99,8 @@ export function CollectionActions({
       <button
         aria-label="모음 설정"
         onClick={() => setOpen((value) => !value)}
+        disabled={busy("rename")}
+        aria-busy={busy("rename")}
         style={{
           width: 28,
           height: 28,
@@ -99,7 +111,7 @@ export function CollectionActions({
           color: "var(--ink-2)",
         }}
       >
-        <DotsIcon />
+        {busy("rename") ? <Spinner size={13} /> : <DotsIcon />}
       </button>
 
       {open && (
@@ -135,7 +147,9 @@ export function CollectionActions({
                 onClick={() => {
                   setOpen(false);
                   setConfirming(false);
-                  startTransition(() => void deleteCollectionAction(id));
+                  // 기다리지 않고 캣타워로 옮긴다. 지우는 일은 서버가 뒤에서 한다.
+                  router.push("/");
+                  deleteCollectionAction(id).catch(console.error);
                 }}
                 style={{ padding: "7px 8px", borderRadius: 3, fontSize: 13, color: "var(--ink)" }}
               >

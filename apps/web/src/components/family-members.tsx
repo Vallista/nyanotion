@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState } from "react";
 import { removeMemberAction, setMemberRoleAction } from "@/lib/actions";
+import { usePending } from "./pending";
 
 const ROLES = [
   { value: "owner", label: "가장" },
@@ -22,14 +23,22 @@ export function FamilyMembers({
   organizationId,
   myUserId,
   isAdmin,
-  members,
+  members: serverMembers,
 }: {
   organizationId: string;
   myUserId: string;
   isAdmin: boolean;
   members: MemberRow[];
 }) {
-  const [, startTransition] = useTransition();
+  const { run } = usePending();
+  // 역할 바꾸기·내보내기는 목록부터 바뀐다. 실패하면 서버 값으로 돌아가고 아래 문구가 뜬다.
+  const [members, changeMembers] = useOptimistic(
+    serverMembers,
+    (list, change: { userId: string; role: string } | { userId: string; remove: true }) =>
+      "remove" in change
+        ? list.filter((m) => m.userId !== change.userId)
+        : list.map((m) => (m.userId === change.userId ? { ...m, role: change.role } : m)),
+  );
   const [confirming, setConfirming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -105,7 +114,8 @@ export function FamilyMembers({
                   onChange={(event) => {
                     const role = event.target.value;
                     setError(null);
-                    startTransition(async () => {
+                    run(`role:${item.userId}`, async () => {
+                      changeMembers({ userId: item.userId, role });
                       try {
                         await setMemberRoleAction(organizationId, item.userId, role);
                       } catch {
@@ -154,7 +164,8 @@ export function FamilyMembers({
                       onClick={() => {
                         setConfirming(null);
                         setError(null);
-                        startTransition(async () => {
+                        run(`remove:${item.userId}`, async () => {
+                          changeMembers({ userId: item.userId, remove: true });
                           try {
                             await removeMemberAction(organizationId, item.userId);
                           } catch {

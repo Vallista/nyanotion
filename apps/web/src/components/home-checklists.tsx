@@ -211,7 +211,7 @@ function QuickAdd({
   onTarget: (id: string) => void;
 }) {
   const router = useRouter();
-  const [busy, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [title, setTitle] = useState("");
   const [forToday, setForToday] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -219,17 +219,20 @@ function QuickAdd({
   function submit(): void {
     const clean = title.trim();
     if (clean === "") return;
+    const input = {
+      title: clean,
+      dueOn: forToday ? today : null,
+      checklistId: target === "" ? null : target,
+    };
+    // 칸은 바로 비워 다음 것을 이어 적게 한다. 서버는 뒤따르고, 실패하면 글을 되돌려 놓는다.
+    setTitle("");
     startTransition(async () => {
       setProblem(null);
       try {
-        await quickAddAction(spaceId, {
-          title: clean,
-          dueOn: forToday ? today : null,
-          checklistId: target === "" ? null : target,
-        });
-        setTitle("");
+        await quickAddAction(spaceId, input);
         router.refresh();
       } catch (error) {
+        setTitle((current) => (current === "" ? clean : current));
         setProblem(error instanceof Error ? error.message : "적지 못했어요.");
       }
     });
@@ -247,7 +250,6 @@ function QuickAdd({
           }}
           placeholder={family ? "가족 할 일 적기" : "할 일 적기"}
           aria-label={family ? "가족 할 일 적기" : "할 일 적기"}
-          disabled={busy}
           style={{ ...inputStyle, flex: "1 1 auto", minWidth: 0, height: 38 }}
         />
         <button
@@ -269,7 +271,7 @@ function QuickAdd({
         </button>
         <button
           onClick={submit}
-          disabled={busy || title.trim() === ""}
+          disabled={title.trim() === ""}
           aria-label="적기"
           style={{
             display: "flex",
@@ -281,7 +283,7 @@ function QuickAdd({
             borderRadius: "var(--radius)",
             background: "var(--ink)",
             color: "var(--paper)",
-            opacity: busy || title.trim() === "" ? 0.45 : 1,
+            opacity: title.trim() === "" ? 0.45 : 1,
           }}
         >
           <PlusIcon size={14} />

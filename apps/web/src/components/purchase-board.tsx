@@ -18,6 +18,7 @@ import {
   requestSearchAction,
 } from "@/lib/purchase-actions";
 import { PageIcon, PlusIcon } from "./icons";
+import { Spinner } from "./pending";
 
 /**
  * 살 것 · 승인 · 히스토리.
@@ -220,11 +221,15 @@ function ItemCard({
   userId?: string;
 }) {
   const router = useRouter();
+  // 살 것의 단추는 전부 돈과 상태가 걸린 일이라 서버 답을 기다린다 — 대신 누른 단추에 원을 띄운다.
   const [busy, startTransition] = useTransition();
+  const [busyKey, setBusyKey] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const isBusy = (key: string) => busy && busyKey === key;
 
-  const run = (task: () => Promise<unknown>) =>
+  const run = (key: string, task: () => Promise<unknown>) => {
+    setBusyKey(key);
     startTransition(async () => {
       setProblem(null);
       try {
@@ -234,6 +239,7 @@ function ItemCard({
         setProblem(error instanceof Error ? error.message : "하지 못했어요.");
       }
     });
+  };
 
   const chosen = item.offers.find((offer) => offer.chosen) ?? item.offers[0];
   const overBudget =
@@ -248,7 +254,6 @@ function ItemCard({
         borderRadius: "var(--radius)",
         background: "var(--card)",
         padding: "12px 14px",
-        opacity: busy ? 0.6 : 1,
       }}
     >
       <div
@@ -322,7 +327,7 @@ function ItemCard({
               key={offer.id}
               offer={offer}
               editable={item.state === "proposed"}
-              onPick={() => run(() => chooseOfferAction(item.id, offer.id))}
+              onPick={() => run("pick", () => chooseOfferAction(item.id, offer.id))}
             />
           ))}
           {chosen !== undefined && (
@@ -362,13 +367,15 @@ function ItemCard({
             <Action
               primary
               disabled={busy || overBudget}
-              onClick={() => run(() => approvePurchaseAction(item.id))}
+              busy={isBusy("approve")}
+              onClick={() => run("approve", () => approvePurchaseAction(item.id))}
             >
               승인
             </Action>
             <Action
               disabled={busy}
-              onClick={() => run(() => rejectPurchaseAction(item.id))}
+              busy={isBusy("reject")}
+              onClick={() => run("reject", () => rejectPurchaseAction(item.id))}
             >
               안 살래요
             </Action>
@@ -378,7 +385,8 @@ function ItemCard({
         {item.state === "listed" && (
           <Action
             disabled={busy}
-            onClick={() => run(() => requestSearchAction(item.id))}
+            busy={isBusy("search")}
+            onClick={() => run("search", () => requestSearchAction(item.id))}
           >
             가격 찾기
           </Action>
@@ -414,7 +422,12 @@ function ItemCard({
               </a>
             )}
             {order !== undefined && (
-              <Action primary disabled={busy} onClick={() => run(() => markPlacedAction(order.id))}>
+              <Action
+                primary
+                disabled={busy}
+                busy={isBusy("placed")}
+                onClick={() => run("placed", () => markPlacedAction(order.id))}
+              >
                 결제했어요
               </Action>
             )}
@@ -422,7 +435,11 @@ function ItemCard({
         )}
 
         {item.state === "ordered" && (
-          <Action disabled={busy} onClick={() => run(() => markDoneAction(item.id))}>
+          <Action
+            disabled={busy}
+            busy={isBusy("done")}
+            onClick={() => run("done", () => markDoneAction(item.id))}
+          >
             받았어요
           </Action>
         )}
@@ -430,7 +447,8 @@ function ItemCard({
         {(item.state === "rejected" || item.state === "failed") && (
           <Action
             disabled={busy}
-            onClick={() => run(() => relistPurchaseAction(item.id))}
+            busy={isBusy("relist")}
+            onClick={() => run("relist", () => relistPurchaseAction(item.id))}
           >
             다시 올리기
           </Action>
@@ -439,7 +457,8 @@ function ItemCard({
         {item.state !== "ordered" && item.state !== "approved" && item.state !== "carted" && (
           <Action
             disabled={busy}
-            onClick={() => run(() => removePurchaseItemAction(item.id))}
+            busy={isBusy("remove")}
+            onClick={() => run("remove", () => removePurchaseItemAction(item.id))}
           >
             목록에서 빼기
           </Action>
@@ -450,7 +469,7 @@ function ItemCard({
         <ManualOffer
           onCancel={() => setAdding(false)}
           onSubmit={(offer) =>
-            run(async () => {
+            run("offer", async () => {
               await addOffersAction(item.id, [offer]);
               setAdding(false);
             })
@@ -590,6 +609,7 @@ function OrderLine({
           </span>
           <Action
             disabled={busy}
+            busy={busy}
             onClick={() =>
               startTransition(async () => {
                 setProblem(null);
@@ -836,10 +856,11 @@ function AddItem({
             color: "var(--paper)",
             fontSize: 13,
             fontWeight: 500,
-            opacity: busy || title.trim() === "" ? 0.45 : 1,
+            opacity: !busy && title.trim() === "" ? 0.45 : 1,
           }}
+          aria-busy={busy}
         >
-          <PlusIcon size={13} />
+          {busy ? <Spinner size={12} /> : <PlusIcon size={13} />}
           적기
         </button>
       </div>
@@ -987,17 +1008,24 @@ function Action({
   onClick,
   primary = false,
   disabled = false,
+  busy = false,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   primary?: boolean;
   disabled?: boolean;
+  /** 이 단추의 일이 서버에 가 있는 중 — 글자 앞에 원을 띄운다. */
+  busy?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || busy}
+      aria-busy={busy}
       style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
         height: 30,
         padding: "0 12px",
         borderRadius: "var(--radius)",
@@ -1006,9 +1034,10 @@ function Action({
         background: primary ? "var(--ink)" : "transparent",
         color: primary ? "var(--paper)" : "var(--ink-2)",
         border: primary ? "none" : "1px solid var(--line)",
-        opacity: disabled ? 0.45 : 1,
+        opacity: disabled && !busy ? 0.45 : 1,
       }}
     >
+      {busy && <Spinner size={11} />}
       {children}
     </button>
   );

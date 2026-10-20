@@ -18,7 +18,7 @@ export function GpuModeToggle({ mode, reachable }: { mode: "free" | "gaming"; re
       onClick={() => {
         const next = gaming ? "free" : "gaming";
         setOptimistic(next);
-        startTransition(() => void setGpuModeAction(next));
+        startTransition(() => setGpuModeAction(next));
       }}
       disabled={pending}
       title={
@@ -36,7 +36,6 @@ export function GpuModeToggle({ mode, reachable }: { mode: "free" | "gaming"; re
         borderRadius: "var(--radius)",
         fontSize: 12.5,
         color: "var(--ink-3)",
-        opacity: pending ? 0.6 : 1,
       }}
     >
       <span style={{ display: "flex", color: gaming ? "var(--ink-4)" : "var(--accent)" }}>

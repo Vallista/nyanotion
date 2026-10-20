@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { createDatabaseAction } from "@/lib/actions";
 import { PlusIcon } from "./icons";
+import { Spinner } from "./pending";
 
 /** 손으로 담는 표(노션의 데이터베이스). 줄 하나가 문서다. */
 export function NewDatabaseButton({ spaceId }: { spaceId?: string }) {
@@ -14,6 +15,8 @@ export function NewDatabaseButton({ spaceId }: { spaceId?: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
+        disabled={pending}
+        aria-busy={pending}
         style={{
           display: "flex",
           alignItems: "center",
@@ -27,9 +30,9 @@ export function NewDatabaseButton({ spaceId }: { spaceId?: string }) {
         }}
       >
         <span style={{ display: "flex", color: "var(--ink-4)" }}>
-          <PlusIcon size={14} />
+          {pending ? <Spinner size={12} /> : <PlusIcon size={14} />}
         </span>
-        표 만들기
+        {pending ? "표 만드는 중…" : "표 만들기"}
       </button>
     );
   }
@@ -41,7 +44,11 @@ export function NewDatabaseButton({ spaceId }: { spaceId?: string }) {
         const clean = name.trim();
         if (clean === "") return;
         setOpen(false);
-        startTransition(() => void createDatabaseAction(clean, spaceId));
+        // 입력칸은 닫고, 새 화면으로 넘어갈 때까지 단추 자리에 원을 띄운다.
+        startTransition(async () => {
+          await createDatabaseAction(clean, spaceId);
+          setName("");
+        });
       }}
       style={{ padding: "2px 0" }}
     >

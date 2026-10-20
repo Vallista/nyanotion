@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
+import { Spinner, usePending } from "./pending";
 import {
   archiveDocumentAction,
   createDocumentAction,
@@ -79,9 +80,41 @@ function writeExpanded(ids: ReadonlySet<string>): void {
   }
 }
 
+/** 서버가 답하기 전에 트리에 먼저 그려 두는 변경. 답이 오면 서버 값으로 바뀐다. */
+type TreeChange =
+  | { kind: "archive"; id: string }
+  | { kind: "rename"; id: string; title: string }
+  | { kind: "move"; id: string; parentId: string | null; afterId: string | null };
+
+function applyTreeChange(nodes: SidebarNode[], change: TreeChange): SidebarNode[] {
+  if (change.kind === "archive") {
+    const gone = subtreeIds(nodes, change.id);
+    return nodes.filter((n) => !gone.has(n.id));
+  }
+  if (change.kind === "rename") {
+    return nodes.map((n) => (n.id === change.id ? { ...n, title: change.title } : n));
+  }
+  // 이동: 목록은 형제끼리 position 순이고 buildTree 가 그 순서를 지킨다 — 자리에 끼워 넣기만 하면 된다.
+  const moving = nodes.find((n) => n.id === change.id);
+  if (moving === undefined) return nodes;
+  const rest = nodes.filter((n) => n.id !== change.id);
+  const moved = { ...moving, parentId: change.parentId };
+  let at: number;
+  if (change.afterId !== null) {
+    at = rest.findIndex((n) => n.id === change.afterId) + 1;
+  } else {
+    const first = rest.findIndex(
+      (n) => n.parentId === change.parentId && n.spaceId === moving.spaceId,
+    );
+    at = first === -1 ? rest.length : first;
+  }
+  if (at <= 0 && change.afterId !== null) at = rest.length;
+  return [...rest.slice(0, at), moved, ...rest.slice(at)];
+}
+
 export function Sidebar({
   spaces,
-  nodes,
+  nodes: serverNodes,
   archivedCount,
   awaitingApproval,
   checklistDue,
@@ -114,6 +147,10 @@ export function Sidebar({
   const activeId = pathname.startsWith("/d/") ? (pathname.split("/")[2] ?? null) : null;
 
   const [, startTransition] = useTransition();
+  // 옮기기·이름 바꾸기·지우기는 트리에 먼저 그리고 서버는 뒤따른다. 새 문서만 서버가 id 를
+  // 정해야 열 수 있으므로 누른 자리에 원을 띄운다.
+  const [nodes, changeTree] = useOptimistic(serverNodes, applyTreeChange);
+  const action = usePending();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [dragId, setDragId] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ id: string; zone: DropZone } | null>(null);
@@ -195,6 +232,7 @@ export function Sidebar({
     }
 
     startTransition(async () => {
+      changeTree({ kind: "move", id: moving, parentId, afterId });
       const result = await moveDocumentAction(moving, parentId, afterId);
       if (!result.ok) router.refresh();
     });
@@ -227,6 +265,7 @@ export function Sidebar({
             forbidden={dragId !== null && (blocked.has(item.id) || draggingSpace !== spaceId)}
             menuOpen={menuFor === item.id}
             renaming={renaming === item.id}
+            addingChild={action.busy(`child:${item.id}`)}
             onToggle={() => toggle(item.id)}
             onDragStart={() => setDragId(item.id)}
             onDragEnd={() => {
@@ -244,17 +283,26 @@ export function Sidebar({
             onRename={(title) => {
               setRenaming(null);
               if (title !== item.title) {
-                startTransition(() => void renameDocumentAction(item.id, title));
+                startTransition(async () => {
+                  changeTree({ kind: "rename", id: item.id, title });
+                  await renameDocumentAction(item.id, title);
+                });
               }
             }}
             onCancelRename={() => setRenaming(null)}
             onAddChild={() => {
               setMenuFor(null);
-              startTransition(() => void createDocumentAction(item.id));
+              action.run(`child:${item.id}`, () => createDocumentAction(item.id));
             }}
             onArchive={() => {
               setMenuFor(null);
-              startTransition(() => void archiveDocumentAction(item.id));
+              // 보고 있던 문서(또는 그 조상)를 지우면 기다리지 않고 캣타워로 옮긴다.
+              const leaving = activeId !== null && subtreeIds(nodes, item.id).has(activeId);
+              if (leaving) router.push("/");
+              startTransition(async () => {
+                changeTree({ kind: "archive", id: item.id });
+                await archiveDocumentAction(item.id, false);
+              });
             }}
           />
         ))}
@@ -347,7 +395,10 @@ export function Sidebar({
                   )}
                   <RowButton
                     label="새 문서"
-                    onClick={() => startTransition(() => void createDocumentAction(null, item.id))}
+                    busy={action.busy(`new:${item.id}`)}
+                    onClick={() =>
+                      action.run(`new:${item.id}`, () => createDocumentAction(null, item.id))
+                    }
                   >
                     <PlusIcon size={13} />
                   </RowButton>
@@ -366,8 +417,11 @@ export function Sidebar({
               action={
                 <RowButton
                   label="새 문서"
+                  busy={action.busy(`new:${personalSpace.id}`)}
                   onClick={() =>
-                    startTransition(() => void createDocumentAction(null, personalSpace.id))
+                    action.run(`new:${personalSpace.id}`, () =>
+                      createDocumentAction(null, personalSpace.id),
+                    )
                   }
                 >
                   <PlusIcon size={13} />
@@ -503,6 +557,7 @@ function Row({
   forbidden,
   menuOpen,
   renaming,
+  addingChild,
   onToggle,
   onDragStart,
   onDragEnd,
@@ -524,6 +579,8 @@ function Row({
   forbidden: boolean;
   menuOpen: boolean;
   renaming: boolean;
+  /** 안에 새 문서를 만드는 중 — 서버가 id 를 줄 때까지 + 자리에 원을 띄운다. */
+  addingChild: boolean;
   onToggle: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
@@ -556,7 +613,7 @@ function Row({
   const indent = 6 + item.depth * 12;
   // **마우스를 올릴 때만 보이면 터치 기기에서는 영영 안 보인다** — 지우기·이름 바꾸기가 없는 줄
   // 알았다. 터치 기기와 지금 연 문서에서는 늘 보인다. 데스크탑은 오른쪽 클릭으로도 연다.
-  const showControls = hover || menuOpen || active || touch;
+  const showControls = hover || menuOpen || active || touch || addingChild;
 
   return (
     <div
@@ -674,7 +731,7 @@ function Row({
 
         {showControls && !renaming && (
           <span style={{ display: "flex", gap: 1, marginLeft: 2 }}>
-            <RowButton label="안에 새 문서" onClick={onAddChild}>
+            <RowButton label="안에 새 문서" onClick={onAddChild} busy={addingChild}>
               <PlusIcon size={13} />
             </RowButton>
             <RowButton label="더 보기" onClick={onMenu}>
@@ -765,16 +822,20 @@ function SectionLabel({
 function RowButton({
   label,
   onClick,
+  busy = false,
   children,
 }: {
   label: string;
   onClick: () => void;
+  busy?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       aria-label={label}
       title={label}
+      aria-busy={busy}
+      disabled={busy}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -791,7 +852,7 @@ function RowButton({
         color: "var(--ink-3)",
       }}
     >
-      {children}
+      {busy ? <Spinner size={11} /> : children}
     </button>
   );
 }

@@ -106,11 +106,15 @@ export async function moveDocumentAction(
   return result.ok ? { ok: true } : { ok: false, reason: result.reason };
 }
 
-export async function archiveDocumentAction(id: string): Promise<void> {
+/**
+ * `goHome` 이 false 면 제자리에 둔다 — 화면이 먼저 줄을 지우고(낙관적 갱신) 서버는 뒤따르는
+ * 경우다. 보고 있던 문서를 지울 때는 화면이 직접 캣타워로 옮겨 간다.
+ */
+export async function archiveDocumentAction(id: string, goHome = true): Promise<void> {
   await assertCanWrite(id);
   await archiveDocument(id);
   revalidatePath("/", "layout");
-  redirect("/");
+  if (goHome) redirect("/");
 }
 
 export async function restoreDocumentAction(id: string): Promise<void> {
@@ -223,7 +227,7 @@ export async function deleteCollectionAction(id: string): Promise<void> {
   const viewer = await requireViewer();
   await deleteCollection(id, viewer.spaceIds);
   revalidatePath("/", "layout");
-  redirect("/");
+  // 옮겨 가는 건 화면이 먼저 한다 — 여기서 redirect 하면 그새 다른 곳으로 간 사람을 끌고 온다.
 }
 
 /* ------------------------------------------------------------------ 가족 */
