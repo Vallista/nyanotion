@@ -101,21 +101,26 @@ try {
     # pnpm → node 는 고아로 살아남는다. web·collab 은 아래 Stop-Port 가 잡지만 워커는 포트가 없어서
     # 배포할 때마다 옛 코드로 도는 워커가 하나씩 쌓였다 (2026-10-12 에 넷이 돌고 있었다 —
     # 체크리스트 알림이 겹쳐 갈 수 있다).
-    foreach ($what in 'web', 'collab', 'worker') {
+    #
+    # **구매 에이전트도 같이.** 빠뜨렸더니 10-12 부터 10-22 까지 옛 코드로 돌아서
+    # `buy_on` 이 된 살 것을 찾기 시작하지 않았다.
+    foreach ($what in 'web', 'collab', 'worker', 'agent') {
       Get-CimInstance Win32_Process -Filter "Name='pwsh.exe'" |
         Where-Object { $_.CommandLine -like "*serve-one.ps1*-What $what*-Env $Env*" } |
         ForEach-Object { taskkill /PID $_.ProcessId /T /F 2>&1 | Out-Null }
     }
-    foreach ($name in 'Nyanotion-Web', 'Nyanotion-Collab', 'Nyanotion-Worker') {
+    foreach ($name in 'Nyanotion-Web', 'Nyanotion-Collab', 'Nyanotion-Worker', 'Nyanotion-Agent') {
       Stop-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
     }
     Stop-Port $port
     Stop-Port $collabPort
 
-    $order = @('Nyanotion-Collab', 'Nyanotion-Web', 'Nyanotion-Worker')
+    $order = @('Nyanotion-Collab', 'Nyanotion-Web', 'Nyanotion-Worker', 'Nyanotion-Agent')
     foreach ($name in $order) {
       $task = Get-ScheduledTask -TaskName $name -ErrorAction SilentlyContinue
       if ($null -eq $task) {
+        # 에이전트는 선택이다 (`autostart.ps1 -NoAgent`). 없으면 그냥 지나간다.
+        if ($name -eq 'Nyanotion-Agent') { continue }
         Write-Warn "$name 작업이 없습니다 — pwsh scripts/autostart.ps1 을 먼저 돌리세요."
         continue
       }
