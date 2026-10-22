@@ -33,6 +33,7 @@ export async function BuyScreen({ view }: { view: "backlog" | "bought" }) {
     <>
       <TopBar
         crumbs={[
+          { id: null, title: "체크리스트", href: "/" },
           { id: null, title: "구매하기" },
           { id: null, title: view === "backlog" ? "구매 백로그" : "이미 구매한 것" },
         ]}

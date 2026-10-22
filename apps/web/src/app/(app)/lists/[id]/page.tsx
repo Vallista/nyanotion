@@ -47,7 +47,8 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
     <>
       <TopBar
         crumbs={[
-          { id: null, title: "체크리스트", href: "/lists" },
+          { id: null, title: "체크리스트", href: "/" },
+          { id: null, title: "모든 체크리스트", href: "/lists" },
           { id: null, title },
         ]}
         right={roleAllows(role, "editor") ? <ChecklistMenu checklistId={id} title={title} /> : undefined}

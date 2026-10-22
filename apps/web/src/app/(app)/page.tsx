@@ -64,7 +64,7 @@ export default async function HomePage({
 
   return (
     <>
-      <TopBar crumbs={[{ id: null, title: "캘린더" }]} right={<NewDocumentButton />} />
+      <TopBar crumbs={[{ id: null, title: "체크리스트" }]} right={<NewDocumentButton />} />
       <CalendarHome
         view={view}
         anchor={anchor}

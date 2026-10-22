@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import { Spinner, usePending } from "./pending";
 import {
   archiveDocumentAction,
@@ -32,10 +32,10 @@ import {
   PageIcon,
   PlusIcon,
   SearchIcon,
-  CalendarIcon,
 } from "./icons";
 
 const EXPANDED_KEY = "nyanotion.expanded";
+const BUY_OPEN_KEY = "nyanotion.buyOpen";
 
 /** 행 안에서 어디에 놓았는가. 위/아래 25% 는 형제, 가운데는 자식으로 넣는다. */
 type DropZone = "before" | "after" | "into";
@@ -75,6 +75,23 @@ function writeExpanded(ids: ReadonlySet<string>): void {
     localStorage.setItem(EXPANDED_KEY, JSON.stringify([...ids]));
   } catch {
     // 시크릿 창이나 저장소 차단 — 접힘 상태는 없어도 되는 편의라 무시한다.
+  }
+}
+
+function readFlag(key: string, fallback: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw === null ? fallback : raw === "1";
+  } catch {
+    return fallback;
+  }
+}
+
+function writeFlag(key: string, value: boolean): void {
+  try {
+    localStorage.setItem(key, value ? "1" : "0");
+  } catch {
+    // 접힘 상태는 없어도 되는 편의라 무시한다.
   }
 }
 
@@ -146,6 +163,17 @@ export function Sidebar({
   const [nodes, changeTree] = useOptimistic(serverNodes, applyTreeChange);
   const action = usePending();
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  // 구매하기 갈래 — 처음엔 펼쳐 둔다. 접어 둔 것만 이 기기에 기억한다.
+  const [buyOpen, setBuyOpen] = useState(true);
+  useEffect(() => {
+    setBuyOpen(readFlag(BUY_OPEN_KEY, true));
+  }, []);
+  function toggleBuy(): void {
+    setBuyOpen((open) => {
+      writeFlag(BUY_OPEN_KEY, !open);
+      return !open;
+    });
+  }
   const [dragId, setDragId] = useState<string | null>(null);
   const [drop, setDrop] = useState<{ id: string; zone: DropZone } | null>(null);
   const [menuFor, setMenuFor] = useState<string | null>(null);
@@ -358,35 +386,50 @@ export function Sidebar({
 
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
         <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
-        <SideLink href="/" icon={<CalendarIcon />} label="캘린더" active={pathname === "/"} />
-        {/* 할 일은 캘린더 바로 밑 — 캘린더에 놓기 전의 할 일(백로그)이 다 여기 있다. */}
+        {/*
+          체크리스트가 이 앱의 첫 기능이다 — 누르면 캘린더(할 일을 날짜·시간 칸에 놓는 화면)가 열린다.
+          체크리스트 목록과 구매하기는 그 아래 갈래다. 살 것도 체크리스트에서 넘어오기 때문이다.
+        */}
         <SideLink
-          href="/lists"
+          href="/"
           icon={<ChecklistIcon />}
           label="체크리스트"
-          active={pathname.startsWith("/lists")}
+          active={pathname === "/"}
           trailing={checklistDue > 0 ? String(checklistDue) : undefined}
         />
         <SideLink
-          href="/buy"
-          icon={<CartIcon />}
+          href="/lists"
+          icon={null}
+          label="모든 체크리스트"
+          indent={1}
+          active={pathname.startsWith("/lists")}
+        />
+        <SideLink
+          icon={<CartIcon size={14} />}
           label="구매하기"
+          indent={1}
+          expanded={buyOpen}
+          onClick={toggleBuy}
           trailing={awaitingApproval > 0 ? String(awaitingApproval) : undefined}
         />
-        <SideLink
-          href="/buy"
-          icon={null}
-          label="구매 백로그"
-          indent
-          active={pathname === "/buy"}
-        />
-        <SideLink
-          href="/buy/done"
-          icon={null}
-          label="이미 구매한 것"
-          indent
-          active={pathname === "/buy/done"}
-        />
+        {buyOpen && (
+          <>
+            <SideLink
+              href="/buy"
+              icon={null}
+              label="구매 백로그"
+              indent={2}
+              active={pathname === "/buy"}
+            />
+            <SideLink
+              href="/buy/done"
+              icon={null}
+              label="이미 구매한 것"
+              indent={2}
+              active={pathname === "/buy/done"}
+            />
+          </>
+        )}
       </div>
 
       <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>
@@ -588,10 +631,42 @@ function Row({
   const [hover, setHover] = useState(false);
   const touch = useCoarsePointer();
   const inputRef = useRef<HTMLInputElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  // 아래가 모자라면 메뉴를 위로 연다. 트리는 스크롤 칸 안에 있어서, 아래쪽 줄의 메뉴가
+  // 칸 밖으로 나가면 잘려서 "삭제"를 누를 수 없었다 (위에 항목이 늘어 트리가 밀렸을 때 드러났다).
+  const [menuUp, setMenuUp] = useState(false);
 
   useEffect(() => {
     if (renaming) inputRef.current?.select();
   }, [renaming]);
+
+  useLayoutEffect(() => {
+    if (!menuOpen) {
+      setMenuUp(false);
+      return;
+    }
+    const row = rowRef.current;
+    const menu = menuRef.current;
+    if (row === null || menu === null) return;
+    const box = row.getBoundingClientRect();
+    let bottom = window.innerHeight;
+    let top = 0;
+    for (let el = row.parentElement; el !== null; el = el.parentElement) {
+      const overflow = getComputedStyle(el).overflowY;
+      if (overflow === "auto" || overflow === "scroll") {
+        const area = el.getBoundingClientRect();
+        bottom = Math.min(bottom, area.bottom);
+        top = Math.max(top, area.top);
+        break;
+      }
+    }
+    const need = menu.offsetHeight + 28;
+    const up = box.top + need > bottom && box.bottom - need >= top;
+    setMenuUp(up);
+    // 위로도 모자라면 칸을 굴려서라도 보이게 한다.
+    if (!up) menu.scrollIntoView({ block: "nearest" });
+  }, [menuOpen]);
 
   function zoneFrom(event: React.DragEvent<HTMLDivElement>): DropZone {
     const box = event.currentTarget.getBoundingClientRect();
@@ -608,6 +683,7 @@ function Row({
 
   return (
     <div
+      ref={rowRef}
       style={{ position: "relative", opacity: dragging ? 0.4 : 1 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -734,11 +810,12 @@ function Row({
 
       {menuOpen && (
         <div
+          ref={menuRef}
           onClick={(e) => e.stopPropagation()}
           style={{
             position: "absolute",
             right: 4,
-            top: 28,
+            ...(menuUp ? { bottom: 28 } : { top: 28 }),
             zIndex: 20,
             minWidth: 150,
             background: "var(--card)",
@@ -881,13 +958,16 @@ function SideLink({
   shortcut,
   trailing,
   active = false,
-  indent = false,
+  indent = 0,
+  expanded,
   onClick,
 }: {
   href?: string;
   icon: React.ReactNode;
-  /** 바로 위 항목의 하위 — 아이콘 자리만큼 들여 쓴다. */
-  indent?: boolean;
+  /** 몇 단 아래인가 — 한 단마다 아이콘 자리만큼 들여 쓴다. */
+  indent?: 0 | 1 | 2;
+  /** 접고 펴는 갈래면 지금 펼쳐져 있는지. 화살표가 붙는다. */
+  expanded?: boolean;
   label: string;
   shortcut?: string;
   trailing?: string;
@@ -896,6 +976,11 @@ function SideLink({
 }) {
   const inner = (
     <>
+      {expanded !== undefined && (
+        <span style={{ display: "flex", color: "var(--ink-4)", marginRight: -4 }}>
+          {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+        </span>
+      )}
       {icon !== null && <span style={{ display: "flex", color: "var(--ink-4)" }}>{icon}</span>}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {label}
@@ -917,9 +1002,9 @@ function SideLink({
     gap: 8,
     width: "100%",
     height: 28,
-    padding: indent ? "0 6px 0 30px" : "0 6px 0 8px",
+    padding: `0 6px 0 ${[8, 30, 48][indent]}px`,
     borderRadius: "var(--radius)",
-    fontSize: indent ? 13 : 13.5,
+    fontSize: indent > 0 ? 13 : 13.5,
     color: "var(--ink-2)",
     background: active ? "var(--accent-soft)" : "transparent",
     fontWeight: active ? 500 : 400,
@@ -929,7 +1014,12 @@ function SideLink({
 
   if (href === undefined) {
     return (
-      <button style={style} onClick={onClick} title={label}>
+      <button
+        style={style}
+        onClick={onClick}
+        title={label}
+        aria-expanded={expanded}
+      >
         {inner}
       </button>
     );

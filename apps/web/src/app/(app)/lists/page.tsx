@@ -31,7 +31,7 @@ export default async function ListsPage() {
 
   return (
     <>
-      <TopBar crumbs={[{ id: null, title: "체크리스트" }]} />
+      <TopBar crumbs={[{ id: null, title: "체크리스트", href: "/" }, { id: null, title: "모든 체크리스트" }]} />
       <div style={{ flexGrow: 1, overflowY: "auto" }}>
         <div style={{ width: "100%", maxWidth: 1040, margin: "0 auto", padding: "40px 16px 120px" }}>
           <ChecklistOverview
