@@ -73,7 +73,7 @@ export function AppShell({
           flexDirection: "column",
           overflow: "hidden",
           // 좁은 화면에서는 아래 "문서 트리 열기" 단추(왼쪽 10~38px)가 탑바 위에 떠 있다.
-          // 탑바의 빵가루가 그만큼 비켜 서지 않으면 첫 글자들이 단추 밑에 깔린다 ("캣타워" → "ㅏ워").
+          // 탑바의 빵가루가 그만큼 비켜 서지 않으면 첫 글자들이 단추 밑에 깔린다 ("캘린더" → "린더").
           ...(narrow ? ({ "--topbar-gutter": "28px" } as React.CSSProperties) : {}),
         }}
       >

@@ -78,13 +78,13 @@ export function SearchIcon(p: IconProps) {
   );
 }
 
-/** 캣타워 — 층층이 쌓인 모양 */
-export function TowerIcon(p: IconProps) {
+/** 캘린더 — 첫 화면 */
+export function CalendarIcon(p: IconProps) {
   return (
     <Svg {...p}>
-      <rect x="2.6" y="10.6" width="10.8" height="3.2" rx="1.1" />
-      <rect x="4.3" y="6.6" width="7.4" height="3.2" rx="1.1" />
-      <rect x="6" y="2.6" width="4" height="3.2" rx="1.1" />
+      <rect x="2.6" y="3.4" width="10.8" height="10" rx="1.4" />
+      <path d="M2.6 6.6h10.8M5.6 2.2v2.4M10.4 2.2v2.4" />
+      <path d="M5.4 9.4h.02M8 9.4h.02M10.6 9.4h.02M5.4 11.6h.02M8 11.6h.02" />
     </Svg>
   );
 }

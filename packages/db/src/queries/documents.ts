@@ -47,7 +47,7 @@ export async function listTree(spaceIds: readonly string[]): Promise<(TreeNode &
     .orderBy(asc(document.position));
 }
 
-/** 캣타워(홈)의 "최근 고친 문서". 본문은 안 들고 온다. */
+/** "최근 고친 문서". 본문은 안 들고 온다. */
 export async function listRecent(
   spaceIds: readonly string[],
   limit = 12,

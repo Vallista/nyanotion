@@ -66,6 +66,14 @@ function cleanTitle(value: string): string {
   return title;
 }
 
+/** 소요 분 — 캘린더 칸의 길이. 5분 ~ 하루. 이상한 값은 "안 정함"(null). */
+function cleanEstMin(value: number | null | undefined): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || !Number.isFinite(value)) return null;
+  const minutes = Math.round(value);
+  return minutes >= 5 && minutes <= 24 * 60 ? minutes : null;
+}
+
 function cleanRepeat(value: string | undefined): ChecklistRepeat | undefined {
   if (value === undefined) return undefined;
   return (CHECKLIST_REPEATS as readonly string[]).includes(value)
@@ -111,13 +119,21 @@ export async function createChecklistAction(input: {
 }
 
 /**
- * **첫 화면에서 바로 적기.** 그 공간(내 문서 / 가족)의 기본 체크리스트(가장 먼저 만든 것)에 넣는다.
+ * **첫 화면(캘린더)에서 바로 적기.** 그 공간(내 문서 / 가족)의 기본 체크리스트(가장 먼저 만든 것)에 넣는다.
+ * 날짜 없이 적으면 백로그로, 캘린더의 빈 칸을 눌러 적으면 그 날·시각·길이로 들어간다.
  * 아직 하나도 없으면 "할 일" 을 만들어 거기 넣는다 — 체크리스트를 먼저 만들라고 시키지 않는다.
  * 권한은 다른 길과 같다: 그 문서를 고칠 수 있어야 한다.
  */
 export async function quickAddAction(
   spaceId: string,
-  input: { title: string; dueOn?: string | null; checklistId?: string | null },
+  input: {
+    title: string;
+    dueOn?: string | null;
+    dueTime?: string | null;
+    estMin?: number | null;
+    repeat?: string;
+    checklistId?: string | null;
+  },
 ): Promise<void> {
   const viewer = await requireViewer();
   const target = viewer.spaces.find((space) => space.id === spaceId);
@@ -146,6 +162,9 @@ export async function quickAddAction(
   await addChecklistItem(found.id, viewer.userId, {
     title: cleanTitle(input.title),
     dueOn: cleanDay(input.dueOn),
+    dueTime: cleanTime(input.dueTime),
+    estMin: cleanEstMin(input.estMin) ?? null,
+    repeat: cleanRepeat(input.repeat),
   });
   refresh();
 }
@@ -188,6 +207,8 @@ export async function updateChecklistItemAction(
     assigneeId?: string | null;
     /** 그 체크리스트 안의 폴더로. null 이면 맨 위로. */
     folderId?: string | null;
+    /** 캘린더 칸의 길이(분). null 이면 안 정함. */
+    estMin?: number | null;
   },
 ): Promise<void> {
   const { documentId, checklistId } = await itemGate(itemId);
@@ -201,6 +222,7 @@ export async function updateChecklistItemAction(
     title: patch.title === undefined ? undefined : cleanTitle(patch.title),
     dueOn: patch.dueOn === undefined ? undefined : cleanDay(patch.dueOn),
     dueTime: patch.dueTime === undefined ? undefined : cleanTime(patch.dueTime),
+    estMin: cleanEstMin(patch.estMin),
     repeat: cleanRepeat(patch.repeat),
     assigneeId: await cleanAssignee(documentId, patch.assigneeId),
   });

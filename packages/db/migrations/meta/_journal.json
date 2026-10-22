@@ -155,6 +155,13 @@
       "when": 1792502204771,
       "tag": "0021_purchase_buy_on",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792503000000,
+      "tag": "0022_calendar_feed",
+      "breakpoints": true
     }
   ]
 }

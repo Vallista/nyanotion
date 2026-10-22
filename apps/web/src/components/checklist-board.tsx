@@ -571,6 +571,8 @@ function pendingItem(
     position: "\uffff",
     purchaseItemId: null,
     purchaseState: null,
+    estMin: null,
+    repeatDay: null,
     createdBy: userId,
     notes: "",
     subtasks: [],

@@ -69,7 +69,7 @@ console.log("\n폰");
   const { id } = await newDoc(phone);
   await phone.goto(`${BASE}/`, { waitUntil: "networkidle" });
   const toggle = await phone.getByRole("button", { name: "문서 트리 열기" }).boundingBox();
-  const crumb = await phone.locator("header span", { hasText: "캣타워" }).last().boundingBox();
+  const crumb = await phone.locator("header span", { hasText: "캘린더" }).last().boundingBox();
   check(
     "**탑바 글자가 트리 단추 밑에 깔리지 않는다**",
     toggle !== null && crumb !== null && crumb.x >= toggle.x + toggle.width,

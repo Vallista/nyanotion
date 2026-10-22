@@ -1,6 +1,7 @@
 /**
  * 색인 워커 — 문서를 토막내어 임베딩하고, 제목·태그를 추천한다.
  * 그리고 체크리스트 일정이 되면 알린다 (`reminders.ts` — GPU 와 무관해 게임 중에도 돈다).
+ * 구독한 외부 캘린더도 여기서 가져온다 (`calendars.ts` — 역시 GPU 와 무관하다).
  *
  * **왜 별도 프로세스인가.** 임베딩은 GPU 를 쓴다. 웹 요청 안에서 하면 저장이 느려지고,
  * 게임 중에는 저장 자체가 실패한다. 그래서 웹은 `ai_job` 에 할 일만 적고 즉시 끝내고,
@@ -26,6 +27,7 @@ import {
   syncVectorColumn,
   type AiJobKind,
 } from "@nyanotion/db";
+import { refreshDueFeeds } from "./calendars.ts";
 import { indexDocument } from "./indexing.ts";
 import { sendDueReminders } from "./reminders.ts";
 import { suggestForDocument } from "./suggest.ts";
@@ -54,6 +56,24 @@ async function remindIfDue(): Promise<void> {
     if (result.items > 0) log(`일정 알림 ${result.items}건 (기기 ${result.sent}대)`);
   } catch (error) {
     log(`일정 알림 실패 — ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/** 캘린더 구독을 살피는 간격. 구독마다 15분에 한 번 가져오지만, 새로 단 것은 곧바로 집어야 한다. */
+const FEEDS_MS = 30_000;
+let lastFeeds = 0;
+
+/** 때가 된 캘린더 구독을 가져온다. 알림처럼 색인과 따로 논다 — 실패해도 워커를 멈추지 않는다. */
+async function feedsIfDue(): Promise<void> {
+  if (Date.now() - lastFeeds < FEEDS_MS) return;
+  lastFeeds = Date.now();
+  try {
+    const result = await refreshDueFeeds();
+    if (result.fetched + result.failed > 0) {
+      log(`캘린더 ${result.fetched}개 가져옴 (일정 ${result.events}) · 실패 ${result.failed}`);
+    }
+  } catch (error) {
+    log(`캘린더 가져오기 실패 — ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -127,6 +147,7 @@ async function main(): Promise<void> {
   let sinceSweep = 0;
   while (!stopping) {
     await remindIfDue();
+    await feedsIfDue();
     const result = await step();
     if (result === "did") {
       sinceSweep += 1;

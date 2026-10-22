@@ -32,7 +32,7 @@ import {
   PageIcon,
   PlusIcon,
   SearchIcon,
-  TowerIcon,
+  CalendarIcon,
 } from "./icons";
 
 const EXPANDED_KEY = "nyanotion.expanded";
@@ -358,8 +358,8 @@ export function Sidebar({
 
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
         <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
-        <SideLink href="/" icon={<TowerIcon />} label="캣타워" active={pathname === "/"} />
-        {/* 체크리스트가 이 앱의 주 기능이다 — 캣타워 바로 밑. */}
+        <SideLink href="/" icon={<CalendarIcon />} label="캘린더" active={pathname === "/"} />
+        {/* 할 일은 캘린더 바로 밑 — 캘린더에 놓기 전의 할 일(백로그)이 다 여기 있다. */}
         <SideLink
           href="/lists"
           icon={<ChecklistIcon />}

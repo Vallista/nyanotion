@@ -9,19 +9,25 @@
 export const HOME_TIME_ZONE = "Asia/Seoul";
 
 /**
- *  none     한 번
- *  daily    매일
- *  weekly   매주 (같은 요일)
- *  monthly  매달 (같은 날 — 없는 날이면 그달 마지막 날)
+ *  none      한 번
+ *  daily     매일
+ *  weekdays  평일 (월~금 — 금요일 다음은 월요일)
+ *  weekly    매주 (같은 요일)
+ *  monthly   매달 (같은 날 — 없는 날이면 그달 마지막 날)
+ *  yearly    매년 (같은 달 같은 날 — 2월 29일은 없는 해에 28일)
+ *
+ * **더하기만 한다.** 값은 `checklist_item.repeat` 에 글자로 남으므로 이름을 바꾸면 이미 적힌 반복이 깨진다.
  */
-export const CHECKLIST_REPEATS = ["none", "daily", "weekly", "monthly"] as const;
+export const CHECKLIST_REPEATS = ["none", "daily", "weekdays", "weekly", "monthly", "yearly"] as const;
 export type ChecklistRepeat = (typeof CHECKLIST_REPEATS)[number];
 
 export const REPEAT_LABEL: Record<ChecklistRepeat, string> = {
   none: "반복 안 함",
   daily: "매일",
+  weekdays: "평일마다",
   weekly: "매주",
   monthly: "매달",
+  yearly: "매년",
 };
 
 export function asRepeat(value: string): ChecklistRepeat {
@@ -77,17 +83,29 @@ export function nextDueOn(day: string, repeat: ChecklistRepeat, anchorDay?: numb
       return null;
     case "daily":
       return addDays(day, 1);
+    case "weekdays": {
+      // 금(5) → 월 +3, 토(6) → 월 +2, 그 밖은 다음 날.
+      const weekday = weekdayOf(day);
+      return addDays(day, weekday === 5 ? 3 : weekday === 6 ? 2 : 1);
+    }
     case "weekly":
       return addDays(day, 7);
-    case "monthly": {
+    case "monthly":
+    case "yearly": {
       const [y, m, d] = day.split("-").map(Number) as [number, number, number];
       const want = anchorDay ?? d;
-      const year = m === 12 ? y + 1 : y;
-      const month = m === 12 ? 1 : m + 1;
+      const year = repeat === "yearly" || m === 12 ? y + 1 : y;
+      const month = repeat === "yearly" ? m : m === 12 ? 1 : m + 1;
       const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
       return `${year}-${pad(month)}-${pad(Math.min(want, last))}`;
     }
   }
+}
+
+/** 그날의 요일 — 0 이 일요일. 날짜 문자열만 보고 센다(시간대와 무관). */
+export function weekdayOf(day: string): number {
+  const [y, m, d] = day.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
 /** 이 집 시간대로 지금이 며칠 몇 시인가. */

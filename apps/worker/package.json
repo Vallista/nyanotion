@@ -9,13 +9,15 @@
     "once": "tsx src/index.ts --once",
     "reindex": "tsx scripts/reindex.ts",
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx scripts/smoke-rag.ts"
+    "smoke": "tsx scripts/smoke-calendar.ts && tsx scripts/smoke-rag.ts",
+    "smoke:calendar": "tsx scripts/smoke-calendar.ts"
   },
   "dependencies": {
     "@nyanotion/ai": "workspace:*",
     "@nyanotion/db": "workspace:*",
     "@nyanotion/notify": "workspace:*",
-    "@nyanotion/shared": "workspace:*"
+    "@nyanotion/shared": "workspace:*",
+    "ical.js": "2.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

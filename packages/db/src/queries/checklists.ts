@@ -5,7 +5,7 @@ import {
   positionAfterLast,
   type ChecklistRepeat,
 } from "@nyanotion/shared";
-import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "../client";
 import { newId } from "../id";
 import { checklist, checklistFolder, checklistItem } from "../schema/checklist";
@@ -36,7 +36,11 @@ export type ChecklistItemRow = {
   doneBy: string | null;
   dueOn: string | null;
   dueTime: string | null;
+  /** 예상 소요 분 — 캘린더에서 시간 칸의 길이. Bento 의 `estMin` 과 같은 칸이다. */
+  estMin: number | null;
   repeat: ChecklistRepeat;
+  /** 매달·매년 반복이 돌아갈 원래 날. 캘린더가 앞날을 그릴 때 쓴다. */
+  repeatDay: number | null;
   assigneeId: string | null;
   position: string;
   purchaseItemId: string | null;
@@ -74,7 +78,9 @@ function toItem(
     doneBy: row.doneBy,
     dueOn: row.dueOn,
     dueTime: row.dueTime,
+    estMin: row.estMin,
     repeat: asRepeat(row.repeat),
+    repeatDay: row.repeatDay,
     assigneeId: row.assigneeId,
     position: row.position,
     purchaseItemId: row.purchaseItemId,
@@ -233,7 +239,7 @@ export async function agenda(
 }
 
 /**
- * 아직 안 한 항목 전부 — 날짜가 없는 것까지. **첫 화면(캣타워)** 이 공간마다 묶어 보여 준다.
+ * 아직 안 한 항목 전부 — 날짜가 없는 것까지. 체크리스트 화면이 공간마다 묶어 보여 주고, 첫 화면(캘린더)은 날짜 없는 것을 백로그로 쓴다.
  * 날짜가 있는 것 먼저(이른 순), 그다음 날짜 없는 것을 적은 순서로.
  */
 export async function openItems(spaceIds: readonly string[], limit = 300): Promise<AgendaRow[]> {
@@ -264,6 +270,54 @@ export async function openItems(spaceIds: readonly string[], limit = 300): Promi
       asc(checklistItem.dueTime),
       asc(checklistItem.createdAt),
     )
+    .limit(limit);
+
+  return rows.map((row) => ({
+    ...toItem(row.item, row.purchaseState),
+    checklistTitle: row.checklistTitle,
+    documentId: row.documentId,
+    spaceId: row.spaceId,
+  }));
+}
+
+/**
+ * **캘린더에 놓인 할 일** — `from`~`to` 에 날짜가 있는 것(한 것 포함 — 그날 무엇을 했는지 보이게),
+ * 그리고 그 전에 날짜가 있지만 **아직 안 한 반복 할 일**(앞날을 캘린더가 그려야 하므로).
+ * space 로 좁힌다 (`openItems` 와 같은 규칙).
+ */
+export async function calendarItems(
+  spaceIds: readonly string[],
+  from: string,
+  to: string,
+  limit = 1000,
+): Promise<AgendaRow[]> {
+  if (spaceIds.length === 0) return [];
+  const rows = await db
+    .select({
+      item: checklistItem,
+      purchaseState: purchaseItem.state,
+      checklistTitle: document.title,
+      documentId: document.id,
+      spaceId: document.spaceId,
+    })
+    .from(checklistItem)
+    .innerJoin(checklist, eq(checklistItem.checklistId, checklist.id))
+    .innerJoin(document, eq(checklist.documentId, document.id))
+    .leftJoin(purchaseItem, eq(checklistItem.purchaseItemId, purchaseItem.id))
+    .where(
+      and(
+        inArray(document.spaceId, [...spaceIds]),
+        isNull(document.archivedAt),
+        isNull(checklistItem.deletedAt),
+        isNotNull(checklistItem.dueOn),
+        lte(checklistItem.dueOn, to),
+        or(
+          gte(checklistItem.dueOn, from),
+          and(eq(checklistItem.done, false), ne(checklistItem.repeat, "none")),
+        ),
+      ),
+    )
+    .orderBy(asc(checklistItem.dueOn), asc(checklistItem.dueTime), asc(checklistItem.position))
     .limit(limit);
 
   return rows.map((row) => ({
@@ -334,6 +388,8 @@ export type ItemInput = {
   title: string;
   dueOn?: string | null;
   dueTime?: string | null;
+  /** 예상 소요 분. 캘린더에 시간 칸으로 놓을 때 그 길이. */
+  estMin?: number | null;
   repeat?: ChecklistRepeat;
   assigneeId?: string | null;
   /** 체크리스트 안의 폴더. null 이면 맨 위로. */
@@ -362,6 +418,7 @@ export async function addChecklistItem(
     dueOn: input.dueOn ?? null,
     // 날짜 없는 시간은 뜻이 없다.
     dueTime: input.dueOn ? (input.dueTime ?? null) : null,
+    estMin: input.estMin ?? null,
     repeat: input.dueOn ? (input.repeat ?? "none") : "none",
     repeatDay: dayOfMonth(input.dueOn ?? null),
     assigneeId: input.assigneeId ?? null,
@@ -384,6 +441,7 @@ export async function updateChecklistItem(
   if (patch.notes !== undefined) values.notes = patch.notes;
   if (patch.subtasks !== undefined) values.subtasks = patch.subtasks;
   if (patch.dueTime !== undefined) values.dueTime = patch.dueTime;
+  if (patch.estMin !== undefined) values.estMin = patch.estMin;
   if (patch.dueOn !== undefined) {
     values.dueOn = patch.dueOn;
     // 사람이 날짜를 새로 정하면 그날이 새 "원래 날"이다.
@@ -439,9 +497,11 @@ export async function setChecklistItemDone(
     title: row.title,
     dueOn: next,
     dueTime: row.dueTime,
+    estMin: row.estMin,
     repeat: row.repeat,
     repeatDay: row.repeatDay,
     assigneeId: row.assigneeId,
+    folderId: row.folderId,
     // 같은 자리에 이어서 — 체크한 줄은 아래 "한 것"으로 내려가므로 순서가 자연스럽다.
     position: row.position,
     createdBy: row.createdBy,
