@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { user } from "./auth";
 import { space } from "./app";
 import { document } from "./document";
@@ -34,22 +34,6 @@ export const documentTag = pgTable(
       .references(() => tag.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.documentId, t.tagId] }), index("document_tag_tag_idx").on(t.tagId)],
-);
-
-/** 츄르 — 즐겨찾기. 사람마다 다르므로 space 가 아니라 user 에 매인다. */
-export const favorite = pgTable(
-  "favorite",
-  {
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    documentId: text("document_id")
-      .notNull()
-      .references(() => document.id, { onDelete: "cascade" }),
-    position: integer("position").notNull().default(0),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.userId, t.documentId] })],
 );
 
 /**

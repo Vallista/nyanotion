@@ -1,16 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { archiveDocumentAction, createDocumentAction, toggleFavoriteAction } from "@/lib/actions";
-import { ChuruIcon, DotsIcon, LitterBoxIcon, PlusIcon, ShareIcon } from "./icons";
+import { useState } from "react";
+import { archiveDocumentAction, createDocumentAction } from "@/lib/actions";
+import { DotsIcon, LitterBoxIcon, PlusIcon, ShareIcon } from "./icons";
 import { Spinner, usePending } from "./pending";
 import { ShareDialog, type LinkEntry, type ShareEntry } from "./share-dialog";
 
 /** 상단 바 오른쪽. 댓글은 M6 에서 들어온다. */
 export function DocumentActions({
   id,
-  favorite,
   canWrite,
   canShare,
   shares,
@@ -18,7 +17,6 @@ export function DocumentActions({
   links,
 }: {
   id: string;
-  favorite: boolean;
   canWrite: boolean;
   /** 공유는 문서의 owner 만. */
   canShare: boolean;
@@ -26,29 +24,13 @@ export function DocumentActions({
   families: { id: string; name: string }[];
   links: LinkEntry[];
 }) {
-  const [, startTransition] = useTransition();
   const router = useRouter();
   const { pending, busy, run } = usePending();
   const [menuOpen, setMenuOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [starred, setStarred] = useState(favorite);
 
   return (
     <span style={{ display: "flex", alignItems: "center", gap: 6, position: "relative" }}>
-      <BarButton
-        label={starred ? "츄르에서 빼기" : "츄르에 넣기"}
-        onClick={() => {
-          setStarred((value) => !value);
-          startTransition(async () => {
-            const next = await toggleFavoriteAction(id);
-            setStarred(next);
-          });
-        }}
-        color={starred ? "var(--accent)" : undefined}
-      >
-        <ChuruIcon filled={starred} />
-      </BarButton>
-
       {canShare && (
         <button
           onClick={() => setShareOpen(true)}

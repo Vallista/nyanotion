@@ -75,6 +75,11 @@ export const purchaseItem = pgTable(
     maxPriceKrw: integer("max_price_krw"),
     /** 언제까지 필요한가. 날짜만 뜻이 있으므로 `YYYY-MM-DD` 문자열로 둔다 (시간대가 끼면 하루가 밀린다). */
     neededBy: text("needed_by"),
+    /**
+     * 언제 살지 (`YYYY-MM-DD`, 집 시간). 그날이 되면 에이전트가 `listed` 를 `searching` 으로 올린다 —
+     * 그 뒤는 여느 살 것과 같다. **승인·유예·결제 버튼은 그대로 사람 몫이다.**
+     */
+    buyOn: text("buy_on"),
     /** 무슨 일이 있었는지 사람 말로. 실패 이유가 여기 들어간다. */
     note: text("note").notNull().default(""),
     createdBy: text("created_by")

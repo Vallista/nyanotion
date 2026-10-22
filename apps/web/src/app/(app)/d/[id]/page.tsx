@@ -1,7 +1,6 @@
 import {
   checklistOfDocument,
   getSuggestion,
-  isFavorite,
   listPublicLinks,
   listShares,
   listTags,
@@ -32,11 +31,10 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
   const canWrite = role === "editor" || role === "owner";
   const canShare = role === "owner";
 
-  const [nodes, tagMap, allTags, favorite, shares, links, suggestion, checklistId] = await Promise.all([
+  const [nodes, tagMap, allTags, shares, links, suggestion, checklistId] = await Promise.all([
     listTree(viewer.spaceIds),
     tagsForDocuments([id]),
     listTags(viewer.spaceIds),
-    isFavorite(viewer.userId, id),
     canShare ? listShares(id) : Promise.resolve([]),
     canShare ? listPublicLinks(id) : Promise.resolve([]),
     // 제안은 고칠 수 있는 사람에게만 보여 준다 — 읽기로 받은 문서의 제목을 바꿀 수는 없다.
@@ -66,7 +64,6 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         right={
           <DocumentActions
             id={doc.id}
-            favorite={favorite}
             canWrite={canWrite}
             canShare={canShare}
             families={viewer.spaces

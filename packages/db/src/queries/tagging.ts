@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "../client";
 import { newId } from "../id";
-import { document, documentTag, favorite, tag } from "../schema/index";
+import { document, documentTag, tag } from "../schema/index";
 
 /* ------------------------------------------------------------------ 태그 */
 
@@ -118,53 +118,4 @@ export async function documentsWithTag(
       ),
     )
     .orderBy(desc(document.updatedAt));
-}
-
-/* ------------------------------------------------------- 츄르 (즐겨찾기) */
-
-export async function listFavorites(
-  userId: string,
-  spaceIds: readonly string[],
-): Promise<{ id: string; title: string; icon: string | null }[]> {
-  if (spaceIds.length === 0) return [];
-  return db
-    .select({ id: document.id, title: document.title, icon: document.icon })
-    .from(favorite)
-    .innerJoin(document, eq(document.id, favorite.documentId))
-    .where(
-      and(
-        eq(favorite.userId, userId),
-        inArray(document.spaceId, [...spaceIds]),
-        isNull(document.archivedAt),
-      ),
-    )
-    .orderBy(asc(favorite.position), asc(favorite.createdAt));
-}
-
-export async function isFavorite(userId: string, documentId: string): Promise<boolean> {
-  const rows = await db
-    .select({ documentId: favorite.documentId })
-    .from(favorite)
-    .where(and(eq(favorite.userId, userId), eq(favorite.documentId, documentId)))
-    .limit(1);
-  return rows.length > 0;
-}
-
-/** 켜고 끈다. 돌려주는 값은 **바뀐 뒤** 상태. */
-export async function toggleFavorite(userId: string, documentId: string): Promise<boolean> {
-  if (await isFavorite(userId, documentId)) {
-    await db
-      .delete(favorite)
-      .where(and(eq(favorite.userId, userId), eq(favorite.documentId, documentId)));
-    return false;
-  }
-  const next = await db
-    .select({ max: sql<number>`coalesce(max(${favorite.position}), -1)::int` })
-    .from(favorite)
-    .where(eq(favorite.userId, userId));
-  await db
-    .insert(favorite)
-    .values({ userId, documentId, position: (next[0]?.max ?? -1) + 1 })
-    .onConflictDoNothing();
-  return true;
 }

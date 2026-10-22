@@ -52,6 +52,15 @@ export function PageIcon(p: IconProps) {
   );
 }
 
+/** 폴더 — 문서를 묶어 두는 문서. 열면 여느 문서처럼 본문도 있다. */
+export function FolderIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2.2 4.4a1.2 1.2 0 0 1 1.2-1.2h2.8l1.4 1.5h5a1.2 1.2 0 0 1 1.2 1.2v6.2a1.2 1.2 0 0 1-1.2 1.2H3.4a1.2 1.2 0 0 1-1.2-1.2z" />
+    </Svg>
+  );
+}
+
 export function PlusIcon(p: IconProps) {
   return (
     <Svg {...p} strokeWidth={p.strokeWidth ?? 1.3}>
@@ -143,31 +152,6 @@ export function InstallIcon(p: IconProps) {
       <path d="m5.2 7.2 2.8 2.6 2.8-2.6" />
       <path d="M3 10.6v1.8a1.2 1.2 0 0 0 1.2 1.2h7.6a1.2 1.2 0 0 0 1.2-1.2v-1.8" />
     </Svg>
-  );
-}
-
-/** 츄르 — 즐겨찾기. 고양이 간식 스틱 모양. */
-export function ChuruIcon({ size = 15, filled = false }: IconProps & { filled?: boolean }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={{ flexShrink: 0, display: "block" }}
-    >
-      <path
-        d="M10.6 1.9 3.1 9.4a2.3 2.3 0 0 0-.6 1.1l-.6 2.6 2.6-.6c.42-.1.8-.31 1.1-.6l7.5-7.5a1.9 1.9 0 0 0-2.5-2.5z"
-        fill={filled ? "currentColor" : "none"}
-        fillOpacity={filled ? 0.18 : 0}
-      />
-      <path d="M9.6 3 13 6.4" />
-    </svg>
   );
 }
 

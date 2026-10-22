@@ -20,6 +20,7 @@ export {
   getItem,
   listItems,
   listItemsForAgent,
+  startScheduledItems,
   listOrders,
   markOrderCarted,
   markOrderFailed,
@@ -129,12 +130,9 @@ export {
   detachTag,
   documentsWithTag,
   ensureTag,
-  isFavorite,
-  listFavorites,
   listTags,
   renameTag as renameTagName,
   tagsForDocuments,
-  toggleFavorite,
   type TagWithCount,
 } from "./tagging";
 export {

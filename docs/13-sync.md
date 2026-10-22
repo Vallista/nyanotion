@@ -50,6 +50,7 @@ GET  /api/sync/me                              나 · 고칠 수 있는 체크�
 POST /api/sync/checklists          {title}     체크리스트 만들기 (맞출 것이 없을 때)
 GET  /api/sync/checklists/:id/changes?since=N  N 다음에 바뀐 폴더·항목 (지운 것 포함), cursor, more
 POST /api/sync/checklists/:id/changes          {folders, items}  → {applied, stale, rejected, current}
+GET  /api/sync/agenda?limit=30                 오늘까지 할 일(지난 것 포함), 모든 공간 — iOS 위젯용 (읽기만)
 ```
 
 - 순서는 늘 **올리고 → 받기.** `more` 가 true 면 `cursor` 로 이어서 또 받는다.

@@ -46,8 +46,13 @@ async function itemGate(itemId: string) {
 }
 
 function refresh(): void {
-  revalidatePath("/buy");
+  revalidatePath("/buy", "layout");
   revalidatePath("/", "layout");
+}
+
+/** 날짜 칸은 `YYYY-MM-DD` 만 받는다. 모양이 다르면 날짜 없음으로 — 에이전트가 문자열로 비교하기 때문이다. */
+function dayOrNull(value: string | null | undefined): string | null {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null;
 }
 
 /** 살 것을 하나 적는다. 문서가 같이 생긴다 — 열면 메모·사진을 쓸 수 있다. */
@@ -57,6 +62,7 @@ export async function addPurchaseItemAction(input: {
   quantity?: number;
   maxPriceKrw?: number | null;
   neededBy?: string | null;
+  buyOn?: string | null;
 }): Promise<void> {
   const viewer = await requireViewer();
   const title = input.title.trim();
@@ -77,6 +83,7 @@ export async function addPurchaseItemAction(input: {
     quantity: input.quantity,
     maxPriceKrw: input.maxPriceKrw ?? null,
     neededBy: input.neededBy ?? null,
+    buyOn: dayOrNull(input.buyOn),
   });
   refresh();
 }
@@ -87,10 +94,14 @@ export async function updatePurchaseItemAction(
     quantity?: number;
     maxPriceKrw?: number | null;
     neededBy?: string | null;
+    buyOn?: string | null;
   },
 ): Promise<void> {
   await itemGate(itemId);
-  await updateItem(itemId, patch);
+  await updateItem(itemId, {
+    ...patch,
+    buyOn: patch.buyOn === undefined ? undefined : dayOrNull(patch.buyOn),
+  });
   refresh();
 }
 

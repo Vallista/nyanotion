@@ -40,12 +40,26 @@ iOS 26 기준, 홈 화면에 추가한 PWA에서 되는 것:
 
 - ❌ **Background Sync API** — 앱이 닫힌 동안 자동 동기화가 안 된다. 열면 그때 동기화된다.
 - ❌ 공유 시트(다른 앱 → Nyanotion으로 스크랩)
-- ❌ 위젯 / Siri 단축어
+- ❌ 위젯 / Siri 단축어 — 위젯은 **Scriptable** 로 대신한다 (`scripts/scriptable/nyanotion-widget.js`, 아래 §2.1)
 - ❌ 생체 인증 잠금
 - ⚠️ 저장소 축출 — Safari는 오래 안 쓴 사이트의 캐시를 지운다. Persistent Storage API(Safari 17+)로 보호를 요청할 수 있지만 **알림 권한이 있어야 한다.**
 - ⚠️ 푸시 도달률 iOS 70~85% (Android 90~95%)
 
 → **오프라인 편집분을 잃지 않으려면 알림 권한을 받아 Persistent Storage 를 요청해야 한다.** 설치 안내에 포함할 것.
+
+### 2.1 iOS 위젯 — 지금은 Scriptable
+
+PWA 는 위젯을 못 단다. 셸을 만들기 전까지는 Scriptable(무료 앱)이 개인 토큰으로 `GET /api/sync/agenda` 를 읽어
+**오늘·밀린 할 일**을 그린다. 서버 주소와 토큰은 iOS 키체인에만 둔다.
+
+1. 내 계정 → 개인 토큰 만들기
+2. `scripts/scriptable/nyanotion-widget.js` 를 Scriptable 에 새 스크립트로 붙여 넣고 앱에서 한 번 실행 → 주소·토큰 입력
+3. 홈 화면 → 위젯 추가 → Scriptable → 스크립트 고르기
+
+- 위젯에서 체크는 못 한다 — 줄을 누르면 그 체크리스트가 열린다. 위젯에서 바로 체크하고 싶어지면 그때 네이티브
+  셸(WidgetKit, iOS 17+ 인터랙티브 위젯)로 간다. 그 위젯도 같은 `/api/sync/*` 를 쓴다.
+- 새로 고침 시점은 iOS 가 정한다 (대개 15분~수십 분). 즉시성이 필요한 건 위젯이 아니라 **웹 푸시**가 맡는다.
+- 알림은 이미 웹 푸시로 간다 (체크리스트 마감 · 구매 승인 · 댓글). 홈 화면에 추가한 냥노션에서 알림을 켜면 된다.
 
 ## 3. 배포 방법
 

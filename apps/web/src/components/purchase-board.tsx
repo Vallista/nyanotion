@@ -16,6 +16,7 @@ import {
   relistPurchaseAction,
   removePurchaseItemAction,
   requestSearchAction,
+  updatePurchaseItemAction,
 } from "@/lib/purchase-actions";
 import { PageIcon, PlusIcon } from "./icons";
 import { Spinner } from "./pending";
@@ -23,7 +24,8 @@ import { Spinner } from "./pending";
 /**
  * 살 것 · 승인 · 히스토리.
  *
- * 화면의 순서가 곧 일의 순서다: **승인 기다리는 것 → 진행 중 → 적어 둔 것 → 지난 기록.**
+ * 두 화면으로 나뉜다 — **백로그**(아직 사지 않은 것)와 **이미 구매한 것**(결제했거나 받은 것 + 기록).
+ * 백로그의 순서가 곧 일의 순서다: **승인 기다리는 것 → 적어 둔 것 → 진행 중 → 안 산 것.**
  * 승인이 맨 위인 이유는 그것만이 사람을 기다리는 일이기 때문이다.
  *
  * 돈이 나가는 화면이라 **얼마인지·누가 승인했는지·언제까지 물릴 수 있는지**를 늘 보여 준다.
@@ -62,6 +64,7 @@ function when(iso: string): string {
 }
 
 export function PurchaseBoard({
+  view,
   items,
   orders,
   people,
@@ -69,6 +72,8 @@ export function PurchaseBoard({
   defaultSpaceId,
   userId,
 }: {
+  /** `backlog` = 아직 안 산 것, `bought` = 결제했거나 받은 것과 구매 기록. */
+  view: "backlog" | "bought";
   items: ItemRow[];
   orders: OrderRow[];
   people: { id: string; name: string }[];
@@ -80,19 +85,77 @@ export function PurchaseBoard({
     people.find((p) => p.id === id)?.name ?? "누군가";
 
   const waiting = items.filter((item) => item.state === "proposed");
+  // 장바구니에 담긴 것도 아직 진행 중이다 — 결제 버튼을 사람이 눌러야 끝난다.
   const running = items.filter(
     (item) =>
       item.state === "searching" ||
       item.state === "approved" ||
-      item.state === "ordered",
+      item.state === "carted",
   );
-  const listed = items.filter((item) => item.state === "listed");
-  const closed = items.filter(
-    (item) =>
-      item.state === "done" ||
-      item.state === "rejected" ||
-      item.state === "failed",
+  // 정한 날이 가까운 것부터. 날짜가 없으면 뒤로.
+  const listed = items
+    .filter((item) => item.state === "listed")
+    .sort((a, b) => (a.buyOn ?? "9999").localeCompare(b.buyOn ?? "9999"));
+  const dropped = items.filter(
+    (item) => item.state === "rejected" || item.state === "failed",
   );
+  const bought = items.filter(
+    (item) => item.state === "ordered" || item.state === "done",
+  );
+
+  if (view === "bought") {
+    return (
+      <div>
+        <h1
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            letterSpacing: "-0.02em",
+            marginBottom: 6,
+          }}
+        >
+          이미 구매한 것
+        </h1>
+        <p
+          style={{
+            fontSize: 13,
+            color: "var(--ink-3)",
+            marginBottom: 28,
+            lineHeight: 1.7,
+          }}
+        >
+          결제를 마쳤거나 받은 것. 살 것을 지워도 기록은 남습니다.
+        </p>
+
+        {bought.length > 0 && (
+          <Group title="결제함 · 받음">
+            {bought.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                nameOf={nameOf}
+                order={orders.find(
+                  (order) =>
+                    order.itemId === item.id && order.cancelledAt === null,
+                )}
+                userId={userId}
+              />
+            ))}
+          </Group>
+        )}
+
+        {orders.length > 0 ? (
+          <History orders={orders} nameOf={nameOf} initiallyOpen />
+        ) : (
+          bought.length === 0 && (
+            <p style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.8 }}>
+              아직 산 것이 없어요.
+            </p>
+          )
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -104,7 +167,7 @@ export function PurchaseBoard({
           marginBottom: 6,
         }}
       >
-        살 것
+        구매 백로그
       </h1>
       <p
         style={{
@@ -114,9 +177,9 @@ export function PurchaseBoard({
           lineHeight: 1.7,
         }}
       >
-        적어 두면 쿠팡과 네이버에서 가장 싼 것을 찾아 옵니다.{" "}
-        <b style={{ fontWeight: 500 }}>가족 중 누구든 한 명이 승인</b>해야
-        실제로 삽니다.
+        언제 살지 정해 두면 그날 쿠팡과 네이버에서 가장 싼 것을 찾아 옵니다.{" "}
+        <b style={{ fontWeight: 500 }}>가족 중 누구든 한 명이 승인</b>하면
+        장바구니에 담고 결제 화면을 열어 둡니다 — 결제 버튼은 사람이 누릅니다.
       </p>
 
       {waiting.length > 0 && (
@@ -154,17 +217,15 @@ export function PurchaseBoard({
         </Group>
       )}
 
-      {closed.length > 0 && (
-        <Group title="끝난 것">
-          {closed.map((item) => (
+      {dropped.length > 0 && (
+        <Group title="안 산 것">
+          {dropped.map((item) => (
             <ItemCard key={item.id} item={item} nameOf={nameOf} />
           ))}
         </Group>
       )}
 
-      {orders.length > 0 && <History orders={orders} nameOf={nameOf} />}
-
-      {items.length === 0 && (
+      {items.length === bought.length && (
         <p
           style={{
             fontSize: 13.5,
@@ -288,6 +349,11 @@ function ItemCard({
           </span>
         )}
         <Badge>{STATE_LABEL[item.state]}</Badge>
+        {item.buyOn !== null && item.state === "listed" && (
+          <span style={{ fontSize: 12, color: "var(--accent)" }}>
+            {item.buyOn}에 찾기 시작
+          </span>
+        )}
         {item.neededBy !== null && (
           <span style={{ fontSize: 12, color: "var(--ink-3)" }}>
             {item.neededBy}까지
@@ -388,8 +454,23 @@ function ItemCard({
             busy={isBusy("search")}
             onClick={() => run("search", () => requestSearchAction(item.id))}
           >
-            가격 찾기
+            지금 찾기
           </Action>
+        )}
+
+        {item.state === "listed" && (
+          <input
+            type="date"
+            value={item.buyOn ?? ""}
+            onChange={(event) => {
+              const next = event.target.value === "" ? null : event.target.value;
+              run("buyOn", () => updatePurchaseItemAction(item.id, { buyOn: next }));
+            }}
+            disabled={busy}
+            aria-label="언제 살까"
+            title="언제 살까 — 그날 가장 싼 것을 찾기 시작합니다"
+            style={{ ...inputStyle, width: 140, height: 30 }}
+          />
         )}
 
         {/* 승인을 기다리는 중에도 넣을 수 있어야 한다 — "내가 본 게 더 싸다" 가 실제로 있다. */}
@@ -638,11 +719,13 @@ function OrderLine({
 function History({
   orders,
   nameOf,
+  initiallyOpen = false,
 }: {
   orders: OrderRow[];
   nameOf: (id: string) => string;
+  initiallyOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const spent = orders
     .filter((order) => order.cancelledAt === null && order.failure === "")
     .reduce((sum, order) => sum + order.totalKrw, 0);
@@ -755,7 +838,7 @@ function AddItem({
   const [spaceId, setSpaceId] = useState(defaultSpaceId);
   const [quantity, setQuantity] = useState("1");
   const [maxPrice, setMaxPrice] = useState("");
-  const [neededBy, setNeededBy] = useState("");
+  const [buyOn, setBuyOn] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
 
   function submit(): void {
@@ -772,11 +855,11 @@ function AddItem({
             maxPrice.trim() === ""
               ? null
               : Number(maxPrice.replace(/[^\d]/g, "")),
-          neededBy: neededBy === "" ? null : neededBy,
+          buyOn: buyOn === "" ? null : buyOn,
         });
         setTitle("");
         setMaxPrice("");
-        setNeededBy("");
+        setBuyOn("");
         setQuantity("1");
         router.refresh();
       } catch (error) {
@@ -823,9 +906,10 @@ function AddItem({
         />
         <input
           type="date"
-          value={neededBy}
-          onChange={(event) => setNeededBy(event.target.value)}
-          aria-label="언제까지"
+          value={buyOn}
+          onChange={(event) => setBuyOn(event.target.value)}
+          aria-label="언제 살까"
+          title="언제 살까 — 그날 가장 싼 것을 찾기 시작합니다. 비우면 '찾기'를 누를 때까지 기다립니다."
           style={{ ...inputStyle, width: 140 }}
         />
         {spaces.length > 1 && (

@@ -3,8 +3,6 @@ import {
   awaitingApprovalCount,
   countArchived,
   dueCount,
-  listCollections,
-  listFavorites,
   listTags,
   listTree,
 } from "@nyanotion/db";
@@ -18,13 +16,11 @@ import { requireViewer } from "@/lib/session";
 /** 로그인이 필요한 화면 전체의 껍데기. /login 은 이 그룹 밖에 있다. */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
-  const [nodes, archivedCount, favorites, tags, collections, awaitingApproval, checklistDue, admin] =
+  const [nodes, archivedCount, tags, awaitingApproval, checklistDue, admin] =
     await Promise.all([
       listTree(viewer.spaceIds),
       countArchived(viewer.spaceIds),
-      listFavorites(viewer.userId, viewer.spaceIds),
       listTags(viewer.spaceIds),
-      listCollections(viewer.spaceIds),
       awaitingApprovalCount(viewer.spaceIds),
       dueCount(viewer.spaceIds, homeNow().day),
       isAdmin(viewer),
@@ -47,9 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           awaitingApproval={awaitingApproval}
           checklistDue={checklistDue}
           isAdmin={admin}
-          favorites={favorites}
           tags={tags}
-          collections={collections.map((c) => ({ id: c.id, name: c.name }))}
           email={viewer.email}
           gpuMode={ai.mode}
           aiReachable={ai.reachable}

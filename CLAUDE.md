@@ -97,7 +97,7 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 ### 그 외
 - **DB 스키마 변경은 `packages/db/migrations/` 에 새 번호로 추가.** 적용된 SQL 은 고치지 않는다.
 - **비밀 값은 커밋 금지.** `infra/.env` 는 git 무시. 예시는 `infra/.env.example` 에만.
-- 고양이 이름(냥이·캣타워·모래상자·츄르)은 **UI 문구에서만**. DB 컬럼·코드 식별자는 평범한 영어로.
+- 고양이 이름(냥이·캣타워·모래상자)은 **UI 문구에서만**. DB 컬럼·코드 식별자는 평범한 영어로.
 
 ## 환경과 비밀값
 

@@ -14,16 +14,14 @@ import { buildTree, displayTitle, flattenVisible, subtreeIds, type TreeItem } fr
 import { CatMark } from "./cat-mark";
 import { GpuModeToggle } from "./gpu-mode-toggle";
 import { openCommandPalette } from "./command-palette";
-import { NewDatabaseButton } from "./new-database-button";
 import { NewFamilyButton } from "./new-family-button";
 import { SignOutButton } from "./sign-out-button";
 import {
   ChevronDown,
   ChevronRight,
-  ChuruIcon,
-  CollectionIcon,
   DotsIcon,
   FamilyIcon,
+  FolderIcon,
   AskIcon,
   CartIcon,
   ChecklistIcon,
@@ -119,9 +117,7 @@ export function Sidebar({
   awaitingApproval,
   checklistDue,
   isAdmin,
-  favorites,
   tags,
-  collections,
   email,
   gpuMode,
   aiReachable,
@@ -135,9 +131,7 @@ export function Sidebar({
   checklistDue: number;
   /** 서버 어드민이면 어드민 링크를 보여 준다. 아니면 링크 자체가 없다 (화면도 404). */
   isAdmin: boolean;
-  favorites: { id: string; title: string; icon: string | null }[];
   tags: { id: string; name: string; count: number }[];
-  collections: { id: string; name: string }[];
   email: string;
   gpuMode: "free" | "gaming";
   aiReachable: boolean;
@@ -240,6 +234,30 @@ export function Sidebar({
 
   const orgSpaces = spaces.filter((item) => item.kind === "org");
   const personalSpace = spaces.find((item) => item.kind === "personal");
+
+  /** 칸 머리의 단추 — 새 폴더 · 새 문서. 폴더도 문서라 둘 다 트리에 같은 자리로 들어간다. */
+  function spaceButtons(spaceId: string) {
+    return (
+      <span style={{ display: "flex", gap: 1 }}>
+        <RowButton
+          label="새 폴더"
+          busy={action.busy(`folder:${spaceId}`)}
+          onClick={() =>
+            action.run(`folder:${spaceId}`, () => createDocumentAction(null, spaceId, "folder"))
+          }
+        >
+          <FolderIcon size={13} />
+        </RowButton>
+        <RowButton
+          label="새 문서"
+          busy={action.busy(`new:${spaceId}`)}
+          onClick={() => action.run(`new:${spaceId}`, () => createDocumentAction(null, spaceId))}
+        >
+          <PlusIcon size={13} />
+        </RowButton>
+      </span>
+    );
+  }
 
   function renderTree(spaceId: string) {
     const scoped = nodes.filter((n) => n.spaceId === spaceId);
@@ -349,26 +367,52 @@ export function Sidebar({
           active={pathname.startsWith("/lists")}
           trailing={checklistDue > 0 ? String(checklistDue) : undefined}
         />
+        <SideLink
+          href="/buy"
+          icon={<CartIcon />}
+          label="구매하기"
+          trailing={awaitingApproval > 0 ? String(awaitingApproval) : undefined}
+        />
+        <SideLink
+          href="/buy"
+          icon={null}
+          label="구매 백로그"
+          indent
+          active={pathname === "/buy"}
+        />
+        <SideLink
+          href="/buy/done"
+          icon={null}
+          label="이미 구매한 것"
+          indent
+          active={pathname === "/buy/done"}
+        />
       </div>
 
       <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>
-        {favorites.length > 0 && (
+        {personalSpace !== undefined && (
           <>
-            <SectionLabel>츄르</SectionLabel>
-            <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-              {favorites.map((item) => (
-                <SideLink
-                  key={item.id}
-                  href={`/d/${item.id}`}
-                  icon={<ChuruIcon size={14} filled />}
-                  label={displayTitle(item.title)}
-                  active={item.id === activeId}
-                />
-              ))}
-            </div>
+            <SectionLabel action={spaceButtons(personalSpace.id)}>내 문서</SectionLabel>
+            {renderTree(personalSpace.id)}
           </>
         )}
 
+        {/* 가족이 없어도 칸은 늘 보인다 — 없으면 어디서 만드는지조차 안 보인다. */}
+        {orgSpaces.length === 0 && (
+          <>
+            <SectionLabel>가족 문서</SectionLabel>
+            <p
+              style={{
+                padding: "0 12px 6px",
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: "var(--ink-4)",
+              }}
+            >
+              가족을 만들거나 초대받으면 같이 보는 문서가 여기에 생겨요.
+            </p>
+          </>
+        )}
         {orgSpaces.map((item) => (
           <div key={item.id}>
             <SectionLabel
@@ -393,59 +437,17 @@ export function Sidebar({
                       <FamilyIcon size={13} />
                     </Link>
                   )}
-                  <RowButton
-                    label="새 문서"
-                    busy={action.busy(`new:${item.id}`)}
-                    onClick={() =>
-                      action.run(`new:${item.id}`, () => createDocumentAction(null, item.id))
-                    }
-                  >
-                    <PlusIcon size={13} />
-                  </RowButton>
+                  {spaceButtons(item.id)}
                 </span>
               }
             >
-              {item.name}
+              가족 문서 · {item.name}
             </SectionLabel>
             {renderTree(item.id)}
           </div>
         ))}
-
-        {personalSpace !== undefined && (
-          <>
-            <SectionLabel
-              action={
-                <RowButton
-                  label="새 문서"
-                  busy={action.busy(`new:${personalSpace.id}`)}
-                  onClick={() =>
-                    action.run(`new:${personalSpace.id}`, () =>
-                      createDocumentAction(null, personalSpace.id),
-                    )
-                  }
-                >
-                  <PlusIcon size={13} />
-                </RowButton>
-              }
-            >
-              내 문서
-            </SectionLabel>
-            {renderTree(personalSpace.id)}
-          </>
-        )}
-
-        <SectionLabel>모음</SectionLabel>
-        <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
-          {collections.map((item) => (
-            <SideLink
-              key={item.id}
-              href={`/c/${item.id}`}
-              icon={<CollectionIcon size={14} />}
-              label={item.name}
-              active={pathname === `/c/${item.id}`}
-            />
-          ))}
-          <NewDatabaseButton spaceId={personalSpace?.id} />
+        <div style={{ padding: "2px 8px 0" }}>
+          <NewFamilyButton />
         </div>
 
         {tags.length > 0 && (
@@ -477,11 +479,6 @@ export function Sidebar({
             </div>
           </>
         )}
-
-        <SectionLabel>가족</SectionLabel>
-        <div style={{ padding: "0 8px" }}>
-          <NewFamilyButton />
-        </div>
       </div>
 
       <div
@@ -499,12 +496,6 @@ export function Sidebar({
           icon={<LitterBoxIcon />}
           label="모래상자"
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
-        />
-        <SideLink
-          href="/buy"
-          icon={<CartIcon />}
-          label="살 것"
-          trailing={awaitingApproval > 0 ? String(awaitingApproval) : undefined}
         />
         <SideLink href="/ask" icon={<AskIcon />} label="물어보기" />
         <SideLink href="/status" icon={<PulseIcon />} label="상태" />
@@ -683,7 +674,7 @@ function Row({
         </span>
 
         <span style={{ display: "flex", color: active ? "var(--accent)" : "var(--ink-4)" }}>
-          <PageIcon size={14} />
+          {item.type === "folder" ? <FolderIcon size={14} /> : <PageIcon size={14} />}
         </span>
 
         {renaming ? (
@@ -890,10 +881,13 @@ function SideLink({
   shortcut,
   trailing,
   active = false,
+  indent = false,
   onClick,
 }: {
   href?: string;
   icon: React.ReactNode;
+  /** 바로 위 항목의 하위 — 아이콘 자리만큼 들여 쓴다. */
+  indent?: boolean;
   label: string;
   shortcut?: string;
   trailing?: string;
@@ -902,7 +896,7 @@ function SideLink({
 }) {
   const inner = (
     <>
-      <span style={{ display: "flex", color: "var(--ink-4)" }}>{icon}</span>
+      {icon !== null && <span style={{ display: "flex", color: "var(--ink-4)" }}>{icon}</span>}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {label}
       </span>
@@ -923,9 +917,9 @@ function SideLink({
     gap: 8,
     width: "100%",
     height: 28,
-    padding: "0 6px 0 8px",
+    padding: indent ? "0 6px 0 30px" : "0 6px 0 8px",
     borderRadius: "var(--radius)",
-    fontSize: 13.5,
+    fontSize: indent ? 13 : 13.5,
     color: "var(--ink-2)",
     background: active ? "var(--accent-soft)" : "transparent",
     fontWeight: active ? 500 : 400,

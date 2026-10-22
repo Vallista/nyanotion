@@ -91,6 +91,8 @@ export async function createDocument(input: {
   userId: string;
   parentId?: string | null;
   title?: string;
+  /** `"page"`(기본) 또는 `"folder"`. 폴더도 문서다 — 사이드바 아이콘만 다르다. */
+  type?: "page" | "folder";
 }): Promise<string> {
   const parentId = input.parentId ?? null;
   const positions = await siblingPositions(input.spaceId, parentId);
@@ -100,6 +102,7 @@ export async function createDocument(input: {
     spaceId: input.spaceId,
     parentId,
     position: positionAfterLast(positions.at(-1) ?? null),
+    type: input.type ?? "page",
     title: input.title ?? "",
     createdBy: input.userId,
     updatedBy: input.userId,

@@ -37,7 +37,6 @@ import {
   setGpuMode,
   setMemberRole,
   setPropertyValue,
-  toggleFavorite,
   updateCollection,
   updateProperty,
   upsertShare,
@@ -68,6 +67,7 @@ import {
 export async function createDocumentAction(
   parentId: string | null,
   spaceId?: string,
+  type: "page" | "folder" = "page",
 ): Promise<void> {
   const viewer = await requireViewer();
 
@@ -82,8 +82,17 @@ export async function createDocumentAction(
     throw new Error("이 공간에 문서를 만들 수 없습니다.");
   }
 
-  const id = await createDocument({ spaceId: targetSpace, userId: viewer.userId, parentId });
+  const id = await createDocument({
+    spaceId: targetSpace,
+    userId: viewer.userId,
+    parentId,
+    // 서버 액션 인자는 클라이언트가 보낸다 — 아는 값만 받는다.
+    type: type === "folder" ? "folder" : "page",
+    title: type === "folder" ? "새 폴더" : undefined,
+  });
   revalidatePath("/", "layout");
+  // 폴더는 열 일이 드물다 — 사이드바에 생기기만 하고 지금 화면에 머문다.
+  if (type === "folder") return;
   redirect(`/d/${id}`);
 }
 
@@ -138,7 +147,7 @@ export async function emptyTrashAction(): Promise<void> {
   revalidatePath("/", "layout");
 }
 
-/* -------------------------------------------------------- 태그 · 츄르 · 검색 */
+/* -------------------------------------------------------- 태그 · 검색 */
 
 export async function searchAction(
   query: string,
@@ -152,14 +161,6 @@ export async function searchAction(
     snippet: hit.snippet,
     updatedAt: hit.updatedAt.toISOString(),
   }));
-}
-
-/** 켜고 끈다. 돌려주는 값은 바뀐 뒤 상태. 읽을 수만 있어도 츄르는 꽂을 수 있다. */
-export async function toggleFavoriteAction(documentId: string): Promise<boolean> {
-  const viewer = await assertCanWrite(documentId, "viewer");
-  const on = await toggleFavorite(viewer.userId, documentId);
-  revalidatePath("/", "layout");
-  return on;
 }
 
 /** 이름으로 붙인다 — 없으면 만들고, 있으면 그걸 쓴다. 태그는 문서가 사는 space 에 만든다. */

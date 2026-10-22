@@ -133,10 +133,8 @@ group_by    text null  보드 뷰의 그룹 기준 (tag 등)
 
 `collection` 은 문서를 **소유하지 않는다** — 조건에 맞는 문서를 보여줄 뿐이다. 문서의 위치는 언제나 트리 하나뿐.
 
-### `favorite`
-```
-user_id, document_id, position, primary key(user_id, document_id)
-```
+### ~~`favorite`~~ (없앰)
+츄르(즐겨찾기)는 0020 에서 표째 지웠다. 사이드바 트리와 검색으로 충분했다.
 
 ---
 

@@ -1,5 +1,5 @@
 /**
- * M3 데이터 계층 점검 — 태그·츄르·검색. 실제 DB 에 만들고 확인한 뒤 전부 지운다.
+ * M3 데이터 계층 점검 — 태그·검색. 실제 DB 에 만들고 확인한 뒤 전부 지운다.
  *   pnpm --filter @nyanotion/db smoke:search
  */
 import { and, eq, like } from "drizzle-orm";
@@ -10,10 +10,8 @@ import {
   detachTag,
   documentsWithTag,
   ensureTag,
-  listFavorites,
   listTags,
   tagsForDocuments,
-  toggleFavorite,
 } from "../src/queries/tagging.ts";
 import { createDocument, setContent } from "../src/queries/documents.ts";
 import { searchDocuments } from "../src/queries/search.ts";
@@ -82,16 +80,6 @@ async function main(): Promise<void> {
     await detachTag(b, money);
     const afterDetach = await tagsForDocuments([b]);
     check("태그를 뗀다", (afterDetach.get(b)?.length ?? 0) === 1, afterDetach.get(b));
-
-    console.log("\n츄르 (즐겨찾기)");
-    check("처음엔 꺼져 있다 → 켠다", (await toggleFavorite(userId, a)) === true);
-    const favs = await listFavorites(userId, [spaceId]);
-    check("즐겨찾기 목록에 뜬다", favs.some((f) => f.id === a), favs.map((f) => f.title));
-    check("다시 누르면 꺼진다", (await toggleFavorite(userId, a)) === false);
-    check(
-      "목록에서 빠진다",
-      !(await listFavorites(userId, [spaceId])).some((f) => f.id === a),
-    );
 
     console.log("\n검색");
     const byTitle = await searchDocuments([spaceId], "장보기");

@@ -269,7 +269,7 @@ export async function sendToPurchaseAction(
   await linkPurchase(itemId, purchaseItemId);
 
   refresh();
-  revalidatePath("/buy");
+  revalidatePath("/buy", "layout");
   return purchaseItemId;
 }
 

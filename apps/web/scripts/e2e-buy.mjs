@@ -104,16 +104,21 @@ console.log("\n취소");
   check("안 사기로 함으로 바뀐다", text.includes("안 사기로 함"), text.slice(0, 80).replace(/\n/g, " "));
 }
 
-console.log("\n히스토리");
+console.log("\n히스토리 (이미 구매한 것)");
 {
-  const history = page.locator("button", { hasText: "구매 기록" });
+  // 기록은 백로그가 아니라 `/buy/done` 에 있다. 거기서는 처음부터 펼쳐져 있다.
+  check("백로그에는 기록이 없다", (await page.locator("button", { hasText: "구매 기록" }).count()) === 0);
+  await page.goto(`${BASE}/buy/done`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  const history = page.locator("section", { hasText: "구매 기록" });
   check("기록 줄이 보인다", (await history.count()) > 0);
   if ((await history.count()) > 0) {
-    await history.first().click();
-    await page.waitForTimeout(600);
-    const text = await page.locator("section", { hasText: "구매 기록" }).innerText();
+    const text = await history.first().innerText();
     check("취소된 것도 남는다", text.includes("취소됨"), text.slice(0, 160).replace(/\n/g, " "));
   }
+  await page.screenshot({ path: "apps/web/scripts/e-buy-done.png", fullPage: true });
+  await page.goto(`${BASE}/buy`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
 }
 
 await page.screenshot({ path: "apps/web/scripts/e-buy.png", fullPage: true });
@@ -124,10 +129,9 @@ console.log("\n정리");
   await page.waitForTimeout(1800);
   check("살 것 카드가 사라진다", (await page.locator("article", { hasText: NAME }).count()) === 0);
   // **기록에는 남아야 한다** — "그때 왜 이걸 샀지"에 답하는 게 이 기능의 절반이다.
-  const toggle = page.locator("button", { hasText: "구매 기록" }).first();
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
-  await page.waitForTimeout(700);
-  const history = await page.locator("section", { hasText: "구매 기록" }).innerText();
+  await page.goto(`${BASE}/buy/done`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(800);
+  const history = await page.locator("section", { hasText: "구매 기록" }).first().innerText();
   check("구매 기록에는 남는다", history.includes(NAME), history.slice(0, 120));
   console.log("  (살 것의 문서는 트리에 남습니다 — 표에서 빼는 것과 같은 규칙)");
 }

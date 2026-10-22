@@ -1,4 +1,5 @@
-import { loadEnv, currentEnv } from "@nyanotion/db";
+import { loadEnv, currentEnv, startScheduledItems } from "@nyanotion/db";
+import { homeNow } from "@nyanotion/shared";
 import { closeContext, loginFlow } from "./browser.ts";
 import { runCarts } from "./cart.ts";
 import { log, readConfig } from "./config.ts";
@@ -7,7 +8,8 @@ import { runSearches } from "./search.ts";
 /**
  * 데스크탑 에이전트 — 집 컴퓨터에서 도는 일꾼.
  *
- * 두 가지만 한다:
+ * 세 가지만 한다:
+ *   0. 사려고 정한 날(`buy_on`)이 된 살 것을 `searching` 으로 올린다
  *   1. `searching` 인 살 것의 값을 찾아 후보를 올리고 **승인을 청한다**
  *   2. 승인되고 유예가 끝난 것을 **장바구니에 담고 결제 화면을 열어 둔다**
  *
@@ -28,6 +30,8 @@ let stopping = false;
 
 async function tick(): Promise<void> {
   try {
+    const due = await startScheduledItems(homeNow().day);
+    if (due > 0) log(`정한 날이 된 살 것 ${due}개 — 찾기 시작`);
     const found = await runSearches(config);
     const carted = await runCarts(config);
     if (found === 0 && carted === 0) return; // 조용할 때는 아무 말도 하지 않는다

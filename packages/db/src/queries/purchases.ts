@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, lte, or } from "drizzle-orm";
 import { db } from "../client";
 import { newId } from "../id";
 import { document } from "../schema/document";
@@ -36,6 +36,8 @@ export type ItemRow = {
   quantity: number;
   maxPriceKrw: number | null;
   neededBy: string | null;
+  /** 언제 살지. 그날 에이전트가 찾기 시작한다. */
+  buyOn: string | null;
   note: string;
   createdBy: string;
   createdAt: string;
@@ -134,6 +136,7 @@ export async function listItems(
     quantity: row.item.quantity,
     maxPriceKrw: row.item.maxPriceKrw,
     neededBy: row.item.neededBy,
+    buyOn: row.item.buyOn,
     note: row.item.note,
     createdBy: row.item.createdBy,
     createdAt: row.item.createdAt.toISOString(),
@@ -195,6 +198,7 @@ export async function getItem(
     quantity: row.item.quantity,
     maxPriceKrw: row.item.maxPriceKrw,
     neededBy: row.item.neededBy,
+    buyOn: row.item.buyOn,
     note: row.item.note,
     createdBy: row.item.createdBy,
     createdAt: row.item.createdAt.toISOString(),
@@ -268,6 +272,7 @@ export async function listItemsForAgent(
     quantity: row.item.quantity,
     maxPriceKrw: row.item.maxPriceKrw,
     neededBy: row.item.neededBy,
+    buyOn: row.item.buyOn,
     note: row.item.note,
     createdBy: row.item.createdBy,
     createdAt: row.item.createdAt.toISOString(),
@@ -317,6 +322,7 @@ export async function createItem(input: {
   quantity?: number;
   maxPriceKrw?: number | null;
   neededBy?: string | null;
+  buyOn?: string | null;
 }): Promise<string> {
   const id = newId();
   await db.insert(purchaseItem).values({
@@ -326,6 +332,7 @@ export async function createItem(input: {
     quantity: Math.max(1, input.quantity ?? 1),
     maxPriceKrw: input.maxPriceKrw ?? null,
     neededBy: input.neededBy ?? null,
+    buyOn: input.buyOn ?? null,
   });
   return id;
 }
@@ -336,6 +343,7 @@ export async function updateItem(
     quantity?: number;
     maxPriceKrw?: number | null;
     neededBy?: string | null;
+    buyOn?: string | null;
     note?: string;
     state?: PurchaseState;
   },
@@ -345,9 +353,30 @@ export async function updateItem(
     values.quantity = Math.max(1, patch.quantity);
   if (patch.maxPriceKrw !== undefined) values.maxPriceKrw = patch.maxPriceKrw;
   if (patch.neededBy !== undefined) values.neededBy = patch.neededBy;
+  if (patch.buyOn !== undefined) values.buyOn = patch.buyOn;
   if (patch.note !== undefined) values.note = patch.note;
   if (patch.state !== undefined) values.state = patch.state;
   await db.update(purchaseItem).set(values).where(eq(purchaseItem.id, id));
+}
+
+/**
+ * 정한 날이 된 살 것을 찾기 시작한다 — `listed` 이고 `buy_on <= today` 인 것만 `searching` 으로.
+ * **에이전트 전용**이다 (space 로 좁히지 않는다). 화면에서 부르지 말 것.
+ * `today` 는 `homeNow().day` — `new Date()` 의 날짜를 쓰면 자정 근처에 하루가 밀린다.
+ */
+export async function startScheduledItems(today: string): Promise<number> {
+  const rows = await db
+    .update(purchaseItem)
+    .set({ state: "searching", updatedAt: new Date() })
+    .where(
+      and(
+        eq(purchaseItem.state, "listed"),
+        isNotNull(purchaseItem.buyOn),
+        lte(purchaseItem.buyOn, today),
+      ),
+    )
+    .returning({ id: purchaseItem.id });
+  return rows.length;
 }
 
 /** 살 것을 목록에서 뺀다. **문서는 남는다** — 표에서 빼는 것과 같은 규칙이다. */
