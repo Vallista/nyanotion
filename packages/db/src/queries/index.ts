@@ -279,3 +279,19 @@ export {
   type FeedSummary,
   type IncomingEvent,
 } from "./calendars";
+export {
+  ROUTINE_COLORS,
+  ROUTINE_SLOTS,
+  applyRoutineChanges,
+  routineChanges,
+  routineLogId,
+  type IncomingRoutine,
+  type IncomingRoutineLog,
+  type IncomingRoutineTimer,
+  type RoutineApplyResult,
+  type RoutineChanges,
+  type SyncRoutine,
+  type SyncRoutineLog,
+  type SyncRoutineSession,
+  type SyncRoutineTimer,
+} from "./routines";

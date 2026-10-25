@@ -60,6 +60,34 @@ GET  /api/sync/agenda?limit=30                 오늘까지 할 일(지난 것 �
   열어 둬도 남의 세션을 빌려 쓰는 일은 없다.
 - 레이트 리밋: 토큰당 분당 600, 틀린 토큰은 주소당 분당 30.
 
+## 루틴 (2026-10-26)
+
+Bento 의 루틴(습관 트래커)과 iPhone 루틴 앱(`vallista-land` 의 `apps/bento-ios`)이 같은 루틴을 쓴다.
+**루틴은 사람 한 명의 것**이다 — 문서·체크리스트·공간에 매이지 않고 `user_id` 가 주인이라 `access.ts` 의
+문서 권한을 거치지 않는다. 대신 질의가 전부 토큰 주인으로 좁히고, 남의 id 로 덮으려 하면 `other-user`.
+
+```
+ routine        루틴 하나      id 는 클라이언트가 정한다 (Bento `rt_…`)
+ routine_log    루틴 × 날짜    id = <routineId>:<YYYY-MM-DD> — 두 기기가 따로 만들어도 같은 줄
+ routine_timer  사람마다 한 줄  돌고 있는 타이머. 멈추면 routine_id 가 빈다(줄은 남는다 — "멈췄다"도 오가야 하므로)
+```
+
+규칙은 위와 같다 — 변경 번호(`routine_rev_seq`), 지운 표시, 나중에 고친 쪽이 이김(+`current`), 미래 시각 깎기.
+더해서:
+
+- **루틴을 지우면 그 루틴의 기록도 지운 표시**를 하고, 그 루틴의 타이머가 돌고 있었으면 멈춘다.
+- 기록은 **줄 통째로 나중 쪽이 이긴다** (완료·시간·세션을 따로 합치지 않는다). 두 기기에서 같은 날 같은 루틴을
+  오프라인으로 따로 고치면 나중 것만 남는다.
+- 모양 검사: 색 6가지 · 시간대 4가지 · 요일 0~6(weekly 는 하나 이상) · 목표 1~600분 · 날짜는 실제 있는 날 ·
+  하루 기록 ≤ 86400초 · 세션 하나 ≤ 12시간.
+
+```
+GET  /api/sync/routines/changes?since=N      N 다음에 바뀐 루틴·기록·타이머 (지운 것 포함), cursor, more
+POST /api/sync/routines/changes              {routines, logs, timer?} → {applied, stale, rejected, current}
+```
+
+`stale` 에서 타이머는 `"timer"`. 한 번에 5000줄까지.
+
 ## 확인하기
 
 ```powershell
@@ -68,6 +96,8 @@ INSPECT_URL=http://localhost:3100 node apps/web/scripts/e2e-sync.mjs        # 20
 
 # Bento 엔진까지 — vallista-land 에서. 가짜 Rust 계층 + 진짜 nyanotionSync.ts + 진짜 서버, 맥 두 대 (27개)
 SYNC_BASE=http://localhost:3100 SYNC_TOKEN=nyt_… node apps/admin/scripts/sync-harness/run.mjs
+
+pnpm --filter @nyanotion/db smoke:routines                               # 34개 — 루틴 · 기록 · 타이머 · 남의 것
 ```
 
 ## 다음 (2단계)
