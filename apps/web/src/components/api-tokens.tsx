@@ -7,7 +7,7 @@ import { createTokenAction, revokeTokenAction } from "@/lib/token-actions";
 import { SmallButton, inputStyle } from "./checklist-item";
 
 /**
- * 개인 토큰 — Bento(맥 앱)가 내 체크리스트와 동기화할 때 쓰는 열쇠.
+ * 개인 토큰 — Bento(맥·iOS 앱)가 내 체크리스트·루틴과 동기화할 때 쓰는 열쇠.
  * 평문은 **만들 때 한 번만** 보여 준다. 잃어버리면 끊고 새로 만든다.
  */
 export function ApiTokens({ tokens, origin }: { tokens: ApiTokenRow[]; origin: string }) {
@@ -44,8 +44,8 @@ export function ApiTokens({ tokens, origin }: { tokens: ApiTokenRow[]; origin: s
     <section style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 40 }}>
       <h2 style={{ fontSize: 11.5, fontWeight: 500, color: "var(--ink-3)" }}>개인 토큰 (Bento 동기화)</h2>
       <p style={{ fontSize: 12.5, color: "var(--ink-3)", lineHeight: 1.7 }}>
-        Bento 같은 앱이 내 체크리스트와 동기화할 때 씁니다. 토큰을 가진 앱은 내가 고칠 수 있는 체크리스트를
-        읽고 고칠 수 있어요. 앱에는 서버 주소 <code>{origin}</code> 와 함께 넣으세요.
+        Bento 같은 앱이 내 체크리스트·루틴과 동기화할 때 씁니다. 토큰을 가진 앱은 내가 고칠 수 있는 체크리스트와
+        내 루틴 기록을 읽고 고칠 수 있어요. 앱에는 서버 주소 <code>{origin}</code> 와 함께 넣으세요.
       </p>
       <div style={{ display: "flex", gap: 6 }}>
         <input
