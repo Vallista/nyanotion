@@ -7,7 +7,7 @@
  * 건드리면 안 되는 것: /api/* (인증·표) 는 절대 캐시하지 않는다. 오래된 표를 돌려주면
  * 동기화가 조용히 실패한다.
  */
-const VERSION = "v2";
+const VERSION = "v3"; // v3: 도란 아이콘 — 아이콘은 캐시 먼저라 판을 올려야 바뀐다
 const SHELL = `nyanotion-shell-${VERSION}`;
 const ASSETS = `nyanotion-assets-${VERSION}`;
 const OFFLINE_URL = "/offline";
