@@ -41,7 +41,7 @@ export function AppShell({
             style={{
               position: "fixed",
               inset: 0,
-              background: "rgba(47,46,43,0.28)",
+              background: "var(--overlay)",
               zIndex: 40,
             }}
           />
@@ -84,7 +84,7 @@ export function AppShell({
             style={{
               position: "absolute",
               left: 10,
-              top: 9,
+              top: 12,
               zIndex: 30,
               width: 28,
               height: 28,

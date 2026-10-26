@@ -218,8 +218,8 @@ export function NotificationsButton({
             borderRadius: "var(--radius)",
             fontSize: 13.5,
             fontWeight: 500,
-            background: on ? "transparent" : "var(--ink)",
-            color: on ? "var(--ink-2)" : "var(--paper)",
+            background: on ? "transparent" : "var(--accent)",
+            color: on ? "var(--ink-2)" : "var(--on-accent)",
             border: on ? "1px solid var(--line-strong)" : "none",
             opacity: busy ? 0.55 : 1,
           }}

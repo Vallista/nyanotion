@@ -83,8 +83,8 @@ export function ChangePassword() {
         style={{
           height: 38,
           borderRadius: "var(--radius)",
-          background: "var(--ink)",
-          color: "var(--paper)",
+          background: "var(--accent)",
+          color: "var(--on-accent)",
           fontSize: 13.5,
           fontWeight: 500,
           opacity: busy || current === "" || next === "" ? 0.45 : 1,

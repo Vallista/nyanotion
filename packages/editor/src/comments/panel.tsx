@@ -344,8 +344,8 @@ function Composer({
           padding: "0 10px",
           borderRadius: "var(--radius)",
           fontSize: 12.5,
-          background: "var(--ink)",
-          color: "var(--paper)",
+          background: "var(--accent)",
+          color: "var(--on-accent)",
           opacity: busy || draft.trim() === "" ? 0.45 : 1,
         }}
       >

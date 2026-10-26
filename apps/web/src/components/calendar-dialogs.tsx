@@ -48,7 +48,7 @@ export function Dialog({
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        background: "rgba(47,46,43,0.28)",
+        background: "var(--overlay)",
         display: "flex",
         alignItems: narrow ? "flex-end" : "center",
         justifyContent: "center",

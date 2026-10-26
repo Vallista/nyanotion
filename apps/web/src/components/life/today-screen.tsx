@@ -8,9 +8,9 @@ import { useEffect, useState, useTransition } from "react";
 import { quickAddAction, toggleChecklistItemAction } from "@/lib/checklist-actions";
 import { routineCheckAction } from "@/lib/routine-actions";
 import { dayLabel, eventColor, type CalEvent } from "../calendar-model";
-import { inputStyle } from "../checklist-item";
-import { CheckBoxIcon } from "../icons";
-import { Card, routineColorVar, useNarrow } from "../routines/routine-ui";
+import { PlusIcon } from "../icons";
+import { CheckCircle, Group, GroupLabel, PageTitle, Section, SplitView, listRow } from "../mac-ui";
+import { routineColorVar } from "../routines/routine-ui";
 import { DayNoteCard } from "./day-note-card";
 import { MemoCapture, MemoList, type MemoSpace } from "./memo-box";
 
@@ -52,7 +52,6 @@ export function TodayScreen({
   /** space id → "나" · 가족 이름. */
   spaceLabel: Record<string, string>;
 }) {
-  const narrow = useNarrow();
   const [time, setTime] = useState(serverTime);
   useEffect(() => {
     const id = window.setInterval(() => setTime(homeNow().time), 60_000);
@@ -71,70 +70,45 @@ export function TodayScreen({
     .filter(Boolean)
     .join(" · ");
 
-  const left = (
+  const main = (
     <>
-      <Card title="일정" note={undefined}>
+      <PageTitle title={dayLabel(today)} sub={summary} />
+      <Section title="일정" action={<Link href={`/?view=day&d=${today}`} style={{ fontSize: 12.5 }}>캘린더에서 보기</Link>}>
         <Schedule events={events} todos={todos} time={time} today={today} />
-      </Card>
-      <Card title="할 일">
+      </Section>
+      <Section title="할 일" note={openTodos > 0 ? `${openTodos}개 남음` : undefined}>
         <Todos todos={todos} overdue={overdue} today={today} personalSpaceId={memoSpaces[0]?.id ?? ""} spaceLabel={spaceLabel} />
-      </Card>
+      </Section>
       {routines.length > 0 && (
-        <Card title="루틴">
+        <Section
+          title="루틴"
+          note={`${routineDone}/${routines.length}`}
+          action={<Link href="/routines" style={{ fontSize: 12.5 }}>루틴 화면</Link>}
+        >
           <Routines routines={routines} today={today} />
-        </Card>
+        </Section>
       )}
     </>
   );
-  const right = (
+  const inspector = (
     <>
-      <Card title="메모함">
-        <MemoCapture compact />
-        <MemoList memos={memos} spaces={memoSpaces} now={serverNow} limit={5} />
-        {memoCount > 5 && (
-          <Link href="/memos" style={{ alignSelf: "flex-start", fontSize: 12.5, color: "var(--ink-3)" }}>
-            메모 {memoCount}개 모두 보기 ›
-          </Link>
-        )}
-      </Card>
-      <Card title={evening ? "오늘 돌아보기" : "오늘 기분"}>
+      <GroupLabel first action={<Link href="/journal">지난 기록</Link>}>
+        {evening ? "오늘 돌아보기" : "오늘 기록"}
+      </GroupLabel>
+      <Group padding={12}>
         <DayNoteCard date={today} note={note} evening={evening} compact />
-        <Link href="/journal" style={{ alignSelf: "flex-start", fontSize: 12.5, color: "var(--ink-3)" }}>
-          지난 기록 · 주간 회고 ›
-        </Link>
-      </Card>
+      </Group>
+      <GroupLabel action={<Link href="/memos">{memoCount > 5 ? `${memoCount}개 모두 보기` : "모두 보기"}</Link>}>메모함</GroupLabel>
+      <MemoCapture compact />
+      {memos.length > 0 && (
+        <Group padding="0 12px">
+          <MemoList memos={memos} spaces={memoSpaces} now={serverNow} limit={5} />
+        </Group>
+      )}
     </>
   );
 
-  return (
-    <div style={{ flexGrow: 1, overflowY: "auto" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: narrow ? "18px 16px 48px" : "28px 32px 64px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <header style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}>
-            <h1 style={{ fontSize: narrow ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em" }}>{dayLabel(today)}</h1>
-            <p style={{ fontSize: 13, color: "var(--ink-3)", marginTop: 4 }}>{summary}</p>
-          </div>
-          <Link
-            href={`/?view=day&d=${today}`}
-            style={{ marginLeft: "auto", fontSize: 12.5, color: "var(--ink-2)", border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: "6px 10px", background: "var(--card)" }}
-          >
-            캘린더에서 보기
-          </Link>
-        </header>
-        {narrow ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {left}
-            {right}
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 16, alignItems: "start" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{left}</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{right}</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  return <SplitView main={main} inspector={inspector} inspectorLabel="오늘 기록과 메모함" />;
 }
 
 /* ------------------------------------------------------------------ 일정 */
@@ -162,11 +136,9 @@ function Schedule({ events, todos, time, today }: { events: CalEvent[]; todos: A
 
   if (rows.length === 0) {
     return (
-      <p style={{ fontSize: 13, color: "var(--ink-4)" }}>
+      <p style={{ fontSize: 13, color: "var(--ink-3)", padding: "10px 0" }}>
         오늘은 정해 둔 일정이 없어요.{" "}
-        <Link href={`/?view=day&d=${today}`} style={{ color: "var(--ink-3)" }}>
-          캘린더에서 적기
-        </Link>
+        <Link href={`/?view=day&d=${today}`}>캘린더에서 적기</Link>
       </p>
     );
   }
@@ -179,7 +151,7 @@ function Schedule({ events, todos, time, today }: { events: CalEvent[]; todos: A
         const current = row.start !== null && row.end !== null && row.start <= now && now < row.end;
         const color = row.kind === "event" ? eventColor(row.event) : "var(--accent)";
         const title = row.kind === "event" ? row.event.title : row.item.title;
-        const when = row.start === null ? "종일" : `${clock(row.start)}–${clock(row.end ?? row.start)}`;
+        const when = row.start === null ? "종일" : `${clock(row.start)} – ${clock(row.end ?? row.start)}`;
         const sub =
           row.kind === "event"
             ? [row.event.location, row.event.plan === null ? row.event.calendarName : null].filter(Boolean).join(" · ")
@@ -187,14 +159,33 @@ function Schedule({ events, todos, time, today }: { events: CalEvent[]; todos: A
         return (
           <li key={row.key}>
             {i === nextIndex && nextIndex > 0 && <NowLine time={time} />}
-            <div style={{ display: "flex", gap: 12, padding: "8px 0", alignItems: "flex-start", opacity: past ? 0.5 : 1 }}>
-              <span style={{ width: 82, flexShrink: 0, fontSize: 12, color: current ? "var(--accent)" : "var(--ink-3)", fontVariantNumeric: "tabular-nums", paddingTop: 2, fontWeight: current ? 600 : 400 }}>
+            <div style={{ ...listRow, gap: 12, color: past ? "var(--ink-3)" : "var(--ink)" }}>
+              <span
+                style={{
+                  width: 96,
+                  flexShrink: 0,
+                  fontSize: 12,
+                  color: current ? "var(--ink)" : "var(--ink-3)",
+                  fontWeight: current ? 600 : 400,
+                  fontVariantNumeric: "tabular-nums",
+                  paddingTop: 1,
+                }}
+              >
                 {when}
               </span>
-              <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: color, flexShrink: 0 }} />
+              <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: color, opacity: past ? 0.45 : 1, flexShrink: 0 }} />
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13.5, fontWeight: 500, textDecoration: row.kind === "todo" && row.item.done ? "line-through" : "none" }}>{title}</span>
-                {sub !== "" && <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-4)", marginTop: 1 }}>{sub}</span>}
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: 13,
+                    fontWeight: current ? 600 : 400,
+                    textDecoration: row.kind === "todo" && row.item.done ? "line-through" : "none",
+                  }}
+                >
+                  {title}
+                </span>
+                {sub !== "" && <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-3)", marginTop: 1 }}>{sub}</span>}
               </span>
             </div>
           </li>
@@ -206,9 +197,10 @@ function Schedule({ events, todos, time, today }: { events: CalEvent[]; todos: A
 
 function NowLine({ time }: { time: string }) {
   return (
-    <div aria-label={`지금 ${time}`} style={{ display: "flex", alignItems: "center", gap: 8, margin: "2px 0" }}>
-      <span style={{ width: 82, fontSize: 11, color: "var(--late)", fontVariantNumeric: "tabular-nums" }}>지금 {time}</span>
-      <span style={{ flexGrow: 1, borderTop: "1.5px solid var(--late)" }} />
+    <div aria-label={`지금 ${time}`} style={{ display: "flex", alignItems: "center", gap: 6, height: 14 }}>
+      <span style={{ width: 96, fontSize: 11, fontWeight: 600, color: "var(--today)", fontVariantNumeric: "tabular-nums" }}>{time}</span>
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--today)", marginLeft: 4, flexShrink: 0 }} />
+      <span style={{ flexGrow: 1, height: 1, background: "var(--today)" }} />
     </div>
   );
 }
@@ -258,8 +250,7 @@ function Todos({
   const sorted = [...todos].sort((a, b) => Number(a.done) - Number(b.done) || (a.dueTime ?? "99").localeCompare(b.dueTime ?? "99"));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, opacity: pending ? 0.7 : 1 }}>
-      {overdue.length === 0 && todos.length === 0 && <p style={{ fontSize: 13, color: "var(--ink-4)" }}>오늘로 정한 할 일이 없어요.</p>}
+    <div style={{ display: "flex", flexDirection: "column", opacity: pending ? 0.7 : 1 }}>
       <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {overdue.map((item) => (
           <TodoRow key={item.id} item={item} late label={spaceLabel[item.spaceId]} onToggle={() => run(() => toggleChecklistItemAction(item.id, !item.done))} />
@@ -268,18 +259,22 @@ function Todos({
           <TodoRow key={item.id} item={item} label={spaceLabel[item.spaceId]} onToggle={() => run(() => toggleChecklistItemAction(item.id, !item.done))} />
         ))}
       </ul>
-      <div style={{ display: "flex", gap: 6 }}>
+      {/* 미리 알림처럼 목록 맨 아래 줄이 곧 적는 칸이다. */}
+      <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", color: "var(--accent)" }}>
+        <span style={{ width: 18, display: "flex", justifyContent: "center", flexShrink: 0 }}>
+          <PlusIcon size={15} />
+        </span>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.nativeEvent.isComposing) add();
           }}
-          placeholder="오늘 할 일 적기"
+          placeholder={overdue.length === 0 && todos.length === 0 ? "오늘로 정한 할 일이 없어요 — 여기에 적기" : "새 할 일"}
           aria-label="오늘 할 일 적기"
-          style={{ ...inputStyle, flexGrow: 1, minWidth: 0 }}
+          style={{ flexGrow: 1, minWidth: 0, border: 0, outline: "none", background: "transparent", fontSize: "var(--input-font, 13px)", color: "var(--ink)", padding: 0 }}
         />
-      </div>
+      </label>
       {problem !== null && (
         <p role="alert" style={{ fontSize: 12, color: "var(--late)" }}>
           {problem}
@@ -291,14 +286,14 @@ function Todos({
 
 function TodoRow({ item, late = false, label, onToggle }: { item: AgendaRow; late?: boolean; label?: string; onToggle: () => void }) {
   return (
-    <li style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "6px 0" }}>
-      <button onClick={onToggle} aria-label={item.done ? `"${item.title}" 안 한 것으로` : `"${item.title}" 했음`} style={{ display: "flex", padding: 0, marginTop: 1, color: item.done ? "var(--accent)" : "var(--ink-4)" }}>
-        <CheckBoxIcon size={17} checked={item.done} />
+    <li style={listRow}>
+      <button onClick={onToggle} aria-label={item.done ? `"${item.title}" 안 한 것으로` : `"${item.title}" 했음`} style={{ display: "flex", padding: 0, marginTop: 1 }}>
+        <CheckCircle done={item.done} />
       </button>
       <span style={{ minWidth: 0, flexGrow: 1 }}>
-        <span style={{ fontSize: 13.5, color: item.done ? "var(--ink-4)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.title}</span>
-        <span style={{ display: "block", fontSize: 11.5, color: late ? "var(--late)" : "var(--ink-4)", marginTop: 1 }}>
-          {[late && item.dueOn !== null ? `밀림 · ${Number(item.dueOn.slice(5, 7))}/${Number(item.dueOn.slice(8))}` : null, item.dueTime, label, item.checklistTitle.trim() || null]
+        <span style={{ fontSize: 13, color: item.done ? "var(--ink-3)" : "var(--ink)", textDecoration: item.done ? "line-through" : "none" }}>{item.title}</span>
+        <span style={{ display: "block", fontSize: 11.5, color: late ? "var(--late)" : "var(--ink-3)", marginTop: 1 }}>
+          {[late && item.dueOn !== null ? `${Number(item.dueOn.slice(5, 7))}월 ${Number(item.dueOn.slice(8))}일 · 밀림` : null, item.dueTime, label, item.checklistTitle.trim() || null]
             .filter(Boolean)
             .join(" · ")}
         </span>
@@ -331,47 +326,30 @@ function Routines({ routines, today }: { routines: TodayRoutine[]; today: string
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: pending ? 0.85 : 1 }}>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "2px 16px" }}>
+    <div style={{ display: "flex", flexDirection: "column", opacity: pending ? 0.85 : 1 }}>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {routines.map((r) => {
           const done = over[r.routine.id] ?? r.done;
           const color = routineColorVar(r.routine);
           return (
-            <li key={r.routine.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+            <li key={r.routine.id} style={{ ...listRow, alignItems: "center" }}>
               <button
                 onClick={() => toggle(r)}
                 aria-label={done ? `${r.routine.title} 완료 취소` : `${r.routine.title} 완료`}
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  textAlign: "center",
-                  border: `1.5px solid ${color}`,
-                  background: done ? color : "transparent",
-                  color: "#fff",
-                  fontSize: 12,
-                  lineHeight: "19px",
-                }}
+                style={{ display: "flex", padding: 0 }}
               >
-                {done ? "✓" : ""}
+                <CheckCircle done={done} color={color} />
               </button>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13.5, color: done ? "var(--ink-3)" : "var(--ink)" }}>{r.routine.title}</span>
-                <span style={{ display: "block", fontSize: 11.5, color: "var(--ink-4)" }}>
-                  {describeSchedule(r.routine.schedule)}
-                  {r.streak > 0 && <span style={{ color: "var(--accent)" }}> · {r.streak}일 연속</span>}
-                </span>
+              <span style={{ flexGrow: 1, minWidth: 0, fontSize: 13, color: done ? "var(--ink-3)" : "var(--ink)" }}>{r.routine.title}</span>
+              <span style={{ fontSize: 12, color: "var(--ink-3)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                {r.streak > 0 ? `${r.streak}일 연속` : describeSchedule(r.routine.schedule)}
               </span>
             </li>
           );
         })}
       </ul>
-      <Link href="/routines" style={{ alignSelf: "flex-start", fontSize: 12.5, color: "var(--ink-3)" }}>
-        루틴 화면 ›
-      </Link>
       {problem !== null && (
-        <p role="alert" style={{ fontSize: 12, color: "var(--late)" }}>
+        <p role="alert" style={{ fontSize: 12, color: "var(--late)", marginTop: 6 }}>
           {problem}
         </p>
       )}

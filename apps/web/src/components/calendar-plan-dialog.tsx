@@ -1,6 +1,6 @@
 "use client";
 
-import { PLAN_COLORS, PLAN_DEFAULT_COLOR, minutesOf, timeOf } from "@nyanotion/shared";
+import { PLAN_COLORS, PLAN_DEFAULT_COLOR, calendarColorVar, minutesOf, timeOf } from "@nyanotion/shared";
 import { useState } from "react";
 import type { PlanEventDraft } from "@/lib/life-actions";
 import { Dialog } from "./calendar-dialogs";
@@ -37,7 +37,7 @@ export function KindSwitch({ value, onChange }: { value: "todo" | "event"; onCha
             background: value === key ? "var(--card)" : "transparent",
             color: value === key ? "var(--ink)" : "var(--ink-3)",
             fontWeight: value === key ? 500 : 400,
-            boxShadow: value === key ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+            boxShadow: value === key ? "var(--shadow-control)" : "none",
           }}
         >
           {label}
@@ -214,21 +214,21 @@ export function PlanEventDialog({
       </div>
 
       <div role="radiogroup" aria-label="색" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        {PLAN_COLORS.map((c) => (
+        {PLAN_COLORS.map((c, index) => (
           <button
             key={c}
             role="radio"
             aria-checked={color === c}
-            aria-label={`색 ${c}`}
+            aria-label={`색 ${index + 1}`}
             disabled={!canWrite}
             onClick={() => setColor(c)}
             style={{
               width: 22,
               height: 22,
               borderRadius: "50%",
-              background: c,
+              background: calendarColorVar(c),
               border: "2px solid var(--paper)",
-              boxShadow: color === c ? `0 0 0 2px ${c}` : "none",
+              boxShadow: color === c ? `0 0 0 2px ${calendarColorVar(c)}` : "none",
             }}
           />
         ))}

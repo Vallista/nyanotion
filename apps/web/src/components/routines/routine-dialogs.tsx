@@ -276,7 +276,7 @@ export function RoutineEditor({
                 fontSize: 12.5,
                 border: `1px solid ${confirmDelete ? "var(--late)" : "var(--line)"}`,
                 background: confirmDelete ? "var(--late)" : "var(--card)",
-                color: confirmDelete ? "var(--paper)" : "var(--late)",
+                color: confirmDelete ? "var(--on-accent)" : "var(--late)",
                 cursor: "pointer",
               }}
             >
@@ -410,7 +410,7 @@ function Segmented({ value, options, onChange }: { value: string; options: { val
               border: 0,
               borderRadius: "var(--radius-sm)",
               background: on ? "var(--card)" : "transparent",
-              boxShadow: on ? "0 1px 2px rgba(47,46,43,0.08)" : "none",
+              boxShadow: on ? "var(--shadow-control)" : "none",
               color: on ? "var(--ink)" : "var(--ink-3)",
               fontWeight: on ? 500 : 400,
               fontSize: 12.5,

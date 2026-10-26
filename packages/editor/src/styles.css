@@ -15,8 +15,11 @@
  */
 
 /* --- 변수 ------------------------------------------------------------- */
-.bn-root {
-  --bn-font-family: var(--font-plex-kr), "Apple SD Gothic Neo", -apple-system, system-ui, sans-serif;
+/* `[data-color-scheme]` 까지 붙이는 까닭: BlockNote 의 다크 변수는 `.bn-root[data-color-scheme=dark]`
+   (특이도 0,2,0) 에 있다. 같은 특이도로 더 늦게 적어야 다크에서도 도란의 색이 이긴다. */
+.bn-root,
+.bn-root[data-color-scheme] {
+  --bn-font-family: var(--font-ui);
 
   --bn-border-radius: var(--radius);
   --bn-border-radius-small: var(--radius-sm);
@@ -45,8 +48,8 @@
   --bn-colors-border: var(--line);
   --bn-colors-side-menu: var(--ink-5);
 
-  --bn-colors-shadow: rgba(47, 46, 43, 0.1);
-  --bn-shadow-light: 0 1px 4px rgba(47, 46, 43, 0.06);
+  --bn-colors-shadow: var(--line);
+  --bn-shadow-light: var(--shadow-control);
   --bn-shadow-medium: var(--shadow-float);
 }
 
@@ -142,7 +145,7 @@
 
 .bn-container code,
 .bn-container [data-content-type="codeBlock"] {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 0.86em;
 }
 .bn-container .bn-inline-content code {
@@ -259,7 +262,7 @@
 /* 단축키 표시는 시안의 kbd 처럼. */
 .bn-container .bn-ak-menu-item kbd,
 .bn-container .bn-suggestion-menu-item-small {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--ink-4);
   background: var(--card);

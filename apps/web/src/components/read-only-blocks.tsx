@@ -36,7 +36,7 @@ function Inline({ node }: { node: Unknown }): React.ReactNode {
 
   if (node.type === "link" && typeof node.href === "string") {
     return (
-      <a href={node.href} rel="noreferrer nofollow" target="_blank">
+      <a href={node.href} rel="noreferrer nofollow" target="_blank" style={{ borderBottom: "1px solid var(--accent-line)" }}>
         <Inline node={node.content} />
       </a>
     );
@@ -148,7 +148,7 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "#fff",
+                color: "var(--on-accent)",
                 fontSize: 10,
               }}
             >
@@ -199,7 +199,7 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
               margin: "10px 0",
               overflowX: "auto",
               fontSize: 13.5,
-              fontFamily: "var(--font-plex-mono), monospace",
+              fontFamily: "var(--font-mono)",
             }}
           >
             {inner}
@@ -225,7 +225,7 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
               display: "flex",
               gap: 10,
               alignItems: "flex-start",
-              background: tone === "warn" ? "rgba(176,128,80,0.09)" : "var(--surface)",
+              background: tone === "warn" ? "var(--warn-soft)" : "var(--surface)",
               borderLeft: `3px solid ${tone === "tip" ? "var(--accent)" : "var(--line-strong)"}`,
               borderRadius: "var(--radius)",
               padding: "10px 12px",
@@ -254,7 +254,7 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
               margin: "8px 0",
               textAlign: "center",
               fontSize: 13.5,
-              fontFamily: "var(--font-plex-mono), monospace",
+              fontFamily: "var(--font-mono)",
               overflowX: "auto",
             }}
           >

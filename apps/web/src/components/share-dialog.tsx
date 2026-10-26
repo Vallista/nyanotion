@@ -96,7 +96,7 @@ export function ShareDialog({
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        background: "rgba(47,46,43,0.22)",
+        background: "var(--overlay)",
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
@@ -112,7 +112,7 @@ export function ShareDialog({
           background: "var(--card)",
           border: "1px solid var(--line)",
           borderRadius: 7,
-          boxShadow: "0 14px 36px rgba(47,46,43,.14), 0 2px 6px rgba(47,46,43,.06)",
+          boxShadow: "var(--shadow-float)",
           padding: 20,
         }}
       >
@@ -173,8 +173,8 @@ export function ShareDialog({
               height: 34,
               padding: "0 12px",
               borderRadius: "var(--radius)",
-              background: "var(--ink)",
-              color: "var(--paper)",
+              background: "var(--accent)",
+              color: "var(--on-accent)",
               fontSize: 13,
               fontWeight: 500,
             }}
@@ -333,7 +333,7 @@ export function ShareDialog({
                         flexGrow: 1,
                         minWidth: 0,
                         fontSize: 11.5,
-                        fontFamily: "var(--font-plex-mono), monospace",
+                        fontFamily: "var(--font-mono)",
                         color: "var(--ink-2)",
                         background: "var(--surface)",
                         border: "1px solid var(--line)",

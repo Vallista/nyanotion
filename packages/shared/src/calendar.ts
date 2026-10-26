@@ -112,7 +112,11 @@ export function normalizeFeedUrl(raw: string): string | null {
   return url.toString();
 }
 
-/** 캘린더 색 — 구독을 달 때 고른다. 종이색 바탕에서 글자가 읽히는 정도로 차분한 것들. */
+/**
+ * 캘린더 색의 **키** — 구독·일정에 이 값이 저장된다. 화면 색은 `calendarColorVar` 가 테마 변수
+ * (`--cal-1`…`--cal-6`, 라이트·다크마다 다른 시스템 색)로 바꾼다. 값을 바꾸면 저장된 색이 끊기니 그대로 둔다.
+ * 순서대로 파랑 · 주황 · 보라 · 초록 · 분홍 · 갈색.
+ */
 export const FEED_COLORS = [
   "#4f7cac",
   "#b5651d",
@@ -121,3 +125,9 @@ export const FEED_COLORS = [
   "#b24a5b",
   "#8a8a3c",
 ] as const;
+
+/** 저장된 캘린더 색 → 화면 색(CSS 변수). 모르는 값은 그대로 돌려준다. */
+export function calendarColorVar(color: string): string {
+  const index = (FEED_COLORS as readonly string[]).indexOf(color);
+  return index === -1 ? color : `var(--cal-${index + 1})`;
+}

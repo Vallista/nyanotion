@@ -93,8 +93,8 @@ export function Backlog({
                 height: 36,
                 flexShrink: 0,
                 borderRadius: "var(--radius)",
-                background: "var(--ink)",
-                color: "var(--paper)",
+                background: "var(--accent)",
+                color: "var(--on-accent)",
                 opacity: busy || title.trim() === "" ? 0.45 : 1,
               }}
             >

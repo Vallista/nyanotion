@@ -2,7 +2,7 @@
  * 앱 아이콘을 만든다. 도란 마크(지붕 아래 체크) 하나에서 필요한 크기를 전부 낸다.
  *   pnpm --filter @nyanotion/web icons
  *
- * 색은 시안의 토큰 — 종이색 바탕에 차콜 선, 체크만 이끼색(--accent). 아이콘에서 새 색을 만들지 말 것.
+ * 색은 맥 테마의 토큰 — 흰 바탕에 짙은 선, 체크만 시스템 블루. 아이콘에서 새 색을 만들지 말 것.
  * maskable 은 iOS·안드로이드가 모서리를 잘라내므로 여백(안전 영역)을 더 준다.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -13,11 +13,11 @@ import sharp from "sharp";
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, "../public/icons");
 
-const PAPER = "#faf9f7";
-const INK = "#2f2e2b";
-const ACCENT = "#4c6b57";
+const PAPER = "#ffffff";
+const INK = "#1d1d1f";
+const ACCENT = "#007aff";
 
-/** 도란 마크. components/brand-mark.tsx 와 같은 path — 집은 차콜, 체크는 이끼색. */
+/** 도란 마크. components/brand-mark.tsx 와 같은 path — 집은 짙은 회색, 체크는 시스템 블루. */
 const MARK = `
   <path d="M3.6 10.6 12 4l8.4 6.6"/>
   <path d="M5.9 9v9.3c0 .8.6 1.4 1.4 1.4h9.4c.8 0 1.4-.6 1.4-1.4V9"/>

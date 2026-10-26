@@ -1,46 +1,126 @@
 /*
- * 도란 디자인 토큰 — 시안(도란 화면 설계)의 값을 그대로 옮긴 것.
- * 규칙: 색은 거의 무채색, 포인트는 --accent 하나뿐. 모서리는 최대 4px.
- * 그림자는 떠 있는 층(팔레트·메뉴·다이얼로그)에만.
+ * 도란 디자인 토큰 — 맥 기본 앱의 결 (2026-10-26, `docs/04-history.md`).
+ * 라이트는 "시스템"(흰 바탕 · 차가운 회색 사이드바 · 시스템 블루), 다크는 "그래파이트"(맥 다크 모드).
+ * 기기 설정(prefers-color-scheme)을 따른다. 종이색·이끼색(예전 토큰)은 쓰지 않는다.
+ * 규칙: 색은 거의 무채색, 포인트는 --accent 하나. 카드 상자 대신 얇은 줄로 나눈다.
+ * 그림자는 떠 있는 층(팔레트·메뉴·다이얼로그)에만. 화면에 색을 박지 말고 여기 이름을 쓴다 — 다크에서 깨진다.
  */
 :root {
-  --paper: #faf9f7;        /* 종이 */
-  --surface: #f4f2ee;      /* 사이드바, 인용 블록 */
-  --card: #ffffff;
-  --chip: #efede8;
+  --paper: #ffffff;        /* 창 본문 */
+  --surface: #f0f0f2;      /* 사이드바, 옆 패널, 인용 블록 */
+  --inspector: #f9f9fb;    /* 오른쪽 정보 패널 */
+  --card: #ffffff;         /* 떠 있는 층·입력칸 */
+  --chip: #e9e9ec;         /* 세그먼트 바탕, 칩 */
+  --sel: rgba(0, 0, 0, 0.08);     /* 사이드바에서 고른 줄 */
+  --hover: rgba(0, 0, 0, 0.045);
+  --overlay: rgba(0, 0, 0, 0.25); /* 다이얼로그 뒤 */
 
-  --ink: #2f2e2b;          /* 글자 */
-  --ink-2: #57544e;        /* 보조 */
-  --ink-3: #747069;        /* 캡션 */
-  --ink-4: #9a958c;        /* 아이콘 */
-  --ink-5: #a8a29a;        /* 더 옅은 표식 */
+  --ink: #1d1d1f;          /* 글자 */
+  --ink-2: #48484a;        /* 보조 */
+  --ink-3: #6e6e73;        /* 캡션 (흰 바탕 5:1) */
+  --ink-4: #8e8e93;        /* 아이콘 */
+  --ink-5: #aeaeb2;        /* 더 옅은 표식 */
 
-  --line: #e6e3de;
-  --line-strong: #d6d2cb;
-  --line-soft: #edeae4;
+  --line: #e5e5e7;
+  --line-strong: #d2d2d7;
+  --line-soft: #efeff1;
 
-  --accent: #4c6b57;       /* 이끼색 — 선택 상태, 링크, 체크 표시에만 */
-  --accent-hover: #3a5443;
-  --accent-soft: rgba(76, 107, 87, 0.1);
-  --accent-line: rgba(76, 107, 87, 0.32);
-  /* 루틴 색 — 맥 Bento·iPhone 앱과 같은 이름·같은 값. 루틴을 가르는 작은 점·체크에만 쓴다(포인트 색이 아니다). */
-  --routine-blue: #2a78d6;
-  --routine-orange: #eb6834;
-  --routine-aqua: #1baf7a;
-  --routine-yellow: #eda100;
-  --routine-magenta: #e87ba4;
-  --routine-violet: #6250d6;
-  --late: #a8553c;         /* 날짜가 지난 일 — 체크리스트에서만 */
+  --accent: #0066cc;       /* 시스템 블루 — 선택 상태, 링크, 체크 표시에만 */
+  --accent-hover: #004f9e;
+  --accent-soft: rgba(0, 102, 204, 0.1);
+  --accent-line: rgba(0, 102, 204, 0.3);
+  --on-accent: #ffffff;
+  --today: #ff3b30;        /* 캘린더의 오늘 동그라미 · 지금 시각 선 (맥 캘린더처럼 빨강) */
+  --late: #d70015;         /* 날짜가 지난 일 */
+  --late-soft: rgba(215, 0, 21, 0.08);
+  --warn: #b25000;         /* 주의 콜아웃 */
+  --warn-soft: rgba(255, 149, 0, 0.12);
+  --family: #ff9500;       /* 가족 할 일의 테두리 */
+
+  /* 캘린더 색 — DB 에는 FEED_COLORS 의 값이 키로 남고, 화면은 `calendarColorVar` 로 이 변수를 쓴다. */
+  --cal-1: #007aff;
+  --cal-2: #ff9500;
+  --cal-3: #af52de;
+  --cal-4: #34c759;
+  --cal-5: #ff2d55;
+  --cal-6: #a2845e;
+
+  /* 루틴 색 — 맥 Bento·iPhone 앱과 같은 이름. 값은 테마(시스템 색)를 따른다. 이름 옆 점·체크에만. */
+  --routine-blue: #007aff;
+  --routine-orange: #ff9500;
+  --routine-aqua: #30b0c7;
+  --routine-yellow: #ffcc00;
+  --routine-magenta: #ff2d55;
+  --routine-violet: #5856d6;
+
   /* 인라인 style 로 글자 크기를 준 입력칸용. 인라인은 아래 (pointer: coarse) 규칙을 이기므로
      값을 변수로 받아야 터치 기기에서 16px 로 커진다 (iOS 가 탭할 때 확대하지 않게). */
   --input-font: 13px;
 
-  --radius: 4px;
-  --radius-sm: 3px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo", var(--font-plex-kr), "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, var(--font-plex-mono), Consolas, monospace;
+  --radius: 6px;
+  --radius-sm: 4px;
+  --radius-lg: 10px;
   --measure: 720px;        /* 본문 단 폭, 약 70자 */
-  --shadow-float: 0 6px 18px rgba(47, 46, 43, 0.07);
+  --shadow-float: 0 0 0 0.5px rgba(0, 0, 0, 0.14), 0 10px 30px rgba(0, 0, 0, 0.14);
+  --shadow-control: 0 0.5px 1.5px rgba(0, 0, 0, 0.18);
+  --group-edge: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 0.5px 1.5px rgba(0, 0, 0, 0.04); /* 시스템 설정의 묶은 칸 테두리 */
 
-  color-scheme: light;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #1e1e1e;
+    --surface: #28282a;
+    --inspector: #232325;
+    --card: #2c2c2e;
+    --chip: #3a3a3c;
+    --sel: rgba(255, 255, 255, 0.1);
+    --hover: rgba(255, 255, 255, 0.06);
+    --overlay: rgba(0, 0, 0, 0.5);
+
+    --ink: #f5f5f7;
+    --ink-2: #d1d1d6;
+    --ink-3: #98989d;
+    --ink-4: #8e8e93;
+    --ink-5: #636366;
+
+    --line: #38383a;
+    --line-strong: #48484a;
+    --line-soft: #2c2c2e;
+
+    --accent: #3b99fc;
+    --accent-hover: #6cb2fd;
+    --accent-soft: rgba(59, 153, 252, 0.16);
+    --accent-line: rgba(59, 153, 252, 0.4);
+    --on-accent: #ffffff;
+    --today: #ff453a;
+    --late: #ff6961;
+    --late-soft: rgba(255, 105, 97, 0.14);
+    --warn: #ffb340;
+    --warn-soft: rgba(255, 159, 10, 0.14);
+    --family: #ff9f0a;
+
+    --cal-1: #0a84ff;
+    --cal-2: #ff9f0a;
+    --cal-3: #bf5af2;
+    --cal-4: #30d158;
+    --cal-5: #ff375f;
+    --cal-6: #ac8e68;
+
+    --routine-blue: #0a84ff;
+    --routine-orange: #ff9f0a;
+    --routine-aqua: #40c8e0;
+    --routine-yellow: #ffd60a;
+    --routine-magenta: #ff375f;
+    --routine-violet: #5e5ce6;
+
+    --shadow-float: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 10px 30px rgba(0, 0, 0, 0.5);
+    --shadow-control: 0 0.5px 1.5px rgba(0, 0, 0, 0.5);
+    --group-edge: 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -56,7 +136,7 @@ html, body {
 }
 
 body {
-  font-family: var(--font-plex-kr), "Apple SD Gothic Neo", -apple-system, system-ui, sans-serif;
+  font-family: var(--font-ui);
   font-size: 15.5px;
   line-height: 1.72;
   letter-spacing: -0.003em;
@@ -68,12 +148,12 @@ body {
 h1, h2, h3, p, ul, ol, figure { margin: 0; }
 li { list-style: none; }
 
+/* 맥 앱처럼 링크는 강조색 글자만 — 밑줄은 문서 본문의 링크에만 (read-only-blocks). */
 a {
   color: var(--accent);
   text-decoration: none;
-  border-bottom: 1px solid var(--accent-line);
 }
-a:hover { color: var(--accent-hover); border-bottom-color: var(--accent-hover); }
+a:hover { color: var(--accent-hover); }
 
 button {
   font: inherit;
@@ -95,10 +175,10 @@ select { font: inherit; color: inherit; }
 }
 
 kbd {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-family: var(--font-ui);
   font-size: 10.5px;
   font-weight: 500;
-  color: #8f8a82;
+  color: var(--ink-4);
   background: var(--card);
   border: 1px solid var(--line);
   border-bottom-color: var(--line-strong);
@@ -139,14 +219,58 @@ kbd {
   justify-content: center;
   width: 100%;
   height: 42px;
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--accent);
+  color: var(--on-accent);
   border-radius: var(--radius);
   font-size: 14px;
   font-weight: 500;
 }
-.button-primary:hover { background: #1f1e1c; }
+.button-primary:hover { background: var(--accent-hover); }
 .button-primary:disabled { opacity: 0.55; cursor: default; }
+
+/* --- 맥 레이아웃 — components/mac-ui.tsx 의 SplitView ------------------------
+   가운데 목록 + 오른쪽 인스펙터. 1100px 보다 좁으면 인스펙터가 목록 아래로 내려온다.
+   JS 로 재지 않고 CSS 로 나눠야 서버가 그린 첫 화면과 모양이 같다. */
+.split { flex-grow: 1; min-height: 0; display: flex; }
+.split-main { flex-grow: 1; min-width: 0; overflow-y: auto; }
+.split-inner {
+  max-width: var(--main-max, 760px);
+  margin: 0 auto;
+  padding: 26px 40px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  line-height: 1.45; /* 맥 화면의 줄 간격 — 본문(문서)의 1.72 는 읽는 글에만 */
+}
+.split-inspector {
+  width: 320px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: var(--inspector);
+  border-left: 1px solid var(--line);
+  padding: 20px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.45;
+}
+@media (max-width: 1099px) {
+  .split { display: block; overflow-y: auto; }
+  .split-main { overflow: visible; }
+  .split .split-inner { padding-bottom: 28px; }
+  .split-inspector {
+    width: auto;
+    max-width: var(--main-max, 760px);
+    margin: 0 auto;
+    background: transparent;
+    border-left: 0;
+    padding: 0 40px 64px;
+  }
+}
+@media (max-width: 760px) {
+  .split-inner { padding: 20px 16px 48px; }
+  .split-inspector { padding: 0 16px 48px; }
+}
 
 /* --- 대기 표시 — components/pending.tsx 의 <Spinner> --- */
 .spinner {

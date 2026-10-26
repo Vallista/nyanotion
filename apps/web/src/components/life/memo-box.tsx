@@ -92,7 +92,7 @@ export function MemoCapture({ autoFocus = false, compact = false }: { autoFocus?
   );
 }
 
-function ago(iso: string, now: number): string {
+export function ago(iso: string, now: number): string {
   const diff = Math.max(0, now - Date.parse(iso)) / 60_000;
   if (diff < 1) return "방금";
   if (diff < 60) return `${Math.floor(diff)}분 전`;
@@ -103,7 +103,7 @@ function ago(iso: string, now: number): string {
   return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`;
 }
 
-function movedLink(movedTo: string | null): { href: string; label: string } | null {
+export function movedLink(movedTo: string | null): { href: string; label: string } | null {
   if (movedTo === null) return null;
   if (movedTo.startsWith("doc:")) return { href: `/d/${movedTo.slice(4)}`, label: "문서로 옮김" };
   if (movedTo.startsWith("todo:")) return { href: "/", label: "할 일로 옮김" };
@@ -189,7 +189,7 @@ function MemoItem({ memo, spaces, now, first }: { memo: MemoRow; spaces: MemoSpa
               textAlign: "center",
               border: `1.5px solid ${done ? "var(--accent)" : "var(--ink-4)"}`,
               background: done ? "var(--accent)" : "transparent",
-              color: "var(--paper)",
+              color: "var(--on-accent)",
               fontSize: 11,
               lineHeight: "15px",
             }}
@@ -269,7 +269,7 @@ function MemoItem({ memo, spaces, now, first }: { memo: MemoRow; spaces: MemoSpa
   );
 }
 
-function firstLine(text: string): string {
+export function firstLine(text: string): string {
   const line = text.split("\n").find((l) => l.trim() !== "") ?? "";
   return line.length > 30 ? `${line.slice(0, 30)}…` : line;
 }

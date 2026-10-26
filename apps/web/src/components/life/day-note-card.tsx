@@ -86,7 +86,7 @@ export function DayNoteCard({
           )}
         </div>
       ) : (
-        <button onClick={() => setRetroOpen(true)} style={{ alignSelf: "flex-start", fontSize: 12.5, color: "var(--ink-3)", textDecoration: "underline" }}>
+        <button onClick={() => setRetroOpen(true)} style={{ alignSelf: "flex-start", fontSize: 13, color: "var(--accent)" }}>
           하루 회고 쓰기
         </button>
       )}
@@ -136,7 +136,7 @@ function Scale({
                 fontVariantNumeric: "tabular-nums",
                 border: `1px solid ${on ? "var(--accent)" : "var(--line)"}`,
                 background: on ? "var(--accent)" : value !== null && level < value ? "var(--accent-soft)" : "var(--card)",
-                color: on ? "var(--paper)" : "var(--ink-3)",
+                color: on ? "var(--on-accent)" : "var(--ink-3)",
               }}
             >
               {level}

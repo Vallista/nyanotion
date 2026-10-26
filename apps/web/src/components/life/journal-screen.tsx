@@ -14,7 +14,7 @@ import { useState } from "react";
 import { saveReviewAction } from "@/lib/life-actions";
 import { dayLabel } from "../calendar-model";
 import { SmallButton, inputStyle } from "../checklist-item";
-import { Card, useNarrow } from "../routines/routine-ui";
+import { Group, GroupLabel, PageTitle, Section, SplitView, listRow } from "../mac-ui";
 import { DayNoteCard } from "./day-note-card";
 import { useLifeCall } from "./memo-box";
 
@@ -40,7 +40,6 @@ export function JournalScreen({
   /** 최근 두 달쯤의 하루 기록. */
   notes: DayNoteRow[];
 }) {
-  const narrow = useNarrow();
   const current = reviews.find((r) => r.kind === selected.kind && r.period === selected.period) ?? null;
   const range = periodRange(selected.kind, selected.period);
   const inPeriod = range === null ? [] : notes.filter((n) => n.date >= range.from && n.date <= range.to);
@@ -49,116 +48,112 @@ export function JournalScreen({
   const noteOf = (day: string) => notes.find((n) => n.date === day) ?? null;
   const others = reviews.filter((r) => !(r.kind === selected.kind && r.period === selected.period));
 
-  return (
-    <div style={{ flexGrow: 1, overflowY: "auto" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: narrow ? "18px 16px 48px" : "28px 32px 64px", display: "flex", flexDirection: "column", gap: 16 }}>
-        <header>
-          <h1 style={{ fontSize: narrow ? 22 : 26, fontWeight: 700, letterSpacing: "-0.02em" }}>기록</h1>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", marginTop: 4 }}>하루 기분·회고와 주간·월간 회고 — 나만 봐요.</p>
-        </header>
+  const main = (
+    <>
+      <PageTitle title="기록" sub="하루 기분·회고와 주간·월간 회고 — 나만 봐요." />
+      {/* 맥의 분할 컨트롤 — 고른 칸만 흰 판이 떠 있다. 쓴 회고가 있는 기간에는 점. */}
+      <nav aria-label="회고 기간" style={{ display: "flex", alignSelf: "flex-start", flexWrap: "wrap", gap: 2, padding: 2, background: "var(--chip)", borderRadius: "var(--radius)" }}>
+        {choices.map((c) => {
+          const on = c.kind === selected.kind && c.period === selected.period;
+          const has = reviews.some((r) => r.kind === c.kind && r.period === c.period);
+          return (
+            <Link
+              key={`${c.kind}:${c.period}`}
+              href={`/journal?k=${c.kind}&p=${c.period}`}
+              aria-current={on ? "page" : undefined}
+              style={{
+                height: 24,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                padding: "0 12px",
+                borderRadius: "var(--radius-sm)",
+                fontSize: 12.5,
+                background: on ? "var(--card)" : "transparent",
+                boxShadow: on ? "var(--shadow-control)" : "none",
+                color: on ? "var(--ink)" : "var(--ink-2)",
+                fontWeight: on ? 500 : 400,
+              }}
+            >
+              {c.label}
+              {has && <span aria-label="씀" style={{ width: 5, height: 5, borderRadius: 3, background: "var(--accent)" }} />}
+            </Link>
+          );
+        })}
+      </nav>
+      <ReviewEditor key={`${selected.kind}:${selected.period}:${current?.updatedAt ?? ""}`} choice={selected} review={current} />
 
-        <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "minmax(0, 1fr) 360px", gap: 16, alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-            <Card>
-              <nav aria-label="회고 기간" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {choices.map((c) => {
-                  const on = c.kind === selected.kind && c.period === selected.period;
-                  const has = reviews.some((r) => r.kind === c.kind && r.period === c.period);
-                  return (
-                    <Link
-                      key={`${c.kind}:${c.period}`}
-                      href={`/journal?k=${c.kind}&p=${c.period}`}
-                      aria-current={on ? "page" : undefined}
-                      style={{
-                        height: 30,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "0 12px",
-                        borderRadius: 15,
-                        fontSize: 12.5,
-                        border: `1px solid ${on ? "var(--ink)" : "var(--line)"}`,
-                        background: on ? "var(--ink)" : "var(--card)",
-                        color: on ? "var(--paper)" : "var(--ink-2)",
-                      }}
-                    >
-                      {c.label}
-                      {has && <span aria-label="씀" style={{ width: 6, height: 6, borderRadius: 3, background: on ? "var(--paper)" : "var(--accent)" }} />}
-                    </Link>
-                  );
-                })}
-              </nav>
-              <ReviewEditor key={`${selected.kind}:${selected.period}:${current?.updatedAt ?? ""}`} choice={selected} review={current} />
-            </Card>
-
-            <Card title={`${periodLabel(selected.kind, selected.period)}의 하루들`} note={inPeriod.length === 0 ? "기록 없음" : `${inPeriod.length}일 기록`}>
-              {inPeriod.length === 0 ? (
-                <p style={{ fontSize: 12.5, color: "var(--ink-4)" }}>이 기간에 남긴 하루 기록이 없어요.</p>
-              ) : (
-                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {inPeriod.map((n, i) => (
-                    <DayLine key={n.date} note={n} first={i === 0} />
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-            <Card title="최근 2주" note="눌러서 고치기">
-              <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                {recentDays.map((day, i) => {
-                  const n = noteOf(day);
-                  const open = editingDay === day;
-                  return (
-                    <li key={day} style={{ borderTop: i === 0 ? 0 : "1px solid var(--line-soft)" }}>
-                      <button
-                        onClick={() => setEditingDay(open ? null : day)}
-                        aria-expanded={open}
-                        style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "7px 0", textAlign: "left" }}
-                      >
-                        <span style={{ width: 92, flexShrink: 0, fontSize: 12.5, color: day === today ? "var(--accent)" : "var(--ink-2)", fontWeight: day === today ? 600 : 400 }}>
-                          {day === today ? "오늘" : dayLabel(day).replace(/^\d+월 /, "")}
-                        </span>
-                        <Dots value={n?.mood ?? null} title={n?.mood ? `기분 ${MOOD_LABEL[n.mood]}` : "기분 없음"} />
-                        <Dots value={n?.energy ?? null} title={n?.energy ? `에너지 ${ENERGY_LABEL[n.energy]}` : "에너지 없음"} muted />
-                        <span style={{ minWidth: 0, flexGrow: 1, fontSize: 12, color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {n?.note ?? (n?.retro ? "회고 있음" : "")}
-                        </span>
-                      </button>
-                      {open && (
-                        <div style={{ padding: "4px 0 12px" }}>
-                          <DayNoteCard key={`${day}:${n?.updatedAt ?? ""}`} date={day} note={n} evening={false} compact isToday={day === today} />
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </Card>
-
-            <Card title="지난 회고" note={others.length === 0 ? undefined : `${others.length}개`}>
-              {others.length === 0 ? (
-                <p style={{ fontSize: 12.5, color: "var(--ink-4)" }}>아직 쓴 회고가 없어요.</p>
-              ) : (
-                <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
-                  {others.map((r, i) => (
-                    <li key={r.id} style={{ borderTop: i === 0 ? 0 : "1px solid var(--line-soft)", padding: "8px 0" }}>
-                      <Link href={`/journal?k=${r.kind}&p=${r.period}`} style={{ border: 0, display: "block" }}>
-                        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>{periodLabel(r.kind, r.period)}</span>
-                        {r.source === "import" && <span style={{ marginLeft: 6, fontSize: 10.5, padding: "1px 6px", borderRadius: 3, background: "var(--chip)", color: "var(--ink-3)" }}>Bento</span>}
-                        <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontSize: 12, color: "var(--ink-3)", marginTop: 2, lineHeight: 1.55 }}>{r.text}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Section title={`${periodLabel(selected.kind, selected.period)}의 하루들`} note={inPeriod.length === 0 ? "기록 없음" : `${inPeriod.length}일 기록`}>
+        {inPeriod.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--ink-3)", padding: "10px 0" }}>이 기간에 남긴 하루 기록이 없어요.</p>
+        ) : (
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {inPeriod.map((n) => (
+              <DayLine key={n.date} note={n} />
+            ))}
+          </ul>
+        )}
+      </Section>
+    </>
   );
+
+  const inspector = (
+    <>
+      <GroupLabel first>최근 2주 · 눌러서 고치기</GroupLabel>
+      <Group padding="0 12px">
+        <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {recentDays.map((day, i) => {
+            const n = noteOf(day);
+            const open = editingDay === day;
+            return (
+              <li key={day} style={{ borderTop: i === 0 ? 0 : "1px solid var(--line-soft)" }}>
+                <button
+                  onClick={() => setEditingDay(open ? null : day)}
+                  aria-expanded={open}
+                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 0", textAlign: "left" }}
+                >
+                  <span style={{ width: 64, flexShrink: 0, fontSize: 12.5, color: day === today ? "var(--today)" : "var(--ink)", fontWeight: day === today ? 600 : 400 }}>
+                    {day === today ? "오늘" : dayLabel(day).replace(/^\d+월 /, "")}
+                  </span>
+                  <Dots value={n?.mood ?? null} title={n?.mood ? `기분 ${MOOD_LABEL[n.mood]}` : "기분 없음"} />
+                  <Dots value={n?.energy ?? null} title={n?.energy ? `에너지 ${ENERGY_LABEL[n.energy]}` : "에너지 없음"} muted />
+                  <span style={{ minWidth: 0, flexGrow: 1, fontSize: 12, color: "var(--ink-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {n?.note ?? (n?.retro ? "회고 있음" : "")}
+                  </span>
+                </button>
+                {open && (
+                  <div style={{ padding: "4px 0 12px" }}>
+                    <DayNoteCard key={`${day}:${n?.updatedAt ?? ""}`} date={day} note={n} evening={false} compact isToday={day === today} />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </Group>
+
+      <GroupLabel>지난 회고{others.length === 0 ? "" : ` · ${others.length}개`}</GroupLabel>
+      {others.length === 0 ? (
+        <p style={{ fontSize: 12.5, color: "var(--ink-4)", padding: "0 4px" }}>아직 쓴 회고가 없어요.</p>
+      ) : (
+        <Group padding="0 12px">
+          <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+            {others.map((r, i) => (
+              <li key={r.id} style={{ borderTop: i === 0 ? 0 : "1px solid var(--line-soft)", padding: "9px 0" }}>
+                <Link href={`/journal?k=${r.kind}&p=${r.period}`} style={{ display: "block" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{periodLabel(r.kind, r.period)}</span>
+                  {r.source === "import" && <span style={{ marginLeft: 6, fontSize: 10.5, padding: "1px 6px", borderRadius: 3, background: "var(--chip)", color: "var(--ink-3)" }}>Bento</span>}
+                  <span style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", fontSize: 12, color: "var(--ink-3)", marginTop: 2, lineHeight: 1.5 }}>{r.text}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Group>
+      )}
+    </>
+  );
+
+  return <SplitView main={main} inspector={inspector} inspectorLabel="최근 하루와 지난 회고" />;
 }
 
 function ReviewEditor({ choice, review }: { choice: PeriodChoice; review: ReviewRow | null }) {
@@ -167,11 +162,7 @@ function ReviewEditor({ choice, review }: { choice: PeriodChoice; review: Review
   const changed = text.trim() !== (review?.text ?? "");
   const [saved, setSaved] = useState(false);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <h2 style={{ fontSize: 15, fontWeight: 600 }}>
-        {periodLabel(choice.kind, choice.period)} 회고
-        {review?.source === "import" && <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 400, color: "var(--ink-3)" }}>Bento 에서 가져온 글</span>}
-      </h2>
+    <Section title={`${periodLabel(choice.kind, choice.period)} 회고`} note={review?.source === "import" ? "Bento 에서 가져온 글" : undefined} gap={8}>
       <textarea
         value={text}
         onChange={(e) => {
@@ -196,18 +187,18 @@ function ReviewEditor({ choice, review }: { choice: PeriodChoice; review: Review
           </span>
         )}
       </div>
-    </div>
+    </Section>
   );
 }
 
-function DayLine({ note, first }: { note: DayNoteRow; first: boolean }) {
+function DayLine({ note }: { note: DayNoteRow }) {
   return (
-    <li style={{ borderTop: first ? 0 : "1px solid var(--line-soft)", padding: "8px 0", display: "flex", flexDirection: "column", gap: 4 }}>
+    <li style={{ ...listRow, flexDirection: "column", gap: 4 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 600, width: 104, flexShrink: 0 }}>{dayLabel(note.date)}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, width: 104, flexShrink: 0 }}>{dayLabel(note.date)}</span>
         <Dots value={note.mood} title={note.mood ? `기분 ${MOOD_LABEL[note.mood]}` : "기분 없음"} />
         <Dots value={note.energy} title={note.energy ? `에너지 ${ENERGY_LABEL[note.energy]}` : "에너지 없음"} muted />
-        {note.note !== null && <span style={{ fontSize: 12.5, color: "var(--ink-2)", minWidth: 0 }}>{note.note}</span>}
+        {note.note !== null && <span style={{ fontSize: 13, color: "var(--ink)", minWidth: 0 }}>{note.note}</span>}
       </div>
       {note.retro !== null && <p style={{ fontSize: 12.5, color: "var(--ink-3)", whiteSpace: "pre-wrap", lineHeight: 1.6, paddingLeft: 112 }}>{note.retro}</p>}
     </li>

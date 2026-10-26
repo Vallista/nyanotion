@@ -544,8 +544,8 @@ export function SmallButton({
         borderRadius: "var(--radius)",
         fontSize: 12.5,
         fontWeight: primary ? 500 : 400,
-        background: primary ? "var(--ink)" : "var(--card)",
-        color: primary ? "var(--paper)" : "var(--ink-2)",
+        background: primary ? "var(--accent)" : "var(--card)",
+        color: primary ? "var(--on-accent)" : "var(--ink-2)",
         border: primary ? "none" : "1px solid var(--line)",
         opacity: disabled && !busy ? 0.45 : 1,
       }}

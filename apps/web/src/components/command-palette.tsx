@@ -155,7 +155,7 @@ export function CommandPalette() {
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        background: "rgba(47,46,43,0.22)",
+        background: "var(--overlay)",
         display: "flex",
         alignItems: "flex-start",
         justifyContent: "center",
@@ -169,7 +169,7 @@ export function CommandPalette() {
           background: "var(--card)",
           border: "1px solid var(--line)",
           borderRadius: 7,
-          boxShadow: "0 14px 36px rgba(47,46,43,.14), 0 2px 6px rgba(47,46,43,.06)",
+          boxShadow: "var(--shadow-float)",
           overflow: "hidden",
         }}
       >

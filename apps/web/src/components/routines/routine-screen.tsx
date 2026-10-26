@@ -34,7 +34,8 @@ import { SmallButton, inputStyle } from "../checklist-item";
 import { Dialog } from "../calendar-dialogs";
 import { ChevronDown, ChevronRight, PlayIcon, StopIcon } from "../icons";
 import { RoutineEditor, RoutineManager, type EditorTarget } from "./routine-dialogs";
-import { RoutineStats } from "./routine-stats";
+import { RoutineRecords, RoutineSummary } from "./routine-stats";
+import { PageTitle, SingleView, SplitView } from "../mac-ui";
 import { Meter, TemplateChips, linkButton, routineColorVar, useNarrow, type RoutineTemplateChoice } from "./routine-ui";
 
 /**
@@ -60,6 +61,8 @@ export function RoutineScreen({
 }) {
   const narrow = useNarrow();
   const [selected, setSelected] = useState(today);
+  /** 기록·요약에서 한 루틴만 볼 때 (전체면 null). */
+  const [filter, setFilter] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<Map<string, RoutineLogItem | null>>(new Map());
   const [timerOverride, setTimerOverride] = useState<{ value: RoutineTimerItem | null } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -218,84 +221,91 @@ export function RoutineScreen({
         ? `오늘 ${todayStat.done}/${todayStat.scheduled} 완료${perfect.current > 0 ? ` · 모두 끝낸 날 ${perfect.current}일 연속` : ""}`
         : "오늘은 예정된 루틴이 없어요.";
 
-  return (
-    <div style={{ flexGrow: 1, overflowY: "auto" }}>
-      <div style={{ width: "100%", maxWidth: 1000, margin: "0 auto", padding: narrow ? "24px 16px 120px" : "36px 24px 120px", display: "flex", flexDirection: "column", gap: 24 }}>
-        <header style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ flexGrow: 1, minWidth: 0 }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.3 }}>루틴</h1>
-            <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "var(--ink-3)" }}>{sub}</p>
-          </div>
-          {routines.length > 0 && (
+  const pickDay = (day: string) => {
+    setSelected(day);
+    window.scrollTo?.({ top: 0, behavior: "smooth" });
+  };
+
+  const main = (
+    <>
+      <PageTitle
+        title="루틴"
+        sub={sub}
+        action={
+          routines.length > 0 && (
             <div style={{ display: "flex", gap: 6 }}>
               <SmallButton onClick={() => setManaging(true)}>루틴 관리</SmallButton>
               <SmallButton primary onClick={() => setEditor({ kind: "new" })}>
                 + 루틴
               </SmallButton>
             </div>
-          )}
-        </header>
+          )
+        }
+      />
 
-        {notice && (
-          <div
-            role="status"
-            style={{
-              padding: "9px 12px",
-              borderRadius: "var(--radius)",
-              fontSize: 13,
-              background: notice.tone === "warn" ? "rgba(168,85,60,0.08)" : "var(--accent-soft)",
-              color: notice.tone === "warn" ? "var(--late)" : "var(--accent-hover)",
-              border: `1px solid ${notice.tone === "warn" ? "rgba(168,85,60,0.25)" : "var(--accent-line)"}`,
-            }}
-          >
-            {notice.text}
-          </div>
-        )}
+      {notice && (
+        <div
+          role="status"
+          style={{
+            padding: "9px 12px",
+            borderRadius: "var(--radius-lg)",
+            fontSize: 13,
+            background: notice.tone === "warn" ? "var(--late-soft)" : "var(--accent-soft)",
+            color: notice.tone === "warn" ? "var(--late)" : "var(--accent-hover)",
+          }}
+        >
+          {notice.text}
+        </div>
+      )}
 
-        {liveTimer && timerRoutine && (
-          <TimerBar
-            routine={timerRoutine}
-            timer={liveTimer}
-            baseSecs={idx.get(routineLogKey(liveTimer.routineId, liveTimer.date))?.secs ?? 0}
-            now={now}
+      {liveTimer && timerRoutine && (
+        <TimerBar
+          routine={timerRoutine}
+          timer={liveTimer}
+          baseSecs={idx.get(routineLogKey(liveTimer.routineId, liveTimer.date))?.secs ?? 0}
+          now={now}
+          today={today}
+          busy={busy === "timer"}
+          onStop={stopTimer}
+        />
+      )}
+
+      {routines.length === 0 ? (
+        <EmptyStart onPick={(template) => setEditor({ kind: "new", template })} />
+      ) : (
+        <>
+          <DayCard
+            routines={sorted}
+            idx={idx}
+            day={selected}
             today={today}
-            busy={busy === "timer"}
-            onStop={stopTimer}
+            timer={liveTimer}
+            now={now}
+            busy={busy}
+            narrow={narrow === true}
+            onDay={setSelected}
+            onToggle={toggle}
+            onTimer={toggleTimer}
+            onMinutes={setMinutesFor}
+            onEdit={(r) => setEditor({ kind: "edit", routine: r })}
           />
-        )}
+          <RoutineRecords routines={sorted} idx={idx} today={today} narrow={narrow === true} filter={filter} onFilter={setFilter} onPickDay={pickDay} />
+        </>
+      )}
+    </>
+  );
 
-        {routines.length === 0 ? (
-          <EmptyStart onPick={(template) => setEditor({ kind: "new", template })} />
-        ) : (
-          <>
-            <DayCard
-              routines={sorted}
-              idx={idx}
-              day={selected}
-              today={today}
-              timer={liveTimer}
-              now={now}
-              busy={busy}
-              narrow={narrow === true}
-              onDay={setSelected}
-              onToggle={toggle}
-              onTimer={toggleTimer}
-              onMinutes={setMinutesFor}
-              onEdit={(r) => setEditor({ kind: "edit", routine: r })}
-            />
-            <RoutineStats
-              routines={sorted}
-              idx={idx}
-              today={today}
-              narrow={narrow === true}
-              onPickDay={(day) => {
-                setSelected(day);
-                window.scrollTo?.({ top: 0, behavior: "smooth" });
-              }}
-            />
-          </>
-        )}
-      </div>
+  return (
+    <>
+      {routines.length === 0 ? (
+        <SingleView>{main}</SingleView>
+      ) : (
+        <SplitView
+          main={main}
+          inspectorLabel="루틴 요약"
+          inspector={<RoutineSummary routines={sorted} idx={idx} today={today} filter={filter} onFilter={setFilter} />}
+        />
+      )}
 
       {editor && (
         <RoutineEditor
@@ -331,7 +341,7 @@ export function RoutineScreen({
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -396,18 +406,15 @@ function DayCard({
   );
 
   return (
-    <section
-      aria-label="날짜별 체크"
-      style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius)" }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 12px", borderBottom: "1px solid var(--line-soft)" }}>
+    <section aria-label="날짜별 체크" style={{ display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, paddingBottom: 6, borderBottom: "1px solid var(--line)" }}>
         <NavButton label="전날" disabled={day <= earliest} onClick={() => onDay(addDays(day, -1))}>
           <span style={{ display: "inline-flex", transform: "rotate(180deg)" }}>
             <ChevronRight size={12} />
           </span>
         </NavButton>
         <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>{isToday ? "오늘" : routineDayLabel(day)}</span>
+          <span style={{ fontSize: 15, fontWeight: 700, lineHeight: 1.3 }}>{isToday ? "오늘" : routineDayLabel(day)}</span>
           <span style={{ fontSize: 11.5, color: "var(--ink-3)" }}>
             {isToday ? routineDayLabel(day) : "지난 날 기록 고치기"}
           </span>
@@ -427,7 +434,7 @@ function DayCard({
       </div>
 
       {scheduled.length === 0 && (
-        <p style={{ margin: 0, padding: "18px 14px", fontSize: 13, color: "var(--ink-3)" }}>
+        <p style={{ margin: 0, padding: "14px 0", fontSize: 13, color: "var(--ink-3)" }}>
           {day < earliest ? "이 날은 루틴을 시작하기 전이에요." : "이 날 예정된 루틴이 없어요."}
         </p>
       )}
@@ -435,8 +442,8 @@ function DayCard({
         const items = scheduled.filter((r) => slotOf(r) === slot);
         if (items.length === 0) return null;
         return (
-          <div key={slot} style={{ padding: "6px 0 4px" }}>
-            <div style={{ padding: "4px 14px", fontSize: 11.5, color: "var(--ink-4)", letterSpacing: "0.02em" }}>
+          <div key={slot}>
+            <div style={{ padding: "14px 0 2px", fontSize: 11, fontWeight: 600, color: "var(--ink-4)" }}>
               {ROUTINE_SLOT_LABEL[slot]}
             </div>
             {items.map(row)}
@@ -444,11 +451,11 @@ function DayCard({
         );
       })}
       {off.length > 0 && (
-        <div style={{ borderTop: "1px solid var(--line-soft)" }}>
+        <div>
           <button
             onClick={() => setShowOff((v) => !v)}
             aria-expanded={showOff}
-            style={{ ...linkButton, display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", width: "100%", color: "var(--ink-3)" }}
+            style={{ ...linkButton, display: "flex", alignItems: "center", gap: 6, padding: "10px 0", width: "100%", color: "var(--ink-3)", fontSize: 13 }}
           >
             {showOff ? <ChevronDown size={11} /> : <ChevronRight size={11} />}이 날 쉬는 루틴 · {off.length}
             <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--ink-4)" }}>해도 연속 기록에는 안 들어가요</span>
@@ -499,18 +506,18 @@ function RoutineRow({
   const goal = (routine.goalMin ?? 0) * 60;
   const canTime = day === today && routine.archivedAt === null;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: narrow ? "8px 12px" : "7px 14px", minHeight: 48 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", minHeight: 46, borderBottom: "1px solid var(--line-soft)" }}>
       <button
         onClick={onToggle}
         disabled={busy}
         aria-pressed={done}
         aria-label={done ? `${routine.title} 완료 취소` : `${routine.title} 완료`}
         style={{
-          width: 26,
-          height: 26,
+          width: 22,
+          height: 22,
           flexShrink: 0,
           borderRadius: "50%",
-          border: `1.6px solid ${color}`,
+          border: done ? 0 : `1.5px solid ${color}`,
           background: done ? color : "transparent",
           display: "grid",
           placeItems: "center",
@@ -519,15 +526,15 @@ function RoutineRow({
         }}
       >
         {done && (
-          <svg width="13" height="13" viewBox="0 0 12 12" aria-hidden="true">
-            <path d="m2.6 6.2 2.2 2.2 4.6-4.9" fill="none" stroke="var(--paper)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="m2.6 6.2 2.2 2.2 4.6-4.9" fill="none" stroke="var(--on-accent)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
       <button onClick={onEdit} title="루틴 고치기" style={{ ...linkButton, flexGrow: 1, minWidth: 0, textAlign: "left", display: "flex", flexDirection: "column", gap: 1 }}>
         <span
           style={{
-            fontSize: 14.5,
+            fontSize: 13.5,
             color: done ? "var(--ink-3)" : "var(--ink)",
             textDecorationLine: done ? "line-through" : "none",
             textDecorationColor: "var(--ink-5)",
@@ -538,9 +545,9 @@ function RoutineRow({
         >
           {routine.title}
         </span>
-        <span style={{ fontSize: 11.5, color: "var(--ink-4)", display: "flex", gap: 6 }}>
+        <span style={{ fontSize: 11.5, color: "var(--ink-3)", display: "flex", gap: 6 }}>
           <span>{describeSchedule(routine.schedule)}{routine.goalMin ? ` · 목표 ${routine.goalMin}분` : ""}</span>
-          {streak > 0 && <span style={{ color: "var(--accent)" }}>{streak}일 연속</span>}
+          {streak > 0 && <span>· {streak}일 연속</span>}
         </span>
       </button>
       {(goal > 0 || secs > 0 || running) && (
@@ -559,15 +566,15 @@ function RoutineRow({
           aria-label={running ? "타이머 멈추기" : "타이머 시작"}
           title={running ? "타이머 멈추기" : "타이머 시작"}
           style={{
-            width: 30,
-            height: 30,
+            width: 26,
+            height: 26,
             flexShrink: 0,
             display: "grid",
             placeItems: "center",
-            borderRadius: "var(--radius)",
-            border: `1px solid ${running ? "var(--ink)" : "var(--line)"}`,
-            background: running ? "var(--ink)" : "var(--paper)",
-            color: running ? "var(--paper)" : "var(--ink-3)",
+            borderRadius: "50%",
+            border: `1px solid ${running ? "var(--accent)" : "var(--line-strong)"}`,
+            background: running ? "var(--accent)" : "var(--card)",
+            color: running ? "var(--on-accent)" : "var(--ink-3)",
             cursor: "pointer",
           }}
         >
@@ -605,23 +612,23 @@ function TimerBar({
         alignItems: "center",
         gap: 12,
         padding: "10px 14px",
-        borderRadius: "var(--radius)",
-        background: "var(--ink)",
-        color: "var(--paper)",
+        borderRadius: "var(--radius-lg)",
+        background: "var(--accent-soft)",
+        color: "var(--ink)",
       }}
     >
       <span style={{ width: 9, height: 9, borderRadius: "50%", background: routineColorVar(routine), flexShrink: 0 }} />
       <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flexGrow: 1 }}>
         <span style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{routine.title}</span>
-        <span style={{ fontSize: 11.5, opacity: 0.7 }}>
+        <span style={{ fontSize: 11.5, color: "var(--ink-3)" }}>
           {timer.date === today ? "기록 중" : `${routineDayLabel(timer.date)}에 기록 중`} · 그날 합계 {formatSecs(baseSecs + elapsed)}
         </span>
       </div>
-      <span style={{ fontSize: 22, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>{formatClock(elapsed)}</span>
+      <span style={{ fontSize: 22, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em", color: "var(--accent)" }}>{formatClock(elapsed)}</span>
       <button
         onClick={onStop}
         disabled={busy}
-        style={{ height: 30, padding: "0 12px", borderRadius: "var(--radius)", border: "1px solid rgba(250,249,247,0.4)", background: "transparent", color: "var(--paper)", fontSize: 12.5, cursor: "pointer" }}
+        style={{ height: 28, padding: "0 12px", borderRadius: "var(--radius)", border: 0, background: "var(--accent)", color: "var(--on-accent)", fontSize: 12.5, fontWeight: 500, cursor: "pointer" }}
       >
         멈추기
       </button>
@@ -691,7 +698,7 @@ function MinutesDialog({
 
 function EmptyStart({ onPick }: { onPick: (template: RoutineTemplateChoice | undefined) => void }) {
   return (
-    <section style={{ display: "flex", flexDirection: "column", gap: 14, padding: "28px 24px", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius)" }}>
+    <section style={{ display: "flex", flexDirection: "column", gap: 14, paddingTop: 8, borderTop: "1px solid var(--line)" }}>
       <div>
         <strong style={{ fontSize: 16 }}>첫 루틴을 만들어 볼까요</strong>
         <p style={{ margin: "6px 0 0", fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.7 }}>
@@ -724,10 +731,10 @@ function NavButton({ label, disabled, onClick, children }: { label: string; disa
         display: "grid",
         placeItems: "center",
         borderRadius: "var(--radius)",
-        border: "1px solid var(--line)",
-        background: "var(--paper)",
-        color: "var(--ink-3)",
-        opacity: disabled ? 0.4 : 1,
+        border: 0,
+        background: "transparent",
+        color: "var(--ink-2)",
+        opacity: disabled ? 0.3 : 1,
         cursor: disabled ? "default" : "pointer",
       }}
     >

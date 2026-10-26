@@ -143,8 +143,8 @@ function Action({
         borderRadius: "var(--radius)",
         fontSize: 12.5,
         fontWeight: primary ? 500 : 400,
-        background: primary ? "var(--ink)" : "transparent",
-        color: primary ? "var(--paper)" : "var(--ink-2)",
+        background: primary ? "var(--accent)" : "transparent",
+        color: primary ? "var(--on-accent)" : "var(--ink-2)",
         border: primary ? "none" : "1px solid var(--line)",
       }}
     >

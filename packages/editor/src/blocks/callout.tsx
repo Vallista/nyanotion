@@ -13,7 +13,7 @@ import { useState } from "react";
 const TONES: Record<CalloutTone, { emoji: string; label: string; line: string; bg: string }> = {
   note: { emoji: "💡", label: "메모", line: "var(--line-strong)", bg: "var(--surface)" },
   tip: { emoji: "💡", label: "도움말", line: "var(--accent)", bg: "var(--accent-soft)" },
-  warn: { emoji: "⚠️", label: "주의", line: "#b08050", bg: "rgba(176,128,80,0.09)" },
+  warn: { emoji: "⚠️", label: "주의", line: "var(--warn)", bg: "var(--warn-soft)" },
 };
 
 function asTone(value: string): CalloutTone {

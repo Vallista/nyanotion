@@ -1,5 +1,5 @@
 import type { AgendaRow, CalendarEventRow, PlanEventRow } from "@nyanotion/db";
-import { FEED_COLORS, PLAN_DEFAULT_COLOR, minutesOf, projectRepeats } from "@nyanotion/shared";
+import { FEED_COLORS, PLAN_DEFAULT_COLOR, calendarColorVar, minutesOf, projectRepeats } from "@nyanotion/shared";
 
 /**
  * 첫 화면 캘린더가 그리는 것들의 모양 — 외부 일정(읽기만)과 할 일(고칠 수 있음).
@@ -76,13 +76,14 @@ const UNSIZED_MIN = 30;
 /** 아주 짧은 일정도 글자가 읽힐 만큼은 높이를 준다 (겹침 계산에도 같은 값). */
 export const MIN_VISIBLE_MIN = 20;
 
-export const TODO_COLOR = { personal: "var(--accent)", org: "#8a5a3c" } as const;
+export const TODO_COLOR = { personal: "var(--accent)", org: "var(--family)" } as const;
 
+/** 화면에 칠할 색 — 저장된 색 이름을 테마 변수(`--cal-N`)로 바꿔 돌려준다. */
 export function eventColor(event: { feedId: string; color: string | null }): string {
-  if (event.color !== null) return event.color;
+  if (event.color !== null) return calendarColorVar(event.color);
   let hash = 0;
   for (let i = 0; i < event.feedId.length; i += 1) hash = (hash * 31 + event.feedId.charCodeAt(i)) | 0;
-  return FEED_COLORS[Math.abs(hash) % FEED_COLORS.length] ?? FEED_COLORS[0];
+  return calendarColorVar(FEED_COLORS[Math.abs(hash) % FEED_COLORS.length] ?? FEED_COLORS[0]);
 }
 
 /** 할 일 → 그려야 할 날들의 항목. 반복이면 범위 안의 앞날도 (`projectRepeats`). */

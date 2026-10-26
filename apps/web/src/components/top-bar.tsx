@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-/** 46px 상단 바. 왼쪽은 빵가루, 오른쪽은 문서 동작. 시안 03 과 같은 높이·선. */
+/** 52px 상단 바(맥 통합 도구 막대 높이). 왼쪽은 빵가루 — 마지막 칸이 창 제목처럼 굵다. 오른쪽은 문서 동작. */
 export function TopBar({
   crumbs,
   right,
@@ -12,7 +12,7 @@ export function TopBar({
   return (
     <header
       style={{
-        height: 46,
+        height: 52,
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
@@ -20,7 +20,7 @@ export function TopBar({
         padding: "0 18px 0 14px",
         borderBottom: "1px solid var(--line)",
         background: "var(--paper)",
-        // **넘침을 자르지 않는다.** 여기를 자르면 오른쪽 `…` 메뉴(휴지통으로 보내기 등)가 46px 아래로
+        // **넘침을 자르지 않는다.** 여기를 자르면 오른쪽 `…` 메뉴(휴지통으로 보내기 등)가 막대 아래로
         // 펼쳐지다 잘려 안 보인다. 긴 빵가루는 아래 칸이 자른다. 메뉴가 본문 위에 뜨도록 쌓임 순서도 올린다.
         position: "relative",
         zIndex: 20,
@@ -41,8 +41,9 @@ export function TopBar({
           const label = (
             <span
               style={{
-                fontSize: 13,
-                color: last ? "var(--ink-2)" : "var(--ink-3)",
+                fontSize: last ? 14 : 13,
+                fontWeight: last ? 600 : 400,
+                color: last ? "var(--ink)" : "var(--ink-3)",
                 padding: "2px 5px",
                 borderRadius: "var(--radius)",
                 overflow: "hidden",
@@ -62,7 +63,7 @@ export function TopBar({
               style={{ display: "flex", alignItems: "center", minWidth: 0, flexShrink: crumb.href === undefined ? 1 : 0 }}
             >
               {index > 0 && (
-                <span style={{ color: "var(--ink-4)", fontSize: 12.5, padding: "0 1px" }}>/</span>
+                <span style={{ color: "var(--ink-5)", fontSize: 13, padding: "0 1px" }}>›</span>
               )}
               {last || (crumb.id === null && crumb.href === undefined) ? (
                 label

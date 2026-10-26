@@ -37,8 +37,8 @@ export function PersistStorageButton() {
           height: 34,
           padding: "0 14px",
           borderRadius: "var(--radius)",
-          background: result === "granted" ? "var(--chip)" : "var(--ink)",
-          color: result === "granted" ? "var(--ink-2)" : "var(--paper)",
+          background: result === "granted" ? "var(--chip)" : "var(--accent)",
+          color: result === "granted" ? "var(--ink-2)" : "var(--on-accent)",
           fontSize: 13,
           fontWeight: 500,
         }}

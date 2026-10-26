@@ -100,6 +100,8 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - **DB 스키마 변경은 `packages/db/migrations/` 에 새 번호로 추가.** 적용된 SQL 은 고치지 않는다.
 - **비밀 값은 커밋 금지.** `infra/.env` 는 git 무시. 예시는 `infra/.env.example` 에만.
 - 브랜드 말(도란 · 도우미 = 로컬 AI · 휴지통)은 **UI 문구에서만**. DB 컬럼·코드 식별자는 평범한 영어로. 고양이 말장난(냥이·모래상자·캣타워·츄르)은 더 쓰지 않는다.
+- **색·글꼴은 `globals.css` 의 변수만** — 라이트(맥 시스템)와 다크(그래파이트)가 같은 이름을 쓴다. 화면 코드에 hex·`white`·`black` 을 쓰면 다크에서 깨진다. 강조색 위 글자는 `--on-accent`(`--paper` 아님), 캘린더 색은 `calendarColorVar`.
+- **맥 앱 배치는 `components/mac-ui.tsx`** — 목록은 `Section`(상자 없이 제목 + 선), 숫자·설정은 인스펙터의 `Group`, 목록 + 인스펙터는 `SplitView`. 테두리 두른 카드를 새로 만들지 말 것.
 - **마크는 `components/brand-mark.tsx` 한 곳** (지붕 아래 체크, 도우미는 반짝이). 앱 아이콘은 `pnpm --filter @nyanotion/web icons` 가 같은 path 로 만든다.
 
 ## 환경과 비밀값

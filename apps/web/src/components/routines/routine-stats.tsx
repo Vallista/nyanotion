@@ -25,26 +25,30 @@ import {
 } from "@nyanotion/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight } from "../icons";
-import { Card, linkButton, routineColorVar } from "./routine-ui";
+import { Group, GroupLabel, GroupRow, Section, listRow } from "../mac-ui";
+import { linkButton, routineColorVar } from "./routine-ui";
 
 /**
- * 기록 — 요약 4칸 · 루틴 고르기 · 히트맵 · 주간/월간 · 요일·시간대 · 분석 · 루틴별.
- * 색은 완료(이끼색) 한 가지의 단계만 쓴다. 루틴 색은 이름 옆 점에만.
+ * 기록 — 가운데 목록 아래(한 해 · 주간/월간 · 눈여겨볼 것)와 오른쪽 인스펙터(요약 · 요일·시간대 · 루틴별)로 나눈다.
+ * 루틴 고르기(filter)는 화면이 들고 있어 두 곳이 같이 따른다. 색은 강조색 한 가지의 단계만, 루틴 색은 이름 옆 점에만.
  */
-export function RoutineStats({
+export function RoutineRecords({
   routines,
   idx,
   today,
   narrow,
+  filter,
+  onFilter,
   onPickDay,
 }: {
   routines: RoutineItem[];
   idx: RoutineLogIndex;
   today: string;
   narrow: boolean;
+  filter: string | null;
+  onFilter: (id: string | null) => void;
   onPickDay: (day: string) => void;
 }) {
-  const [filter, setFilter] = useState<string | null>(null);
   const picked = useMemo(
     () => (filter === null ? routines : routines.filter((r) => r.id === filter)),
     [routines, filter],
@@ -53,45 +57,39 @@ export function RoutineStats({
   const insights = useMemo(() => routineInsights(active, idx, today), [active, idx, today]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Kpis routines={routines} idx={idx} today={today} narrow={narrow} />
-
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>
-        <Chip on={filter === null} onClick={() => setFilter(null)}>
-          전체
-        </Chip>
-        {routines.map((r) => (
-          <Chip key={r.id} on={filter === r.id} dim={r.archivedAt !== null} onClick={() => setFilter(filter === r.id ? null : r.id)}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: routineColorVar(r) }} />
-            {r.title}
+    <>
+      <Section title="기록" note={filter === null ? "모든 루틴" : picked[0]?.title} gap={12}>
+        {/* 파인더 검색의 범위 막대처럼 — 고른 것만 옅은 회색 판. */}
+        <div role="radiogroup" aria-label="볼 루틴" style={{ display: "flex", gap: 2, overflowX: "auto", paddingBottom: 2 }}>
+          <Chip on={filter === null} onClick={() => onFilter(null)}>
+            전체
           </Chip>
-        ))}
-      </div>
-
-      <Card title="한 해" note="칸을 누르면 그날 기록을 고쳐요">
+          {routines.map((r) => (
+            <Chip key={r.id} on={filter === r.id} dim={r.archivedAt !== null} onClick={() => onFilter(filter === r.id ? null : r.id)}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: routineColorVar(r) }} />
+              {r.title}
+            </Chip>
+          ))}
+        </div>
+        <SubHead note="칸을 누르면 그날 기록을 고쳐요">한 해</SubHead>
         <Heatmap routines={picked} idx={idx} today={today} onPick={onPickDay} />
-      </Card>
+      </Section>
 
-      <div style={{ display: "grid", gridTemplateColumns: narrow ? "minmax(0,1fr)" : "minmax(0,1.4fr) minmax(0,1fr)", gap: 16 }}>
-        <Card>
-          <Period routines={picked} idx={idx} today={today} onPick={onPickDay} />
-        </Card>
-        <Card title="요일 · 시간대" note="최근 8주">
-          <Patterns routines={picked} idx={idx} today={today} />
-        </Card>
-      </div>
+      <Section gap={12}>
+        <Period routines={picked} idx={idx} today={today} onPick={onPickDay} narrow={narrow} />
+      </Section>
 
       {insights.length > 0 && (
-        <Card title="눈여겨볼 것">
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
+        <Section title="눈여겨볼 것">
+          <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
             {insights.map((i) => (
-              <li key={i.id} style={{ display: "flex", gap: 10, fontSize: 13.5, lineHeight: 1.6 }}>
+              <li key={i.id} style={{ ...listRow, fontSize: 13, lineHeight: 1.55 }}>
                 <span
                   aria-hidden="true"
                   style={{
                     width: 6,
                     height: 6,
-                    marginTop: 8,
+                    marginTop: 7,
                     borderRadius: "50%",
                     flexShrink: 0,
                     background: i.tone === "good" ? "var(--accent)" : i.tone === "warn" ? "var(--late)" : "var(--ink-4)",
@@ -101,19 +99,59 @@ export function RoutineStats({
               </li>
             ))}
           </ul>
-        </Card>
+        </Section>
       )}
+    </>
+  );
+}
 
-      <Card title="루틴별" note="최근 14일 · 30일 달성률">
-        <Rows routines={routines} idx={idx} today={today} narrow={narrow} filter={filter} onFilter={setFilter} />
-      </Card>
+/** 오른쪽 인스펙터 — 시스템 설정처럼 묶은 칸. */
+export function RoutineSummary({
+  routines,
+  idx,
+  today,
+  filter,
+  onFilter,
+}: {
+  routines: RoutineItem[];
+  idx: RoutineLogIndex;
+  today: string;
+  filter: string | null;
+  onFilter: (id: string | null) => void;
+}) {
+  const picked = useMemo(
+    () => (filter === null ? routines : routines.filter((r) => r.id === filter)),
+    [routines, filter],
+  );
+  return (
+    <>
+      <GroupLabel first>요약 · 모든 루틴</GroupLabel>
+      <Kpis routines={routines} idx={idx} today={today} />
+      <GroupLabel>{filter === null ? "요일 · 시간대" : `요일 · 시간대 · ${picked[0]?.title ?? ""}`} — 최근 8주</GroupLabel>
+      <Group padding="12px 12px 10px">
+        <Patterns routines={picked} idx={idx} today={today} />
+      </Group>
+      <GroupLabel>루틴별 · 30일 달성률</GroupLabel>
+      <Group>
+        <Rows routines={routines} idx={idx} today={today} filter={filter} onFilter={onFilter} />
+      </Group>
+      <Legend />
+    </>
+  );
+}
+
+function SubHead({ children, note }: { children: React.ReactNode; note?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
+      <span style={{ fontSize: 13, fontWeight: 600 }}>{children}</span>
+      {note !== undefined && <span style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{note}</span>}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ 요약 */
 
-function Kpis({ routines, idx, today, narrow }: { routines: RoutineItem[]; idx: RoutineLogIndex; today: string; narrow: boolean }) {
+function Kpis({ routines, idx, today }: { routines: RoutineItem[]; idx: RoutineLogIndex; today: string }) {
   const day = routineDayStat(routines, idx, today, today);
   const perfect = perfectStreak(routines, idx, today);
   const r30 = summarizeRoutines(routines, idx, addDays(today, -29), today, today);
@@ -124,22 +162,25 @@ function Kpis({ routines, idx, today, narrow }: { routines: RoutineItem[]; idx: 
   const week = summarizeRoutines(routines, idx, ws, today, today);
   const last = summarizeRoutines(routines, idx, addDays(ws, -7), addDays(ws, elapsed - 7), today);
   return (
-    <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr 1fr" : "repeat(4, minmax(0,1fr))", gap: 10 }}>
-      <Kpi label="오늘" value={day.scheduled > 0 ? `${day.done}/${day.scheduled}` : "–"} sub={day.scheduled === 0 ? "예정 없음" : day.done === day.scheduled ? "모두 끝냄" : `${day.scheduled - day.done}개 남음`} good={day.scheduled > 0 && day.done === day.scheduled} />
-      <Kpi label="모두 끝낸 날 연속" value={`${perfect.current}일`} sub={`최고 ${perfect.best}일`} good={perfect.current > 0} />
-      <Kpi label="30일 달성률" value={pct(r30.rate)} sub={delta === null ? "앞 30일 기록 없음" : delta === 0 ? "앞 30일과 같음" : `앞 30일 대비 ${delta > 0 ? "+" : ""}${delta}%p`} />
-      <Kpi label="이번 주 쓴 시간" value={formatSecs(week.secs)} sub={week.secs > 0 || last.secs > 0 ? `지난주 같은 기간 ${formatSecs(last.secs)}` : "기록 없음"} />
-    </div>
-  );
-}
-
-function Kpi({ label, value, sub, good }: { label: string; value: string; sub: string; good?: boolean }) {
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: "12px 14px", minWidth: 0 }}>
-      <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{label}</div>
-      <div style={{ fontSize: 21, fontWeight: 600, letterSpacing: "-0.02em", fontVariantNumeric: "tabular-nums", color: good ? "var(--accent)" : "var(--ink)", lineHeight: 1.4 }}>{value}</div>
-      <div style={{ fontSize: 11.5, color: "var(--ink-4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>
-    </div>
+    <Group>
+      <GroupRow
+        label="오늘"
+        value={day.scheduled > 0 ? `${day.done} / ${day.scheduled}` : "–"}
+        sub={day.scheduled === 0 ? "예정 없음" : day.done === day.scheduled ? "모두 끝냄" : `${day.scheduled - day.done}개 남음`}
+      />
+      <GroupRow label="모두 끝낸 날" value={`${perfect.current}일 연속`} sub={`최고 ${perfect.best}일`} />
+      <GroupRow
+        label="30일 달성률"
+        value={pct(r30.rate)}
+        sub={delta === null ? "앞 30일 기록 없음" : delta === 0 ? "앞 30일과 같음" : `앞 30일 대비 ${delta > 0 ? "+" : ""}${delta}%p`}
+      />
+      <GroupRow
+        label="이번 주 쓴 시간"
+        value={formatSecs(week.secs)}
+        sub={week.secs > 0 || last.secs > 0 ? `지난주 같은 기간 ${formatSecs(last.secs)}` : "기록 없음"}
+        last
+      />
+    </Group>
   );
 }
 
@@ -147,19 +188,21 @@ function Chip({ on, dim, onClick, children }: { on: boolean; dim?: boolean; onCl
   return (
     <button
       type="button"
+      role="radio"
       onClick={onClick}
-      aria-pressed={on}
+      aria-checked={on}
       style={{
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
         flexShrink: 0,
-        height: 28,
-        padding: "0 11px",
-        borderRadius: 14,
-        border: `1px solid ${on ? "var(--ink-2)" : "var(--line)"}`,
-        background: on ? "var(--ink)" : "var(--card)",
-        color: on ? "var(--paper)" : "var(--ink-2)",
+        height: 24,
+        padding: "0 9px",
+        borderRadius: "var(--radius)",
+        border: 0,
+        background: on ? "var(--sel)" : "transparent",
+        color: on ? "var(--ink)" : "var(--ink-2)",
+        fontWeight: on ? 600 : 400,
         fontSize: 12.5,
         opacity: dim && !on ? 0.6 : 1,
         cursor: "pointer",
@@ -173,7 +216,13 @@ function Chip({ on, dim, onClick, children }: { on: boolean; dim?: boolean; onCl
 
 /* ------------------------------------------------------------------ 히트맵 */
 
-const HEAT = ["var(--chip)", "rgba(76,107,87,0.28)", "rgba(76,107,87,0.5)", "rgba(76,107,87,0.74)", "var(--accent)"];
+const HEAT = [
+  "var(--chip)",
+  "color-mix(in srgb, var(--accent) 28%, var(--paper))",
+  "color-mix(in srgb, var(--accent) 50%, var(--paper))",
+  "color-mix(in srgb, var(--accent) 74%, var(--paper))",
+  "var(--accent)",
+];
 
 function heatLevel(rate: number | null, extra: number): number | null {
   if (rate === null) return extra > 0 ? 1 : null;
@@ -263,7 +312,7 @@ function Heatmap({ routines, idx, today, onPick }: { routines: RoutineItem[]; id
 
 /* ------------------------------------------------------------------ 주간 · 월간 */
 
-function Period({ routines, idx, today, onPick }: { routines: RoutineItem[]; idx: RoutineLogIndex; today: string; onPick: (day: string) => void }) {
+function Period({ routines, idx, today, onPick, narrow }: { routines: RoutineItem[]; idx: RoutineLogIndex; today: string; onPick: (day: string) => void; narrow: boolean }) {
   const [span, setSpan] = useState<"week" | "month">("week");
   const [offset, setOffset] = useState(0);
   const [metric, setMetric] = useState<"rate" | "time">("rate");
@@ -303,18 +352,18 @@ function Period({ routines, idx, today, onPick }: { routines: RoutineItem[]; idx
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Toggle value={span} options={[["week", "주간"], ["month", "월간"]]} onChange={(v) => { setSpan(v as "week" | "month"); setOffset(0); }} />
-        <span style={{ flexGrow: 1 }} />
+      <div style={{ display: "flex", alignItems: "center", gap: 8, paddingBottom: 6, borderBottom: "1px solid var(--line)" }}>
+        <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums", lineHeight: 1.3 }}>{title}</h2>
         <button type="button" aria-label="이전 기간" disabled={addDays(from, -1) < earliest} onClick={() => setOffset((o) => o - 1)} style={{ ...linkButton, opacity: addDays(from, -1) < earliest ? 0.3 : 1, display: "flex", transform: "rotate(180deg)" }}>
           <ChevronRight size={13} />
         </button>
-        <span style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{title}</span>
         <button type="button" aria-label="다음 기간" disabled={offset >= 0} onClick={() => setOffset((o) => o + 1)} style={{ ...linkButton, opacity: offset >= 0 ? 0.3 : 1, display: "flex" }}>
           <ChevronRight size={13} />
         </button>
+        <span style={{ flexGrow: 1 }} />
+        <Toggle value={span} options={[["week", "주간"], ["month", "월간"]]} onChange={(v) => { setSpan(v as "week" | "month"); setOffset(0); }} />
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "repeat(3, minmax(0,1fr))", gap: narrow ? 8 : 0 }}>
         <Stat label="달성률" value={pct(cur.rate)} sub={rateSub} />
         <Stat label="완료" value={`${cur.done}/${cur.scheduled}`} sub={`모두 끝낸 날 ${cur.perfectDays}일`} />
         <Stat label="쓴 시간" value={formatSecs(cur.secs)} sub={`지난 기간 ${formatSecs(prev.secs)}`} />
@@ -369,10 +418,10 @@ function Period({ routines, idx, today, onPick }: { routines: RoutineItem[]; idx
 
 function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
-    <div style={{ minWidth: 0 }}>
+    <div style={{ minWidth: 0, padding: "2px 14px", borderLeft: "1px solid var(--line-soft)" }}>
       <div style={{ fontSize: 11.5, color: "var(--ink-3)" }}>{label}</div>
-      <div style={{ fontSize: 16, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      <div style={{ fontSize: 11, color: "var(--ink-4)", lineHeight: 1.4 }}>{sub}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.01em", fontVariantNumeric: "tabular-nums", lineHeight: 1.3 }}>{value}</div>
+      <div style={{ fontSize: 11, color: "var(--ink-3)", lineHeight: 1.4 }}>{sub}</div>
     </div>
   );
 }
@@ -393,7 +442,7 @@ function Toggle({ value, options, onChange }: { value: string; options: [string,
             border: 0,
             borderRadius: "var(--radius-sm)",
             background: v === value ? "var(--card)" : "transparent",
-            boxShadow: v === value ? "0 1px 2px rgba(47,46,43,0.08)" : "none",
+            boxShadow: v === value ? "var(--shadow-control)" : "none",
             color: v === value ? "var(--ink)" : "var(--ink-3)",
             fontSize: 12,
             cursor: "pointer",
@@ -464,14 +513,12 @@ function Rows({
   routines,
   idx,
   today,
-  narrow,
   filter,
   onFilter,
 }: {
   routines: RoutineItem[];
   idx: RoutineLogIndex;
   today: string;
-  narrow: boolean;
   filter: string | null;
   onFilter: (id: string | null) => void;
 }) {
@@ -487,57 +534,62 @@ function Rows({
             type="button"
             onClick={() => onFilter(on ? null : row.routine.id)}
             aria-pressed={on}
+            title={on ? "모든 루틴 보기" : "이 루틴만 보기"}
             style={{
               ...linkButton,
-              display: "grid",
-              gridTemplateColumns: narrow ? "minmax(0,1fr) auto" : "minmax(0,1.2fr) auto minmax(0,1fr) 56px",
-              alignItems: "center",
-              gap: narrow ? 8 : 14,
-              padding: "9px 4px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 5,
+              padding: "9px 12px",
               borderTop: i === 0 ? 0 : "1px solid var(--line-soft)",
-              background: on ? "var(--accent-soft)" : "transparent",
+              background: on ? "var(--sel)" : "transparent",
+              borderRadius: i === 0 ? "var(--radius-lg) var(--radius-lg) 0 0" : i === rows.length - 1 ? "0 0 var(--radius-lg) var(--radius-lg)" : 0,
               textAlign: "left",
             }}
           >
-            <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, width: "100%" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-              <span style={{ fontSize: 13.5, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.routine.title}</span>
+              <span style={{ flexGrow: 1, fontSize: 13, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.routine.title}</span>
               {row.routine.archivedAt !== null && (
                 <span style={{ fontSize: 10.5, padding: "0 6px", borderRadius: 3, background: "var(--chip)", color: "var(--ink-3)" }}>보관</span>
               )}
+              <span style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{pct(row.rate30.rate)}</span>
             </span>
-            {narrow && <span style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{pct(row.rate30.rate)}</span>}
-            <span style={{ display: "flex", gap: 2, gridColumn: narrow ? "1 / -1" : undefined }} aria-label="최근 14일">
-              {row.recent.map((c, k) => (
-                <span key={k} style={{ width: 10, height: 10, borderRadius: 2, ...CELL_STYLE[c](color) }} />
-              ))}
+            <span style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 16 }}>
+              <span style={{ display: "flex", gap: 2 }} aria-label="최근 14일">
+                {row.recent.map((c, k) => (
+                  <span key={k} style={{ width: 8, height: 8, borderRadius: 2, ...CELL_STYLE[c](color) }} />
+                ))}
+              </span>
+              <span style={{ fontSize: 11, color: "var(--ink-3)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                {row.streak.current > 0 ? `${row.streak.current}일 연속` : "연속 없음"}
+                {` · 최고 ${row.streak.best}`}
+              </span>
             </span>
-            <span style={{ fontSize: 11.5, color: "var(--ink-3)", fontVariantNumeric: "tabular-nums", gridColumn: narrow ? "1 / -1" : undefined }}>
-              {row.streak.current > 0 ? <span style={{ color: "var(--accent)" }}>{row.streak.current}일 연속</span> : "연속 없음"}
-              {` · 최고 ${row.streak.best}일`}
-              {row.secs7 > 0 ? ` · 7일 ${formatSecs(row.secs7)}` : ""}
-            </span>
-            {!narrow && <span style={{ fontSize: 13.5, fontWeight: 600, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{pct(row.rate30.rate)}</span>}
           </button>
         );
       })}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10, fontSize: 11, color: "var(--ink-4)" }}>
-        {(
-          [
-            ["done", "완료"],
-            ["missed", "놓침"],
-            ["pending", "오늘 남음"],
-            ["extra", "쉬는 날에 함"],
-            ["off", "쉬는 날"],
-          ] as [RoutineCell, string][]
-        ).map(([c, label]) => (
-          <span key={c} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 9, height: 9, borderRadius: 2, ...CELL_STYLE[c]("var(--ink-3)") }} />
-            {label}
-          </span>
-        ))}
-      </div>
     </div>
   );
 }
 
+function Legend() {
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 10px", padding: "6px 4px 0", fontSize: 11, color: "var(--ink-4)" }}>
+      {(
+        [
+          ["done", "완료"],
+          ["missed", "놓침"],
+          ["pending", "오늘 남음"],
+          ["extra", "쉬는 날에 함"],
+          ["off", "쉬는 날"],
+        ] as [RoutineCell, string][]
+      ).map(([c, label]) => (
+        <span key={c} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 2, ...CELL_STYLE[c]("var(--ink-3)") }} />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}

@@ -403,18 +403,21 @@ export function CalendarHome({
               })}
             </div>
           )}
-          <div role="group" aria-label="보기" style={{ display: "flex", border: "1px solid var(--line)", borderRadius: "var(--radius)" }}>
+          {/* 맥 캘린더의 분할 컨트롤 — 고른 칸만 흰 판이 떠 있다. */}
+          <div role="group" aria-label="보기" style={{ display: "flex", gap: 2, padding: 2, background: "var(--chip)", borderRadius: "var(--radius)" }}>
             {(["day", "week", "month"] as const).map((key) => (
               <button
                 key={key}
                 onClick={() => go(key, anchor)}
                 aria-pressed={view === key}
                 style={{
-                  height: 28,
-                  padding: "0 11px",
+                  height: 24,
+                  padding: "0 12px",
                   fontSize: 12.5,
-                  background: view === key ? "var(--chip)" : "transparent",
-                  color: view === key ? "var(--ink)" : "var(--ink-3)",
+                  borderRadius: "var(--radius-sm)",
+                  background: view === key ? "var(--card)" : "transparent",
+                  boxShadow: view === key ? "var(--shadow-control)" : "none",
+                  color: view === key ? "var(--ink)" : "var(--ink-2)",
                   fontWeight: view === key ? 500 : 400,
                 }}
               >
@@ -430,8 +433,8 @@ export function CalendarHome({
                 padding: "0 11px",
                 fontSize: 12.5,
                 borderRadius: "var(--radius)",
-                background: "var(--ink)",
-                color: "var(--paper)",
+                background: "var(--accent)",
+                color: "var(--on-accent)",
               }}
             >
               백로그 {visibleBacklog.length + visibleOverdue.length}
@@ -514,7 +517,7 @@ export function CalendarHome({
           onClick={(event) => {
             if (event.target === event.currentTarget) setSheet(false);
           }}
-          style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(47,46,43,0.28)", display: "flex", alignItems: "flex-end" }}
+          style={{ position: "fixed", inset: 0, zIndex: 50, background: "var(--overlay)", display: "flex", alignItems: "flex-end" }}
         >
           <aside
             aria-label="백로그"

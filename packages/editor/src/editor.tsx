@@ -25,7 +25,7 @@ import {
   MENTION_TYPE,
 } from "@nyanotion/editor-schema";
 import { TASK_LABELS, blocksToPlainText, type AiTask } from "@nyanotion/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { NyanSuggestion, type NyanState } from "./ai/suggestion";
@@ -79,6 +79,7 @@ export function NyanotionEditor({
 }) {
   const ydoc = useMemo(() => new Y.Doc(), [documentId]);
   const [localReady, setLocalReady] = useState(false);
+  const colorScheme = useSystemColorScheme();
   const [nyan, setNyan] = useState<NyanState | null>(null);
   const abort = useRef<AbortController | null>(null);
 
@@ -406,7 +407,7 @@ export function NyanotionEditor({
       <BlockNoteView
         editor={editor}
         editable={editable}
-        theme="light"
+        theme={colorScheme}
         className="nyan-editor"
         slashMenu={false}
       >
@@ -482,6 +483,24 @@ export function NyanotionEditor({
  * 제안 메뉴는 앞 항목과 그룹이 달라질 때마다 소제목을 새로 그린다. 그래서 기존 "기본 블록"
  * 무리 뒤에 다른 그룹이 끼고 나서 다시 "기본 블록" 항목을 붙이면 소제목이 두 번 나온다.
  */
+/**
+ * 기기의 라이트/다크 설정. BlockNote 는 `theme` 으로 `"light" | "dark"` 만 받으므로 여기서 골라 넘긴다 —
+ * 색 자체는 `styles.css` 가 도란 변수로 덮는다(변수는 `globals.css` 가 같은 미디어 질의로 바꾼다).
+ */
+const DARK_QUERY = "(prefers-color-scheme: dark)";
+function subscribeColorScheme(onChange: () => void): () => void {
+  const media = window.matchMedia(DARK_QUERY);
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+function useSystemColorScheme(): "light" | "dark" {
+  return useSyncExternalStore(
+    subscribeColorScheme,
+    () => (window.matchMedia(DARK_QUERY).matches ? "dark" : "light"),
+    () => "light",
+  );
+}
+
 function insertIntoGroup(
   items: DefaultReactSuggestionItem[],
   extra: DefaultReactSuggestionItem[],

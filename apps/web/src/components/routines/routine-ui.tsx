@@ -2,6 +2,7 @@
 
 import { ROUTINE_SLOT_LABEL, ROUTINE_TEMPLATES, colorOf, type RoutineItem } from "@nyanotion/shared";
 import { useEffect, useState } from "react";
+import { Section } from "../mac-ui";
 
 /** 루틴 화면 여기저기서 같이 쓰는 작은 것들. */
 
@@ -81,28 +82,11 @@ export function TemplateChips({ onPick }: { onPick: (template: RoutineTemplateCh
   );
 }
 
+/** 화면의 한 묶음 — 맥 앱처럼 상자 없이 굵은 제목과 선만 (`mac-ui.tsx` 의 Section). */
 export function Card({ title, note, children, id }: { title?: string; note?: string; children: React.ReactNode; id?: string }) {
   return (
-    <section
-      id={id}
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line)",
-        borderRadius: "var(--radius)",
-        padding: "14px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        minWidth: 0,
-      }}
-    >
-      {title && (
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 600 }}>{title}</h2>
-          {note && <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--ink-4)" }}>{note}</span>}
-        </div>
-      )}
+    <Section title={title} note={note} id={id} gap={12}>
       {children}
-    </section>
+    </Section>
   );
 }

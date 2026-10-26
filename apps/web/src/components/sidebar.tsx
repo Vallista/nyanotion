@@ -384,16 +384,16 @@ export function Sidebar({
     >
       <div
         style={{
-          height: 46,
+          height: 52,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",
           gap: 8,
-          padding: "0 8px 0 14px",
+          padding: "0 8px 0 16px",
         }}
       >
-        <BrandMark size={19} color="var(--ink)" />
-        <span style={{ fontSize: 13.5, fontWeight: 600, letterSpacing: "-0.012em" }}>도란</span>
+        <BrandMark size={18} color="var(--accent)" />
+        <span style={{ fontSize: 13, fontWeight: 600 }}>도란</span>
       </div>
 
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
@@ -747,16 +747,18 @@ function Row({
           paddingRight: 4,
           paddingLeft: indent,
           borderRadius: "var(--radius)",
-          fontSize: 13.5,
+          fontSize: 13,
           position: "relative",
+          // 맥 사이드바처럼 고른 줄은 옅은 회색 판, 끌어다 넣을 자리만 강조색.
           background:
-            dropZone === "into" || active
+            dropZone === "into"
               ? "var(--accent-soft)"
-              : hover
-                ? "rgba(47,46,43,0.045)"
-                : "transparent",
-          color: active ? "var(--ink)" : "var(--ink-2)",
-          fontWeight: active ? 500 : 400,
+              : active
+                ? "var(--sel)"
+                : hover
+                  ? "var(--hover)"
+                  : "transparent",
+          color: "var(--ink)",
           cursor: renaming ? "text" : "pointer",
         }}
       >
@@ -777,7 +779,7 @@ function Row({
           ) : null}
         </span>
 
-        <span style={{ display: "flex", color: active ? "var(--accent)" : "var(--ink-4)" }}>
+        <span style={{ display: "flex", color: item.type === "folder" ? "var(--accent)" : "var(--ink-4)" }}>
           {item.type === "folder" ? <FolderIcon size={14} /> : <PageIcon size={14} />}
         </span>
 
@@ -799,7 +801,7 @@ function Row({
               background: "var(--card)",
               border: "1px solid var(--accent)",
               borderRadius: 3,
-              fontSize: 13.5,
+              fontSize: 13,
             }}
           />
         ) : (
@@ -894,12 +896,11 @@ function SectionLabel({
   return (
     <div
       style={{
-        marginTop: 18,
-        padding: "0 8px 4px 12px",
-        fontSize: 11.5,
-        fontWeight: 500,
-        color: "var(--ink-3)",
-        letterSpacing: "0.01em",
+        marginTop: 16,
+        padding: "0 8px 3px 14px",
+        fontSize: 11,
+        fontWeight: 600,
+        color: "var(--ink-4)",
         display: "flex",
         alignItems: "center",
         gap: 6,
@@ -1009,7 +1010,8 @@ function SideLink({
           {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
         </span>
       )}
-      {icon !== null && <span style={{ display: "flex", color: "var(--ink-4)" }}>{icon}</span>}
+      {/* 맥 사이드바처럼 아이콘은 강조색으로. */}
+      {icon !== null && <span style={{ display: "flex", color: "var(--accent)" }}>{icon}</span>}
       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {label}
       </span>
@@ -1019,7 +1021,9 @@ function SideLink({
         </span>
       )}
       {trailing !== undefined && (
-        <span style={{ marginLeft: "auto", fontSize: 11.5, color: "var(--ink-3)" }}>{trailing}</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: "var(--ink-4)", fontVariantNumeric: "tabular-nums" }}>
+          {trailing}
+        </span>
       )}
     </>
   );
@@ -1032,10 +1036,9 @@ function SideLink({
     height: 28,
     padding: `0 6px 0 ${[8, 30, 48][indent]}px`,
     borderRadius: "var(--radius)",
-    fontSize: indent > 0 ? 13 : 13.5,
-    color: "var(--ink-2)",
-    background: active ? "var(--accent-soft)" : "transparent",
-    fontWeight: active ? 500 : 400,
+    fontSize: 13,
+    color: "var(--ink)",
+    background: active ? "var(--sel)" : "transparent",
     border: 0,
     cursor: "pointer",
   };

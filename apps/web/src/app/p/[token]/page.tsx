@@ -46,7 +46,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
     <main style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
       <header
         style={{
-          height: 46,
+          height: 52,
           flexShrink: 0,
           display: "flex",
           alignItems: "center",

@@ -114,8 +114,8 @@ export function TrashList({
                 height: 32,
                 padding: "0 14px",
                 borderRadius: "var(--radius)",
-                background: "var(--ink)",
-                color: "var(--paper)",
+                background: "var(--accent)",
+                color: "var(--on-accent)",
                 fontSize: 13,
                 fontWeight: 500,
               }}

@@ -41,7 +41,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#faf9f7",
+  // 창 위 띠 색 — 기기가 다크면 그래파이트 (globals.css 의 --paper 와 같은 값).
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#1e1e1e" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

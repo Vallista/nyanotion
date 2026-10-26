@@ -1,7 +1,7 @@
 "use client";
 
 import type { FeedSummary } from "@nyanotion/db";
-import { FEED_COLORS } from "@nyanotion/shared";
+import { FEED_COLORS, calendarColorVar } from "@nyanotion/shared";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -163,13 +163,13 @@ export function CalendarFeeds({ feeds, spaces }: { feeds: FeedSummary[]; spaces:
                 key={value}
                 role="radio"
                 aria-checked={color === value}
-                aria-label={value}
+                aria-label={`색 ${FEED_COLORS.indexOf(value) + 1}`}
                 onClick={() => setColor(value)}
                 style={{
                   width: 22,
                   height: 22,
                   borderRadius: 6,
-                  background: value,
+                  background: calendarColorVar(value),
                   outline: color === value ? "2px solid var(--ink)" : "none",
                   outlineOffset: 2,
                 }}

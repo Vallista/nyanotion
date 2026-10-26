@@ -56,7 +56,7 @@ export const equationReactSpec = createReactBlockSpec(equationBlockConfig, {
               width: "100%",
               resize: "vertical",
               font: "inherit",
-              fontFamily: "var(--font-plex-mono), ui-monospace, monospace",
+              fontFamily: "var(--font-mono)",
               fontSize: 13.5,
               color: "var(--ink)",
               background: "var(--surface)",

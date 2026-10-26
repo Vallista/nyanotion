@@ -147,7 +147,8 @@ await page.getByLabel("문서 찾기").fill(PALETTE_MEMO);
 await page.getByRole("button", { name: /메모함에 적기/ }).click();
 await settle(3500);
 await page.goto(`${BASE}/memos`, { waitUntil: "networkidle" });
-check("⌘K 에서 메모함에 적힌다", (await page.getByText(PALETTE_MEMO).count()) === 1);
+// 넓은 화면의 메모함은 두 칸이라 고른 메모가 목록과 오른쪽에 같이 보인다.
+check("⌘K 에서 메모함에 적힌다", (await page.getByText(PALETTE_MEMO).count()) > 0);
 
 /* ── 기록 ─────────────────────────────────────────────────────────── */
 console.log("\n기록");
@@ -166,12 +167,14 @@ await settle();
 /* ── 치우기 ───────────────────────────────────────────────────────── */
 console.log("\n치우기");
 await page.goto(`${BASE}/memos`, { waitUntil: "networkidle" });
+// 넓은 화면: 왼쪽 목록에서 고르고 오른쪽 도구 막대에서 지운다 (메모 앱처럼).
 for (const text of [MEMO, PALETTE_MEMO]) {
-  const item = page.locator("li", { hasText: text }).first();
-  if ((await item.count()) === 0) continue;
-  await item.getByRole("button", { name: "옮기기" }).click();
-  await item.getByRole("button", { name: "지우기" }).click();
-  await item.getByRole("button", { name: "정말 지우기" }).click();
+  const row = page.locator('section[aria-label="메모 목록"] button', { hasText: text }).first();
+  if ((await row.count()) === 0) continue;
+  await row.click();
+  const detail = page.locator("article", { hasText: text }).first();
+  await detail.getByRole("button", { name: "지우기", exact: true }).click();
+  await detail.getByRole("button", { name: "정말 지우기" }).click();
   await settle(2000);
 }
 check("시험 메모가 남지 않는다", (await page.getByText(MEMO).count()) + (await page.getByText(PALETTE_MEMO).count()) === 0);

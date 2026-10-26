@@ -314,7 +314,7 @@ export function CheckBoxIcon({ size = 18, checked = false }: IconProps & { check
       {checked && (
         <path
           d="M5.2 9.2l2.5 2.5 5.1-5.4"
-          stroke="var(--paper)"
+          stroke="var(--on-accent)"
           strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
