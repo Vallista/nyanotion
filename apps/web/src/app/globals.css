@@ -23,6 +23,13 @@
   --accent-hover: #3a5443;
   --accent-soft: rgba(76, 107, 87, 0.1);
   --accent-line: rgba(76, 107, 87, 0.32);
+  /* 루틴 색 — 맥 Bento·iPhone 앱과 같은 이름·같은 값. 루틴을 가르는 작은 점·체크에만 쓴다(포인트 색이 아니다). */
+  --routine-blue: #2a78d6;
+  --routine-orange: #eb6834;
+  --routine-aqua: #1baf7a;
+  --routine-yellow: #eda100;
+  --routine-magenta: #e87ba4;
+  --routine-violet: #6250d6;
   --late: #a8553c;         /* 날짜가 지난 일 — 체크리스트에서만 */
   /* 인라인 style 로 글자 크기를 준 입력칸용. 인라인은 아래 (pointer: coarse) 규칙을 이기므로
      값을 변수로 받아야 터치 기기에서 16px 로 커진다 (iOS 가 탭할 때 확대하지 않게). */

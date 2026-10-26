@@ -88,6 +88,9 @@ POST /api/sync/routines/changes              {routines, logs, timer?} → {appli
 
 `stale` 에서 타이머는 `"timer"`. 한 번에 5000줄까지.
 
+웹 루틴 화면(`/routines`, 2026-10-26)도 같은 표를 고친다 — 서버 동작이 `applyRoutineChanges` 를 그대로 불러
+변경 번호를 받으므로 웹에서 체크한 것이 다음 동기화 때 맥·폰으로 간다. 로그인한 사람의 `user_id` 로만 좁힌다.
+
 ## 확인하기
 
 ```powershell
@@ -98,6 +101,7 @@ INSPECT_URL=http://localhost:3100 node apps/web/scripts/e2e-sync.mjs        # 20
 SYNC_BASE=http://localhost:3100 SYNC_TOKEN=nyt_… node apps/admin/scripts/sync-harness/run.mjs
 
 pnpm --filter @nyanotion/db smoke:routines                               # 34개 — 루틴 · 기록 · 타이머 · 남의 것
+pnpm --filter @nyanotion/shared smoke                                    # 32개 — 루틴 규칙·통계 (DB 없이)
 ```
 
 ## 다음 (2단계)

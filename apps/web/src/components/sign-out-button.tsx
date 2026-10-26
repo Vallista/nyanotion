@@ -17,6 +17,8 @@ export function SignOutButton() {
         color: "var(--ink-3)",
         padding: "4px 8px",
         borderRadius: "var(--radius)",
+        whiteSpace: "nowrap",
+        flexShrink: 0,
       }}
     >
       나가기

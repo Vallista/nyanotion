@@ -25,6 +25,7 @@ import {
   AskIcon,
   CartIcon,
   ChecklistIcon,
+  RoutineIcon,
   KeyIcon,
   PulseIcon,
   InstallIcon,
@@ -133,6 +134,8 @@ export function Sidebar({
   archivedCount,
   awaitingApproval,
   checklistDue,
+  routineLeft,
+  routineRunning,
   isAdmin,
   tags,
   email,
@@ -146,6 +149,9 @@ export function Sidebar({
   awaitingApproval: number;
   /** 오늘까지 할 체크리스트 항목 수 (지난 것 포함). 0 이면 배지를 안 단다. */
   checklistDue: number;
+  /** 오늘 예정인데 아직 안 한 루틴 수 */
+  routineLeft: number;
+  routineRunning: boolean;
   /** 서버 어드민이면 어드민 링크를 보여 준다. 아니면 링크 자체가 없다 (화면도 404). */
   isAdmin: boolean;
   tags: { id: string; name: string; count: number }[];
@@ -430,6 +436,13 @@ export function Sidebar({
             />
           </>
         )}
+        <SideLink
+          href="/routines"
+          icon={<RoutineIcon />}
+          label="루틴"
+          active={pathname.startsWith("/routines")}
+          trailing={routineRunning ? "▶" : routineLeft > 0 ? String(routineLeft) : undefined}
+        />
       </div>
 
       <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>

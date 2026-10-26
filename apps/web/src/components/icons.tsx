@@ -238,6 +238,34 @@ export function ChecklistIcon(p: IconProps) {
   );
 }
 
+/** 루틴 — 한 바퀴 도는 화살표. */
+export function RoutineIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M13.2 8a5.2 5.2 0 1 1-1.6-3.75" />
+      <path d="M11.9 1.9v2.6h-2.6" />
+      <path d="m6 8.1 1.4 1.4 2.6-2.8" />
+    </Svg>
+  );
+}
+
+/** 재생 · 멈춤 — 타이머 단추. 채운 모양이라 선 대신 면이다. */
+export function PlayIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true" style={{ display: "block" }}>
+      <path d="M3.2 1.8v8.4L10 6z" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function StopIcon({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true" style={{ display: "block" }}>
+      <rect x="2.4" y="2.4" width="7.2" height="7.2" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 /** 빈 체크 상자와 찬 체크 상자. 터치로 누를 자리라 테두리를 굵게 둔다. */
 export function CheckBoxIcon({ size = 18, checked = false }: IconProps & { checked?: boolean }) {
   return (

@@ -285,6 +285,7 @@ export {
   applyRoutineChanges,
   routineChanges,
   routineLogId,
+  routineState,
   type IncomingRoutine,
   type IncomingRoutineLog,
   type IncomingRoutineTimer,
@@ -294,4 +295,5 @@ export {
   type SyncRoutineLog,
   type SyncRoutineSession,
   type SyncRoutineTimer,
+  type RoutineState,
 } from "./routines";

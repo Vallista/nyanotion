@@ -131,6 +131,42 @@ export async function routineChanges(userId: string, since: number, limit = 1000
   };
 }
 
+/* ------------------------------------------------------------------ 화면 */
+
+export type RoutineState = {
+  /** 지우지 않은 루틴 전부 (보관한 것 포함). */
+  routines: SyncRoutine[];
+  /** 지우지 않은 기록 — `from` 이후만. */
+  logs: SyncRoutineLog[];
+  /** 돌고 있는 타이머. 없으면 null. */
+  timer: SyncRoutineTimer | null;
+};
+
+/**
+ * 웹 화면이 보는 지금 상태 — **그 사람 것만**(`user_id`). 동기화의 변경 번호와 무관하게 지운 것은 뺀다.
+ * 기록은 히트맵 한 해치를 넉넉히 덮도록 부르는 쪽이 `from` 을 정한다.
+ */
+export async function routineState(userId: string, from: string): Promise<RoutineState> {
+  const [routines, logs, timers] = await Promise.all([
+    db
+      .select()
+      .from(routine)
+      .where(and(eq(routine.userId, userId), isNull(routine.deletedAt)))
+      .orderBy(asc(routine.sortOrder), asc(routine.createdAt)),
+    db
+      .select()
+      .from(routineLog)
+      .where(and(eq(routineLog.userId, userId), isNull(routineLog.deletedAt), sql`${routineLog.date} >= ${from}`)),
+    db.select().from(routineTimer).where(eq(routineTimer.userId, userId)).limit(1),
+  ]);
+  const t = timers[0];
+  return {
+    routines: routines.map(toSyncRoutine),
+    logs: logs.map(toSyncLog),
+    timer: t !== undefined && t.routineId !== null ? toSyncTimer(t) : null,
+  };
+}
+
 function toSyncRoutine(r: typeof routine.$inferSelect): SyncRoutine {
   const weekdays = Array.isArray(r.weekdays)
     ? r.weekdays.filter((d): d is number => Number.isInteger(d) && d >= 0 && d <= 6)

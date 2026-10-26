@@ -9,13 +9,15 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx scripts/smoke-routines.ts"
   },
   "dependencies": {
     "fractional-indexing": "^4.0.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "tsx": "^4.23.15",
     "typescript": "^5.6.3"
   }
 }
