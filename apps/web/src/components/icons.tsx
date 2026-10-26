@@ -249,6 +249,37 @@ export function RoutineIcon(p: IconProps) {
   );
 }
 
+/** 오늘 — 해가 반쯤 뜬 지평선. */
+export function TodayIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2 11.5h12" />
+      <path d="M4.6 11.5a3.4 3.4 0 0 1 6.8 0" />
+      <path d="M8 3.2v1.6M3.6 5.4l1.1 1.1M12.4 5.4l-1.1 1.1" />
+    </Svg>
+  );
+}
+
+/** 메모함 — 받은 것을 담는 쟁반. */
+export function InboxIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M2.5 9.2 4.3 3.6c.1-.4.5-.6.9-.6h5.6c.4 0 .8.2.9.6l1.8 5.6" />
+      <path d="M2.5 9.2v2.8c0 .6.4 1 1 1h9c.6 0 1-.4 1-1V9.2h-3.2l-.8 1.5H6.5l-.8-1.5z" />
+    </Svg>
+  );
+}
+
+/** 기록 — 펼친 공책. */
+export function JournalIcon(p: IconProps) {
+  return (
+    <Svg {...p}>
+      <path d="M8 4.2C6.8 3.3 5 3 2.6 3.1v8.8c2.4-.1 4.2.2 5.4 1.1 1.2-.9 3-1.2 5.4-1.1V3.1C11 3 9.2 3.3 8 4.2z" />
+      <path d="M8 4.2V13" />
+    </Svg>
+  );
+}
+
 /** 재생 · 멈춤 — 타이머 단추. 채운 모양이라 선 대신 면이다. */
 export function PlayIcon({ size = 12 }: { size?: number }) {
   return (

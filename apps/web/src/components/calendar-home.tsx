@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgendaRow, CalendarEventRow } from "@nyanotion/db";
+import type { AgendaRow } from "@nyanotion/db";
 import {
   DEFAULT_BLOCK_MIN,
   addDays,
@@ -19,17 +19,27 @@ import {
   toggleChecklistItemAction,
   updateChecklistItemAction,
 } from "@/lib/checklist-actions";
+import {
+  addPlanEventAction,
+  movePlanEventAction,
+  removePlanEventAction,
+  updatePlanEventAction,
+} from "@/lib/life-actions";
 import { Backlog } from "./calendar-backlog";
 import { EventDialog, NewTodoDialog, TodoDialog, type TodoPatch } from "./calendar-dialogs";
 import { MonthGrid, TimeGrid, type GridHandlers } from "./calendar-grid";
 import {
+  PLAN_DRAG_PREFIX,
   TODO_COLOR,
   bucketByDay,
   dayLabel,
+  planMinutes,
   todoEntries,
+  type CalEvent,
   type CalSpace,
   type Entry,
 } from "./calendar-model";
+import { KindSwitch, PlanEventDialog } from "./calendar-plan-dialog";
 
 /**
  * 첫 화면 캘린더 — 구독한 가족 캘린더의 일정 위에 할 일을 놓는다 (`docs/14-calendar.md`).
@@ -41,8 +51,9 @@ import {
 
 type DialogState =
   | { kind: "todo"; item: AgendaRow; ghostDay: string | null }
-  | { kind: "event"; event: CalendarEventRow }
-  | { kind: "new"; day: string; time: string | null };
+  | { kind: "event"; event: CalEvent }
+  | { kind: "plan"; event: CalEvent }
+  | { kind: "new"; day: string; time: string | null; mode: "todo" | "event" };
 
 const HIDDEN_KEY = "nyanotion.calendar.hidden";
 const VIEW_LABEL: Record<CalendarView, string> = { day: "하루", week: "주", month: "달" };
@@ -88,7 +99,7 @@ export function CalendarHome({
   anchor: string;
   today: string;
   range: { from: string; to: string };
-  events: CalendarEventRow[];
+  events: CalEvent[];
   items: AgendaRow[];
   backlog: AgendaRow[];
   overdue: AgendaRow[];
@@ -149,6 +160,34 @@ export function CalendarHome({
 
   const everything = [...items, ...backlog, ...overdue];
   const findItem = (id: string) => everything.find((item) => item.id === id) ?? null;
+  const findPlan = (dragId: string) =>
+    dragId.startsWith(PLAN_DRAG_PREFIX)
+      ? (events.find((event) => event.plan !== null && event.id === dragId.slice(PLAN_DRAG_PREFIX.length)) ?? null)
+      : null;
+  const canEditEvent = (event: CalEvent) => event.plan !== null && (spaceOf(event.spaceId)?.canWrite ?? false);
+
+  /** 일정 서버 동작을 부르고, 실패하면 그 말을 돌려준다(창 안에 보인다). 되면 새로 받는다. */
+  async function planCall(task: () => Promise<{ ok: boolean; message?: string }>): Promise<string | null> {
+    try {
+      const result = await task();
+      if (!result.ok) return result.message ?? "하지 못했어요.";
+      setDialog(null);
+      router.refresh();
+      return null;
+    } catch {
+      return "하지 못했어요. 잠시 뒤 다시 해 주세요.";
+    }
+  }
+
+  /** 끌어다 놓은 일정을 옮긴다 — 길이는 그대로. */
+  function movePlan(event: CalEvent, day: string, time: string | null): void {
+    const plan = event.plan;
+    if (plan === null) return;
+    run(async () => {
+      const result = await movePlanEventAction(plan.id, day, time);
+      if (!result.ok) throw new Error(result.message ?? "옮기지 못했어요.");
+    });
+  }
 
   /* ── 동작 ────────────────────────────────────────────────────────── */
 
@@ -210,17 +249,23 @@ export function CalendarHome({
         schedule(item, day, time);
         return;
       }
-      if (canAdd) setDialog({ kind: "new", day, time });
+      if (canAdd) setDialog({ kind: "new", day, time, mode: "todo" });
     },
-    onDrop: (itemId, day, time) => {
+    onDrop: (itemId, day, time, fromMonth) => {
       setDragging(null);
+      const plan = findPlan(itemId);
+      if (plan !== null) {
+        movePlan(plan, day, fromMonth === true ? plan.startTime : time);
+        return;
+      }
       const item = findItem(itemId);
       if (item !== null) schedule(item, day, time);
     },
     onOpen: (entry: Entry) => {
-      if (entry.kind === "event") setDialog({ kind: "event", event: entry.event });
+      if (entry.kind === "event") setDialog({ kind: entry.event.plan !== null ? "plan" : "event", event: entry.event });
       else setDialog({ kind: "todo", item: entry.item, ghostDay: entry.ghost ? entry.day : null });
     },
+    eventEditable: canEditEvent,
     onToggle: (entry: Entry) => {
       if (entry.kind === "todo" && !entry.ghost) toggle(entry.item);
     },
@@ -256,6 +301,13 @@ export function CalendarHome({
           })();
 
   const draggingItem = dragging === null ? null : findItem(dragging);
+  const draggingPlan = dragging === null ? null : findPlan(dragging);
+  const draggingMin =
+    draggingPlan !== null
+      ? (planMinutes(draggingPlan) ?? DEFAULT_BLOCK_MIN)
+      : draggingItem === null
+        ? null
+        : (draggingItem.estMin ?? DEFAULT_BLOCK_MIN);
   const dialogSpace = dialog?.kind === "todo" ? spaceOf(dialog.item.spaceId) : undefined;
 
   const backlogPanel = (
@@ -443,7 +495,7 @@ export function CalendarHome({
               buckets={buckets}
               handlers={handlers}
               placing={placing !== null}
-              draggingMin={draggingItem === null ? null : (draggingItem.estMin ?? DEFAULT_BLOCK_MIN)}
+              draggingMin={draggingMin}
             />
           )}
         </main>
@@ -524,13 +576,43 @@ export function CalendarHome({
           onClose={() => setDialog(null)}
         />
       )}
-      {dialog?.kind === "new" && (
+      {dialog?.kind === "plan" && (
+        <PlanEventDialog
+          key={dialog.event.id}
+          event={dialog.event}
+          day={dialog.event.startsOn}
+          time={dialog.event.startTime}
+          spaces={spaces}
+          narrow={narrow === true}
+          onClose={() => setDialog(null)}
+          onSave={(spaceId, draft) =>
+            planCall(() =>
+              updatePlanEventAction(dialog.event.id, draft, spaceId === dialog.event.spaceId ? undefined : spaceId),
+            )
+          }
+          onRemove={() => planCall(() => removePlanEventAction(dialog.event.id))}
+        />
+      )}
+      {dialog?.kind === "new" && dialog.mode === "event" && (
+        <PlanEventDialog
+          event={null}
+          day={dialog.day}
+          time={dialog.time}
+          spaces={spaces}
+          narrow={narrow === true}
+          switcher={<KindSwitch value="event" onChange={(mode) => setDialog({ ...dialog, mode })} />}
+          onClose={() => setDialog(null)}
+          onSave={(spaceId, draft) => planCall(() => addPlanEventAction(spaceId, draft))}
+        />
+      )}
+      {dialog?.kind === "new" && dialog.mode === "todo" && (
         <NewTodoDialog
           day={dialog.day}
           time={dialog.time}
           spaces={spaces}
           narrow={narrow === true}
           busy={busy}
+          switcher={<KindSwitch value="todo" onChange={(mode) => setDialog({ ...dialog, mode })} />}
           onClose={() => setDialog(null)}
           onCreate={(spaceId, patch) =>
             run(

@@ -5,7 +5,7 @@ import { formatWhen } from "@/lib/format";
 import { requireViewer } from "@/lib/session";
 import { AuditList } from "@/components/audit-list";
 
-export const metadata = { title: "상태 — 도란" };
+export const metadata = { title: "상태" };
 
 /** 지금 이 순간의 값이다. 구울 것이 하나도 없다. */
 export const dynamic = "force-dynamic";

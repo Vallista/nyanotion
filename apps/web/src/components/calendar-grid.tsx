@@ -4,8 +4,10 @@ import { minutesOf, timeOf } from "@nyanotion/shared";
 import { useEffect, useRef, useState } from "react";
 import {
   MIN_VISIBLE_MIN,
+  PLAN_DRAG_PREFIX,
   eventColor,
   weekdayLabel,
+  type CalEvent,
   type DayBuckets,
   type Entry,
   type Placed,
@@ -27,15 +29,36 @@ export const DRAG_TYPE = "application/x-nyanotion-item";
 export type GridHandlers = {
   /** 빈 칸을 눌렀다. 시간 칸이면 `HH:MM`, 종일 줄·달 칸이면 null. */
   onSlot: (day: string, time: string | null) => void;
-  /** 백로그·다른 칸에서 끌어 온 할 일을 놓았다. */
-  onDrop: (itemId: string, day: string, time: string | null) => void;
+  /**
+   * 백로그·다른 칸에서 끌어 온 할 일(또는 `plan:` 일정)을 놓았다. 달 칸은 날만 고르는 자리라 `fromMonth` —
+   * 일정은 시각을 그대로 두고, 할 일은 종일 줄과 같이 시각이 빠진다.
+   */
+  onDrop: (itemId: string, day: string, time: string | null, fromMonth?: boolean) => void;
   onOpen: (entry: Entry) => void;
   onToggle: (entry: Entry) => void;
   onDay: (day: string) => void;
   onDragItem: (itemId: string | null) => void;
   /** 할 일의 색 — 개인·가족이 다르다 (그 할 일의 space 로 정한다). */
   todoColor: (spaceId: string) => string;
+  /** 여기서 적은 일정이고 고칠 수 있으면 true — 끌어 옮길 수 있다. 구독한 일정은 늘 false. */
+  eventEditable: (event: CalEvent) => boolean;
 };
+
+/** 일정을 끌기 시작할 때 — 할 일과 같은 표에 `plan:` 을 붙여 싣는다. */
+function eventDragProps(event: CalEvent, handlers: GridHandlers): React.HTMLAttributes<HTMLDivElement> & { draggable?: boolean } {
+  if (!handlers.eventEditable(event)) return {};
+  const id = `${PLAN_DRAG_PREFIX}${event.id}`;
+  return {
+    draggable: true,
+    onDragStart: (e) => {
+      e.stopPropagation();
+      e.dataTransfer.setData(DRAG_TYPE, id);
+      e.dataTransfer.effectAllowed = "move";
+      handlers.onDragItem(id);
+    },
+    onDragEnd: () => handlers.onDragItem(null),
+  };
+}
 
 function dayNumber(day: string): number {
   return Number(day.slice(8, 10));
@@ -291,11 +314,18 @@ function Block({ placed, handlers }: { placed: Placed; handlers: GridHandlers })
   if (placed.kind === "event") {
     const color = eventColor(placed.event);
     return (
-      <button
+      <div
+        role="button"
+        tabIndex={0}
+        {...eventDragProps(placed.event, handlers)}
         onClick={() => handlers.onOpen(placed)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") handlers.onOpen(placed);
+        }}
         title={placed.event.title}
         style={{
           ...position,
+          cursor: "pointer",
           background: `color-mix(in srgb, ${color} 16%, var(--card))`,
           borderLeft: `3px solid ${color}`,
           color: "var(--ink)",
@@ -308,7 +338,7 @@ function Block({ placed, handlers }: { placed: Placed; handlers: GridHandlers })
             {placed.event.endTime !== null && placed.event.endTime !== placed.event.startTime && `–${placed.event.endTime}`}
           </span>
         )}
-      </button>
+      </div>
     );
   }
 
@@ -416,10 +446,16 @@ function Chip({
   if (entry.kind === "event") {
     const color = eventColor(entry.event);
     return (
-      <button
+      <div
+        role="button"
+        tabIndex={0}
+        {...eventDragProps(entry.event, handlers)}
         onClick={(event) => {
           event.stopPropagation();
           handlers.onOpen(entry);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") handlers.onOpen(entry);
         }}
         title={entry.event.title}
         style={{
@@ -437,7 +473,7 @@ function Chip({
           )}
           {entry.event.title}
         </span>
-      </button>
+      </div>
     );
   }
 
@@ -548,7 +584,7 @@ export function MonthGrid({
                 event.preventDefault();
                 setOver(null);
                 const id = event.dataTransfer.getData(DRAG_TYPE);
-                if (id !== "") handlers.onDrop(id, day, null);
+                if (id !== "") handlers.onDrop(id, day, null, true);
               }}
               style={{
                 minWidth: 0,

@@ -4,7 +4,7 @@ import { RoutineScreen } from "@/components/routines/routine-screen";
 import { TopBar } from "@/components/top-bar";
 import { requireViewer } from "@/lib/session";
 
-export const metadata = { title: "루틴 — 도란" };
+export const metadata = { title: "루틴" };
 
 /**
  * 루틴 — 나만 보는 습관 기록 (`docs/13-sync.md` §루틴). 맥 Bento·아이폰 앱과 같은 루틴을 쓴다.

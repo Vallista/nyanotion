@@ -2,7 +2,7 @@ import { AskPanel } from "@/components/ask-panel";
 import { TopBar } from "@/components/top-bar";
 import { requireViewer } from "@/lib/session";
 
-export const metadata = { title: "물어보기 — 도란" };
+export const metadata = { title: "물어보기" };
 
 /** 질문이 주소에 실려 올 수 있다 (팔레트에서 넘어올 때) — 미리 구울 수 없다. */
 export const dynamic = "force-dynamic";

@@ -25,7 +25,10 @@ import {
   AskIcon,
   CartIcon,
   ChecklistIcon,
+  InboxIcon,
+  JournalIcon,
   RoutineIcon,
+  TodayIcon,
   KeyIcon,
   PulseIcon,
   InstallIcon,
@@ -135,6 +138,7 @@ export function Sidebar({
   awaitingApproval,
   checklistDue,
   routineLeft,
+  memoOpen,
   routineRunning,
   isAdmin,
   tags,
@@ -151,6 +155,8 @@ export function Sidebar({
   checklistDue: number;
   /** 오늘 예정인데 아직 안 한 루틴 수 */
   routineLeft: number;
+  /** 메모함에 남은 메모 수. */
+  memoOpen: number;
   routineRunning: boolean;
   /** 서버 어드민이면 어드민 링크를 보여 준다. 아니면 링크 자체가 없다 (화면도 404). */
   isAdmin: boolean;
@@ -392,6 +398,7 @@ export function Sidebar({
 
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
         <SideLink icon={<SearchIcon />} label="검색" shortcut="⌘K" onClick={openCommandPalette} />
+        <SideLink href="/today" icon={<TodayIcon />} label="오늘" active={pathname.startsWith("/today")} />
         {/*
           체크리스트가 이 앱의 첫 기능이다 — 누르면 캘린더(할 일을 날짜·시간 칸에 놓는 화면)가 열린다.
           체크리스트 목록과 구매하기는 그 아래 갈래다. 살 것도 체크리스트에서 넘어오기 때문이다.
@@ -443,6 +450,14 @@ export function Sidebar({
           active={pathname.startsWith("/routines")}
           trailing={routineRunning ? "▶" : routineLeft > 0 ? String(routineLeft) : undefined}
         />
+        <SideLink
+          href="/memos"
+          icon={<InboxIcon />}
+          label="메모함"
+          active={pathname.startsWith("/memos")}
+          trailing={memoOpen > 0 ? String(memoOpen) : undefined}
+        />
+        <SideLink href="/journal" icon={<JournalIcon />} label="기록" active={pathname.startsWith("/journal")} />
       </div>
 
       <div style={{ flexGrow: 1, overflowY: "auto", paddingBottom: 12 }}>

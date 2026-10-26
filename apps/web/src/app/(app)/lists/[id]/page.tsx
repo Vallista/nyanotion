@@ -12,7 +12,7 @@ import { ChecklistMenu } from "@/components/checklist-menu";
 import { TopBar } from "@/components/top-bar";
 import { requireDocument } from "@/lib/session";
 
-export const metadata = { title: "체크리스트 — 도란" };
+export const metadata = { title: "체크리스트" };
 
 /**
  * 체크리스트 하나. **권한은 그 문서로 본다** — 없으면 404 (`requireDocument`).

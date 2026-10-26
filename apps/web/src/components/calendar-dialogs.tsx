@@ -1,6 +1,6 @@
 "use client";
 
-import type { AgendaRow, CalendarEventRow } from "@nyanotion/db";
+import type { AgendaRow } from "@nyanotion/db";
 import {
   BLOCK_MINUTES,
   DEFAULT_BLOCK_MIN,
@@ -11,12 +11,12 @@ import {
 } from "@nyanotion/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { dayLabel, durationLabel, eventColor, type CalSpace } from "./calendar-model";
+import { dayLabel, durationLabel, eventColor, type CalEvent, type CalSpace } from "./calendar-model";
 import { SmallButton, inputStyle } from "./checklist-item";
 import { CheckBoxIcon } from "./icons";
 
 /**
- * 캘린더의 작은 창들 — 할 일 고치기 · 일정 보기 · 빈 칸에 새 할 일.
+ * 캘린더의 작은 창들 — 할 일 고치기 · 구독한 일정 보기 · 빈 칸에 새 할 일. 여기서 적는 일정은 `calendar-plan-dialog.tsx`.
  * 폰에서는 아래에서 올라오고, 넓은 화면에서는 가운데 뜬다. Esc · 바깥을 누르면 닫힌다.
  */
 
@@ -308,7 +308,7 @@ export function EventDialog({
   spaceName,
   onClose,
 }: {
-  event: CalendarEventRow;
+  event: CalEvent;
   narrow: boolean;
   spaceName: string;
   onClose: () => void;
@@ -346,6 +346,7 @@ export function NewTodoDialog({
   spaces,
   narrow,
   busy,
+  switcher,
   onClose,
   onCreate,
 }: {
@@ -354,6 +355,8 @@ export function NewTodoDialog({
   spaces: CalSpace[];
   narrow: boolean;
   busy: boolean;
+  /** 맨 위의 [할 일 | 일정] 전환. */
+  switcher?: React.ReactNode;
   onClose: () => void;
   onCreate: (spaceId: string, patch: TodoPatch) => void;
 }) {
@@ -380,6 +383,7 @@ export function NewTodoDialog({
 
   return (
     <Dialog label="새 할 일" onClose={onClose} narrow={narrow}>
+      {switcher}
       <h2 style={{ fontSize: 14, fontWeight: 600 }}>
         {dayLabel(day || initialDay)}
         {time !== "" && ` ${time}${end !== null ? `–${end}` : ""}`}

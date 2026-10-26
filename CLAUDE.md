@@ -147,6 +147,13 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 - 개인 토큰(`nyt_…`)은 `/api/sync/*` 에서만 받는다(`lib/api-auth.ts`). 해시만 저장하고, 웹 화면을 토큰으로 열어 주는 길을 만들지 말 것.
 - **인라인 style 로 입력칸 글자 크기를 줄 때는 `var(--input-font)`.** 숫자를 박으면 `(pointer: coarse)` 의 16px 규칙을 이겨서 iPhone 이 탭할 때 확대한다.
 
+## 오늘 · 일정 · 메모함 · 기록 (`docs/15-today.md`)
+
+- **일정(`plan_event`)은 space 에 매인다** — 캘린더 구독과 같다. 고치는 길은 `lib/life-actions.ts` 의 `eventGate`(그 space 에 쓸 수 있어야)를 지난다. 할 일(체크리스트 항목)과 섞지 말 것 — 일정은 체크하지 않는다.
+- **메모·하루 기록·회고는 사람 한 명의 것** — 질의가 전부 `userId` 를 받는다. `spaceIds` 로 좁히거나 가족에게 보이는 길을 만들지 말 것.
+- 일정·메모·회고 기간의 규칙은 `packages/shared/src/life.ts` 한 곳. 서버 동작은 화면이 보낸 값을 그 규칙으로 한 번 더 지난다.
+- **Bento 에서 옮기기는 새것만 더한다**(`importLife`) — 다시 불러도 겹치지 않고 도란에서 고친 것을 덮지 않는다. 하루 기록은 빈칸만 채운다. 모양 바꾸기는 `planBentoImport` 한 곳.
+
 ## 운영
 
 - **백업은 셋을 같이 받는다**: DB · 올린 파일 · **설정 파일**. 마지막 것을 빼먹으면 `BETTER_AUTH_SECRET` 이 없어 DB 를 되살려도 아무도 로그인하지 못한다.

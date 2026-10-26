@@ -4,7 +4,7 @@ import { TopBar } from "@/components/top-bar";
 import { isAdmin, requireAdmin } from "@/lib/admin";
 import { requestOrigin } from "@/lib/origin";
 
-export const metadata = { title: "어드민 — 도란" };
+export const metadata = { title: "어드민" };
 
 /**
  * 어드민 — 계정 관리. **어드민이 아니면 404** (`requireAdmin`).

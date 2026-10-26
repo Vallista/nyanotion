@@ -169,6 +169,13 @@
       "when": 1792504000000,
       "tag": "0023_routine",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792505000000,
+      "tag": "0024_life",
+      "breakpoints": true
     }
   ]
 }

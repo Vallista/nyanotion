@@ -67,11 +67,16 @@ const days = await page.locator("main div[data-day]:not([data-allday])").evaluat
 check("일주일 칸 7개, 일요일부터", days.length === 7 && new Date(`${days[0]}T00:00:00Z`).getUTCDay() === 0, days.join());
 const [, mon, , wed, thu, fri] = days;
 const navOrder = await page.locator("nav a").evaluateAll((links) => links.map((a) => a.getAttribute("href")));
-check("사이드바 맨 위가 체크리스트(캘린더), 그 밑이 모든 체크리스트", navOrder[0] === "/" && navOrder[1] === "/lists", navOrder.slice(0, 4).join(" "));
+// 맨 위는 오늘(하루 한 화면), 그 밑이 체크리스트(캘린더) — 첫 화면(`/`)은 여전히 캘린더다.
+check(
+  "사이드바: 오늘 → 체크리스트(캘린더) → 모든 체크리스트",
+  navOrder[0] === "/today" && navOrder[1] === "/" && navOrder[2] === "/lists",
+  navOrder.slice(0, 4).join(" "),
+);
 check(
   "구매하기는 체크리스트 밑 갈래 — 백로그·이미 구매한 것이 그 아래",
-  navOrder.indexOf("/buy") === 2 && navOrder.indexOf("/buy/done") === 3,
-  navOrder.slice(0, 5).join(" "),
+  navOrder.indexOf("/buy") === 3 && navOrder.indexOf("/buy/done") === 4,
+  navOrder.slice(0, 6).join(" "),
 );
 
 console.log("\n백로그 → 놓기 → 칸");

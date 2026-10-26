@@ -3,8 +3,9 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createDocumentAction, searchAction } from "@/lib/actions";
+import { addMemoAction } from "@/lib/life-actions";
 import { displayTitle } from "@/lib/tree";
-import { AskIcon, PageIcon, PlusIcon, SearchIcon } from "./icons";
+import { AskIcon, InboxIcon, PageIcon, PlusIcon, SearchIcon } from "./icons";
 import { Spinner } from "./pending";
 
 type Hit = { id: string; title: string; snippet: string; updatedAt: string };
@@ -107,12 +108,25 @@ export function CommandPalette() {
   const canAsk = query.trim().length >= 2;
   const askIndex = hits.length;
   const createIndex = hits.length + (canAsk ? 1 : 0);
-  const rowCount = hits.length + (canAsk ? 1 : 0) + (canCreate ? 1 : 0);
+  // 적은 그대로 메모함에 — 폰·브라우저에는 전역 단축키가 없어서 ⌘K 가 가장 빠른 메모 자리다.
+  const memoIndex = createIndex + 1;
+  const rowCount = hits.length + (canAsk ? 1 : 0) + (canCreate ? 2 : 0);
 
   function choose(index: number) {
     if (canAsk && index === askIndex) {
       setOpen(false);
       router.push(`/ask?q=${encodeURIComponent(query.trim())}`);
+      return;
+    }
+    if (canCreate && index === memoIndex) {
+      if (creating) return;
+      startTransition(async () => {
+        const result = await addMemoAction(query);
+        if (result.ok) {
+          setOpen(false);
+          router.refresh();
+        }
+      });
       return;
     }
     if (canCreate && index === createIndex) {
@@ -259,6 +273,14 @@ export function CommandPalette() {
                 onClick={() => choose(createIndex)}
                 icon={creating ? <Spinner size={13} /> : <PlusIcon size={15} />}
                 title={<span>{creating ? "만드는 중…" : "새 문서 만들기"}</span>}
+              />
+              <Row
+                active={cursor === memoIndex}
+                onMouseEnter={() => setCursor(memoIndex)}
+                onClick={() => choose(memoIndex)}
+                icon={<InboxIcon size={15} />}
+                title={<span>“{query.trim()}” 메모함에 적기</span>}
+                subtitle={<span>나만 보는 메모함 — 나중에 할 일·문서로 옮겨요</span>}
               />
             </>
           )}

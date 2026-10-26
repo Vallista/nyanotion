@@ -134,7 +134,7 @@ export async function quickAddAction(
     repeat?: string;
     checklistId?: string | null;
   },
-): Promise<void> {
+): Promise<string> {
   const viewer = await requireViewer();
   const target = viewer.spaces.find((space) => space.id === spaceId);
   if (target === undefined) throw new Error("이 공간에 적을 수 없습니다.");
@@ -159,7 +159,7 @@ export async function quickAddAction(
     found = await createChecklist({ spaceId, userId: viewer.userId, title: "할 일" });
   }
   await assertCanWrite(found.documentId);
-  await addChecklistItem(found.id, viewer.userId, {
+  const id = await addChecklistItem(found.id, viewer.userId, {
     title: cleanTitle(input.title),
     dueOn: cleanDay(input.dueOn),
     dueTime: cleanTime(input.dueTime),
@@ -167,6 +167,7 @@ export async function quickAddAction(
     repeat: cleanRepeat(input.repeat),
   });
   refresh();
+  return id;
 }
 
 export async function addChecklistItemAction(

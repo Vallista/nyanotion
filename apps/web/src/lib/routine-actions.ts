@@ -27,6 +27,7 @@ import {
   type RoutineTimerItem,
 } from "@nyanotion/shared";
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 import { requireViewer } from "@/lib/session";
 
 /**
@@ -154,6 +155,8 @@ async function write(
 }
 
 function fail(error: unknown): RoutineActionResult {
+  // 로그인 만료(`redirect`) 같은 Next 의 신호는 삼키지 않는다.
+  unstable_rethrow(error);
   if (error instanceof RoutineRuleError) return { ok: false, message: error.message };
   console.error("routine action", error);
   return { ok: false, message: "저장하지 못했어요. 잠시 뒤 다시 해 주세요." };

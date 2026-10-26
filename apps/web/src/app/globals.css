@@ -85,7 +85,9 @@ button {
   text-align: left;
 }
 
-input { font: inherit; color: inherit; }
+input,
+textarea,
+select { font: inherit; color: inherit; }
 
 :focus-visible {
   outline: 2px solid var(--accent);

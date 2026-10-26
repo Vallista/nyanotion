@@ -1,5 +1,5 @@
-import type { AgendaRow, CalendarEventRow } from "@nyanotion/db";
-import { FEED_COLORS, minutesOf, projectRepeats } from "@nyanotion/shared";
+import type { AgendaRow, CalendarEventRow, PlanEventRow } from "@nyanotion/db";
+import { FEED_COLORS, PLAN_DEFAULT_COLOR, minutesOf, projectRepeats } from "@nyanotion/shared";
 
 /**
  * 첫 화면 캘린더가 그리는 것들의 모양 — 외부 일정(읽기만)과 할 일(고칠 수 있음).
@@ -22,10 +22,47 @@ export type TodoEntry = {
   day: string;
 };
 
+/**
+ * 캘린더에 그리는 일정 하나 — 구독한 캘린더의 사본(`plan: null`, 읽기만)이거나 여기서 적은 일정(`plan`, 고칠 수 있음).
+ * 칸을 그리는 코드는 둘을 가리지 않는다. 고치는 창과 끌기만 `plan` 을 본다.
+ */
+export type CalEvent = CalendarEventRow & { plan: PlanEventRow | null };
+
+/** 여기서 적은 일정을 캘린더 모양으로. 색을 안 골랐으면 기본 색. */
+export function fromPlanEvent(row: PlanEventRow): CalEvent {
+  return {
+    id: row.id,
+    feedId: "plan",
+    spaceId: row.spaceId,
+    calendarName: "",
+    color: row.color ?? PLAN_DEFAULT_COLOR,
+    title: row.title,
+    location: row.location,
+    startsOn: row.startsOn,
+    startTime: row.startTime,
+    endsOn: row.endsOn,
+    endTime: row.endTime,
+    plan: row,
+  };
+}
+
+export function fromFeedEvent(row: CalendarEventRow): CalEvent {
+  return { ...row, plan: null };
+}
+
+/** 끌 때 쓰는 표 — 할 일은 id 그대로, 일정은 앞에 `plan:`. */
+export const PLAN_DRAG_PREFIX = "plan:";
+
+/** 일정의 길이(분) — 끄는 동안 놓일 자리를 그릴 때. 종일·여러 날이면 null. */
+export function planMinutes(event: CalEvent): number | null {
+  if (event.startTime === null || event.endTime === null || event.startsOn !== event.endsOn) return null;
+  return Math.max(15, minutesOf(event.endTime) - minutesOf(event.startTime));
+}
+
 export type EventEntry = {
   kind: "event";
   key: string;
-  event: CalendarEventRow;
+  event: CalEvent;
 };
 
 export type Entry = TodoEntry | EventEntry;
@@ -71,7 +108,7 @@ export type DayBuckets = { allDay: Entry[]; timed: Placed[] };
 export function bucketByDay(
   days: readonly string[],
   todos: readonly TodoEntry[],
-  events: readonly CalendarEventRow[],
+  events: readonly CalEvent[],
 ): Map<string, DayBuckets> {
   const map = new Map<string, DayBuckets>();
   for (const day of days) {

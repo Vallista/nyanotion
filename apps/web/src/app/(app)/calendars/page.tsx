@@ -3,7 +3,7 @@ import { CalendarFeeds } from "@/components/calendar-feeds";
 import { TopBar } from "@/components/top-bar";
 import { requireViewer } from "@/lib/session";
 
-export const metadata = { title: "캘린더 연결 — 도란" };
+export const metadata = { title: "캘린더 연결" };
 
 /**
  * 캘린더 연결 — 구글·애플 캘린더의 **iCal 주소**를 달면 첫 화면 캘린더에 그 일정이 같이 보인다.

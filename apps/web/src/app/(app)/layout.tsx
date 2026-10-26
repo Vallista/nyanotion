@@ -2,6 +2,7 @@ import { aiStatus } from "@nyanotion/ai";
 import {
   awaitingApprovalCount,
   countArchived,
+  countOpenMemos,
   dueCount,
   listTags,
   listTree,
@@ -18,7 +19,7 @@ import { requireViewer } from "@/lib/session";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const viewer = await requireViewer();
   const today = homeNow().day;
-  const [nodes, archivedCount, tags, awaitingApproval, checklistDue, admin, routines] =
+  const [nodes, archivedCount, tags, awaitingApproval, checklistDue, admin, routines, memoOpen] =
     await Promise.all([
       listTree(viewer.spaceIds),
       countArchived(viewer.spaceIds),
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       dueCount(viewer.spaceIds, today),
       isAdmin(viewer),
       routineState(viewer.userId, today),
+      countOpenMemos(viewer.userId),
     ]);
   // 사이드바 '루틴' 옆 숫자 — 오늘 예정인데 아직 안 한 것. 타이머가 돌면 ▶.
   const doneToday = new Set(routines.logs.filter((l) => l.done && l.date === today).map((l) => l.routineId));
@@ -50,6 +52,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           checklistDue={checklistDue}
           routineLeft={routineLeft}
           routineRunning={routines.timer !== null}
+          memoOpen={memoOpen}
           isAdmin={admin}
           tags={tags}
           email={viewer.email}
