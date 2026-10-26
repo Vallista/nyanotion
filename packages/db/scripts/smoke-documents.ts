@@ -101,14 +101,14 @@ async function main(): Promise<void> {
   tree = await listTree([spaceId]);
   check("실패한 이동이 트리를 바꾸지 않았다", tree.find((n) => n.id === a)?.parentId === null);
 
-  console.log("\n모래상자");
+  console.log("\n휴지통");
   await archiveDocument(a);
   tree = await listTree([spaceId]);
   check("a 와 하위가 트리에서 사라졌다", !tree.some((n) => n.id === a || n.id === a1));
   check("b 는 남아 있다", tree.some((n) => n.id === b));
 
   const archived = await listArchived([spaceId]);
-  check("모래상자에 a 만 뜬다 (하위는 접힌다)", archived.some((n) => n.id === a) && !archived.some((n) => n.id === a1), archived.map((n) => n.title));
+  check("휴지통에 a 만 뜬다 (하위는 접힌다)", archived.some((n) => n.id === a) && !archived.some((n) => n.id === a1), archived.map((n) => n.title));
   check("버려진 개수는 2 다 (a + a1)", (await countArchived([spaceId])) === 2);
 
   await restoreDocument(a);

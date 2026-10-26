@@ -29,7 +29,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { NyanSuggestion, type NyanState } from "./ai/suggestion";
-import { CatMark } from "./cat-mark";
+import { AssistantMark } from "./brand-mark";
 import { CommentsPanel } from "./comments/panel";
 import { PortsProvider } from "./context";
 import { CalloutIcon, MathIcon, PageIcon, TableIcon } from "./icons";
@@ -134,7 +134,7 @@ export function NyanotionEditor({
     [ydoc, documentId, ports],
   );
 
-  /* ------------------------------------------------------------- 냥이(AI) */
+  /* ------------------------------------------------------------- 도우미(AI) */
 
   /** 지금 글감으로 쓸 것: 선택한 블록들, 없으면 커서가 있는 블록. */
   const pickSource = useCallback(() => {
@@ -216,7 +216,7 @@ export function NyanotionEditor({
         setNyan((prev) =>
           prev === null
             ? prev
-            : { ...prev, status: "failed", message: "냥이를 부르지 못했어요." },
+            : { ...prev, status: "failed", message: "도우미를 부르지 못했어요." },
         );
       }
     },
@@ -336,11 +336,11 @@ export function NyanotionEditor({
       ports.ai === null
         ? []
         : (Object.keys(TASK_LABELS) as AiTask[]).map((task) => ({
-            title: `냥이 — ${TASK_LABELS[task]}`,
-            subtext: "고른 글을 냥이가 손봅니다",
-            group: "냥이",
-            aliases: ["ai", "nyan", "냥이", TASK_LABELS[task]],
-            icon: <CatMark size={16} color="currentColor" />,
+            title: `도우미 — ${TASK_LABELS[task]}`,
+            subtext: "고른 글을 도우미가 손봅니다",
+            group: "도우미",
+            aliases: ["ai", "도우미", "assistant", "nyan", "냥이", TASK_LABELS[task]],
+            icon: <AssistantMark size={16} color="currentColor" />,
             onItemClick: () => void run(task),
           })),
     [run, ports.ai],
@@ -499,7 +499,7 @@ function insertIntoGroup(
   return result;
 }
 
-/** 냥이가 준 글을 단락 블록들로. 표 같은 건 만들지 않는다 — 글자만 돌려준다. */
+/** 도우미가 준 글을 단락 블록들로. 표 같은 건 만들지 않는다 — 글자만 돌려준다. */
 function toBlocks(text: string): { type: "paragraph"; content: string }[] {
   const lines = text
     .trim()

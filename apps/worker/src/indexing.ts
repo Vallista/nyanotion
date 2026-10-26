@@ -45,7 +45,7 @@ export async function indexDocument(documentId: string): Promise<IndexResult> {
     .limit(1);
   const row = rows[0];
 
-  // 문서가 사라졌거나 모래상자로 갔으면 색인도 치운다 — 지운 글이 근거로 나오면 안 된다.
+  // 문서가 사라졌거나 휴지통으로 갔으면 색인도 치운다 — 지운 글이 근거로 나오면 안 된다.
   if (row === undefined || row.archivedAt !== null) {
     const removed = await trimChunks(documentId, 0);
     return { documentId, chunks: 0, embedded: 0, reused: 0, removed, empty: true };

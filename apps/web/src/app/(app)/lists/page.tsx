@@ -4,7 +4,7 @@ import { ChecklistOverview } from "@/components/checklist-overview";
 import { TopBar } from "@/components/top-bar";
 import { requireViewer } from "@/lib/session";
 
-export const metadata = { title: "체크리스트 — Nyanotion" };
+export const metadata = { title: "체크리스트 — 도란" };
 
 /**
  * 체크리스트 — 나 · 가족으로 나눠서, 체크리스트마다 할 일을 펼쳐 둔다.

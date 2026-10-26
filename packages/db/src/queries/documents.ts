@@ -35,7 +35,7 @@ export async function personalSpaceOf(userId: string): Promise<{ id: string; nam
 }
 
 /**
- * 살아 있는 문서 전체 (모래상자 제외). 트리 조립은 호출자가 한다.
+ * 살아 있는 문서 전체 (휴지통 제외). 트리 조립은 호출자가 한다.
  * **`spaceIds` 는 호출자가 `spacesForUser()` 로 받은 것** — 여기서 권한을 판정하지 않는다.
  */
 export async function listTree(spaceIds: readonly string[]): Promise<(TreeNode & { spaceId: string })[]> {
@@ -215,7 +215,7 @@ export async function moveDocument(input: {
   return { ok: true };
 }
 
-/** 모래상자로. 삭제는 이것으로만 한다. 하위 트리도 같이 내려간다. */
+/** 휴지통으로. 삭제는 이것으로만 한다. 하위 트리도 같이 내려간다. */
 export async function archiveDocument(id: string): Promise<void> {
   await db.execute(sql`
     with recursive down as (
@@ -243,7 +243,7 @@ export async function restoreDocument(id: string): Promise<void> {
   `);
 }
 
-/** 모래상자 목록 — 직접 버려진 것만 (하위는 부모와 함께 복원된다). */
+/** 휴지통 목록 — 직접 버려진 것만 (하위는 부모와 함께 복원된다). */
 export async function listArchived(
   spaceIds: readonly string[],
 ): Promise<(TreeNode & { archivedAt: Date })[]> {
@@ -269,7 +269,7 @@ export async function countArchived(spaceIds: readonly string[]): Promise<number
   return rows[0]?.n ?? 0;
 }
 
-/** 모래상자 비우기 — 여기서만 하드 삭제한다. 하위는 FK cascade 로 함께 사라진다. */
+/** 휴지통 비우기 — 여기서만 하드 삭제한다. 하위는 FK cascade 로 함께 사라진다. */
 /** 몇 개가 사라졌는지 돌려준다 — 되돌릴 수 없는 일이라 기록에 남길 값이 필요하다. */
 export async function emptyTrash(spaceIds: readonly string[]): Promise<number> {
   if (spaceIds.length === 0) return 0;

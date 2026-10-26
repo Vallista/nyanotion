@@ -23,7 +23,7 @@ export function TrashList({
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 14, color: "var(--ink-5)" }}>
           <LitterBoxIcon size={36} strokeWidth={1} />
         </div>
-        <p style={{ fontSize: 14, color: "var(--ink-3)" }}>모래상자가 비어 있어요</p>
+        <p style={{ fontSize: 14, color: "var(--ink-3)" }}>휴지통이 비어 있어요</p>
       </div>
     );
   }
@@ -143,7 +143,7 @@ export function TrashList({
           onClick={() => setConfirming(true)}
           style={{ fontSize: 13, color: "var(--ink-3)", padding: "6px 0" }}
         >
-          모래상자 비우기
+          휴지통 비우기
         </button>
       )}
     </>

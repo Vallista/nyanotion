@@ -36,12 +36,12 @@ const welcome: Block[] = [
   block("bulletListItem", "왼쪽 + 로 문서를 만들고, 문서를 끌어서 다른 문서 안에 넣어 묶습니다"),
   block("bulletListItem", "제목을 두 번 누르면 사이드바에서 바로 이름을 바꿉니다"),
   block("bulletListItem", "/ 를 치면 제목·목록·인용 같은 블록 메뉴가 열립니다"),
-  block("bulletListItem", "버린 문서는 모래상자에 남고, 되돌리면 하위 문서까지 함께 살아납니다"),
+  block("bulletListItem", "버린 문서는 휴지통에 남고, 되돌리면 하위 문서까지 함께 살아납니다"),
   block("heading", "아직 없는 것", { level: 2 }),
   block("checkListItem", "폰에서 오프라인으로 쓰고 나중에 합치기 (M2)", { checked: false }),
   block("checkListItem", "태그와 검색 (M3)", { checked: false }),
   block("checkListItem", "가족 초대와 문서 공유 (M4)", { checked: false }),
-  block("checkListItem", "냥이 — 요약·이어쓰기·문서에 질문하기 (M5~M6)", { checked: false }),
+  block("checkListItem", "도우미 — 요약·이어쓰기·문서에 질문하기 (M5~M6)", { checked: false }),
   block("paragraph", ""),
   block("paragraph", "이 문서는 지워도 됩니다."),
 ];
@@ -68,7 +68,7 @@ async function main(): Promise<void> {
   const id = await createDocument({
     spaceId: mySpace.id,
     userId: owner.id,
-    title: "Nyanotion 시작하기",
+    title: "도란 시작하기",
   });
   await setContent(id, welcome, owner.id);
   console.log(`만들었습니다: /d/${id}`);

@@ -25,7 +25,7 @@ export type AdminAccount = {
   disabledAt: string | null;
   /** 가장 최근 세션이 갱신된 때. 로그인한 적이 없거나 세션이 다 지워졌으면 null. */
   lastSeenAt: string | null;
-  /** 개인 space 의 (모래상자에 안 간) 문서 수. 내용은 보지 않는다. */
+  /** 개인 space 의 (휴지통에 안 간) 문서 수. 내용은 보지 않는다. */
   documentCount: number;
   families: { organizationId: string; name: string; role: string }[];
 };

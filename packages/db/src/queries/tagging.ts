@@ -7,7 +7,7 @@ import { document, documentTag, tag } from "../schema/index";
 
 export type TagWithCount = { id: string; name: string; color: string | null; count: number };
 
-/** space 의 태그와 각각 달린 문서 수. 모래상자에 있는 문서는 세지 않는다. */
+/** space 의 태그와 각각 달린 문서 수. 휴지통에 있는 문서는 세지 않는다. */
 export async function listTags(spaceIds: readonly string[]): Promise<TagWithCount[]> {
   if (spaceIds.length === 0) return [];
   const rows = await db

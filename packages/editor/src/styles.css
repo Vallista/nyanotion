@@ -1,5 +1,5 @@
 /*
- * BlockNote 를 Nyanotion 시안에 맞춘다.
+ * BlockNote 를 도란 시안에 맞춘다.
  *
  * **이 파일은 반드시 editor.tsx 에서 BlockNote 의 style.css 두 줄 다음에 import 한다.**
  * BlockNote 는 자기 변수를 `.bn-root` 에 정의하는데(특이도 0,1,0) 우리가 쓰던 `:root` 와

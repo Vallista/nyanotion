@@ -1,4 +1,6 @@
-# Nyanotion 🐱 — 블록 에디터 문서 서버 · 전부 TypeScript
+# 도란 (저장소 이름 nyanotion) — 우리 집 일정 · 체크리스트 · 문서 · 전부 TypeScript
+
+화면에 보이는 이름은 **도란**이다 (2026-10-26, 냥노션에서 바꿈 — `docs/04-history.md`). 저장소·패키지(`@nyanotion/*`)·DB·`NYANOTION_ENV`·도메인은 그대로 둔다.
 
 구조·스택·클라이언트 전략·데이터 모델·권한·AI·배포는 **`ARCHITECTURE.md`** 가 기준. 새 작업은 그 구조를 따른다.
 마일스톤과 진행 기록은 **`docs/`** (`docs/README.md` 부터). 마일스톤을 끝내면 `docs/04-history.md` 와 `docs/02-roadmap.md` 를 갱신할 것.
@@ -89,7 +91,7 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 ### AI
 - **모든 LLM 호출은 `packages/ai` 게이트웨이를 통과한다.** 라우트에서 Ollama 를 직접 부르지 말 것. 모델명·타임아웃·동시성·GPU 모드 판정이 전부 거기 있다.
 - **프롬프트·작업 정의는 `@nyanotion/shared` 에 둔다.** 클라이언트도 쓰기 때문에 `packages/ai` 배럴에 넣으면 gateway → db → `node:fs` 가 브라우저 번들에 딸려 와 빌드가 깨진다. **서버 전용 코드와 클라이언트 상수를 같은 배럴에 두지 말 것.**
-- **냥이의 답은 제안으로만.** 사람이 수락해야 문서에 들어간다. 대신 고쳐 놓지 않는다.
+- **도우미(AI)의 답은 제안으로만.** 사람이 수락해야 문서에 들어간다. 대신 고쳐 놓지 않는다.
 - GPU 모드는 `server_setting` 표에 있다. `gaming` 으로 바꿀 때 **반드시 모델을 VRAM 에서 내린다**(`unloadModels`) — 토글만 하고 메모리가 안 비면 의미가 없다.
 - **동기 요청 경로에서 임베딩하지 않는다.** `ai_job` 에 넣고 `worker` 가 처리한다.
 - **GPU 모드가 `gaming` 이면 AI 경로만 멈춘다.** Postgres·web·collab 은 절대 멈추지 않는다.
@@ -97,7 +99,8 @@ infra/             docker-compose · cloudflared · .env(무시됨)
 ### 그 외
 - **DB 스키마 변경은 `packages/db/migrations/` 에 새 번호로 추가.** 적용된 SQL 은 고치지 않는다.
 - **비밀 값은 커밋 금지.** `infra/.env` 는 git 무시. 예시는 `infra/.env.example` 에만.
-- 고양이 이름(냥이·모래상자)은 **UI 문구에서만**. DB 컬럼·코드 식별자는 평범한 영어로.
+- 브랜드 말(도란 · 도우미 = 로컬 AI · 휴지통)은 **UI 문구에서만**. DB 컬럼·코드 식별자는 평범한 영어로. 고양이 말장난(냥이·모래상자·캣타워·츄르)은 더 쓰지 않는다.
+- **마크는 `components/brand-mark.tsx` 한 곳** (지붕 아래 체크, 도우미는 반짝이). 앱 아이콘은 `pnpm --filter @nyanotion/web icons` 가 같은 path 로 만든다.
 
 ## 환경과 비밀값
 

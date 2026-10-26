@@ -1,5 +1,5 @@
 /**
- * 에디터 전체 시험 — **임시 문서**를 만들어서 하고, 끝나면 모래상자로 보낸다.
+ * 에디터 전체 시험 — **임시 문서**를 만들어서 하고, 끝나면 휴지통으로 보낸다.
  * 실제 문서를 건드리지 않는다.
  *   node apps/web/scripts/e2e-editor.mjs
  */
@@ -236,7 +236,7 @@ console.log("\n파일 올리기");
 
 await page.screenshot({ path: "apps/web/scripts/e-all.png", fullPage: true });
 
-// --- 정리: 임시 문서를 모래상자로 ---
+// --- 정리: 임시 문서를 휴지통으로 ---
 await page.goto(docUrl, { waitUntil: "networkidle" });
 await page.waitForTimeout(1200);
 await page
@@ -245,7 +245,7 @@ await page
   .click()
   .catch(() => {});
 await page.waitForTimeout(500);
-const trash = page.locator("button", { hasText: "모래상자로 보내기" });
+const trash = page.locator("button", { hasText: "휴지통으로 보내기" });
 if ((await trash.count()) > 0) {
   await trash.first().click();
   await page.waitForTimeout(1800);

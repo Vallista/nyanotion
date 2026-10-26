@@ -12,7 +12,7 @@ import { ChecklistMenu } from "@/components/checklist-menu";
 import { TopBar } from "@/components/top-bar";
 import { requireDocument } from "@/lib/session";
 
-export const metadata = { title: "체크리스트 — Nyanotion" };
+export const metadata = { title: "체크리스트 — 도란" };
 
 /**
  * 체크리스트 하나. **권한은 그 문서로 본다** — 없으면 404 (`requireDocument`).
@@ -24,7 +24,7 @@ export default async function ChecklistPage({ params }: { params: Promise<{ id: 
   if (documentId === null) notFound();
 
   const { viewer, doc, role } = await requireDocument(documentId);
-  // 모래상자에 간 체크리스트는 열리지 않는다 — 문서 화면과 같은 규칙.
+  // 휴지통에 간 체크리스트는 열리지 않는다 — 문서 화면과 같은 규칙.
   if (doc.archivedAt !== null) notFound();
   const space = viewer.spaces.find((item) => item.id === doc.spaceId);
 

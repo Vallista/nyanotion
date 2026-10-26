@@ -34,7 +34,7 @@ export function DocumentView({
   tagSuggestions: { id: string; name: string }[];
   /** 읽기 전용으로 받은 문서면 false — 제목·태그·본문이 전부 잠긴다. */
   canWrite: boolean;
-  /** 냥이가 낸 제목·태그 제안. **누르기 전까지 문서는 안 바뀐다.** */
+  /** 도우미가 낸 제목·태그 제안. **누르기 전까지 문서는 안 바뀐다.** */
   suggestion: { title: string; tags: string[] } | null;
 }) {
   const [title, setTitle] = useState(initialTitle);

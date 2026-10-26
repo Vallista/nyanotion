@@ -214,7 +214,7 @@ function Block({ node }: { node: Unknown }): React.ReactNode {
         typeof props.emoji === "string" && props.emoji !== ""
           ? props.emoji
           : tone === "tip"
-            ? "🐾"
+            ? "💡"
             : tone === "warn"
               ? "⚠️"
               : "💡";

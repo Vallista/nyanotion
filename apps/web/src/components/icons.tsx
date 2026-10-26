@@ -1,5 +1,5 @@
 /**
- * 시안(Nyanotion 화면 설계)에서 그대로 옮긴 아이콘들. 16px 뷰박스, 선 두께 1.2 안팎.
+ * 시안(도란 화면 설계)에서 그대로 옮긴 아이콘들. 16px 뷰박스, 선 두께 1.2 안팎.
  * 색은 넘기지 않고 currentColor 를 쓴다 — 부모가 정한다.
  */
 type IconProps = { size?: number; strokeWidth?: number };
@@ -89,7 +89,7 @@ export function CalendarIcon(p: IconProps) {
   );
 }
 
-/** 모래상자 */
+/** 휴지통 */
 export function LitterBoxIcon(p: IconProps) {
   return (
     <Svg {...p}>

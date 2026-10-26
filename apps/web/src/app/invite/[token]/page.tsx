@@ -2,7 +2,7 @@ import { invitationByToken } from "@nyanotion/db";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { AcceptInvite } from "@/components/accept-invite";
-import { CatMark } from "@/components/cat-mark";
+import { BrandMark } from "@/components/brand-mark";
 import { auth } from "@/lib/auth";
 
 export const metadata = { title: "초대" };
@@ -37,9 +37,9 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
             marginBottom: 32,
           }}
         >
-          <CatMark size={30} color="var(--ink)" />
+          <BrandMark size={30} color="var(--ink)" />
           <h1 style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.022em", marginTop: 14 }}>
-            Nyanotion
+            도란
           </h1>
         </div>
 

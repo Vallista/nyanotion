@@ -1,8 +1,8 @@
 /**
- * 앱 아이콘을 만든다. 고양이 마크 하나에서 필요한 크기를 전부 낸다.
+ * 앱 아이콘을 만든다. 도란 마크(지붕 아래 체크) 하나에서 필요한 크기를 전부 낸다.
  *   pnpm --filter @nyanotion/web icons
  *
- * 색은 시안의 토큰 — 종이색 바탕에 차콜 선. 아이콘에서 새 색을 만들지 말 것.
+ * 색은 시안의 토큰 — 종이색 바탕에 차콜 선, 체크만 이끼색(--accent). 아이콘에서 새 색을 만들지 말 것.
  * maskable 은 iOS·안드로이드가 모서리를 잘라내므로 여백(안전 영역)을 더 준다.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -15,14 +15,13 @@ const outDir = resolve(here, "../public/icons");
 
 const PAPER = "#faf9f7";
 const INK = "#2f2e2b";
+const ACCENT = "#4c6b57";
 
-/** 고양이 마크. components/cat-mark.tsx 와 같은 path. */
+/** 도란 마크. components/brand-mark.tsx 와 같은 path — 집은 차콜, 체크는 이끼색. */
 const MARK = `
-  <path d="M4.4 9.6V3.6l4.5 2.9"/>
-  <path d="M19.6 9.6V3.6l-4.5 2.9"/>
-  <path d="M4.4 9.6c0-.7 3.4-2.8 7.6-2.8s7.6 2.1 7.6 2.8c0 5.4-3.4 9.4-7.6 9.4s-7.6-4-7.6-9.4z"/>
-  <path d="M9.2 12.3v.9M14.8 12.3v.9"/>
-  <path d="M10.9 15.4c.7.7 1.5.7 2.2 0"/>
+  <path d="M3.6 10.6 12 4l8.4 6.6"/>
+  <path d="M5.9 9v9.3c0 .8.6 1.4 1.4 1.4h9.4c.8 0 1.4-.6 1.4-1.4V9"/>
+  <path d="m9.3 14.3 2 2 3.6-3.9" stroke="${ACCENT}" stroke-width="1.35"/>
 `;
 
 /**

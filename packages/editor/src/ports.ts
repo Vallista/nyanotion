@@ -118,7 +118,7 @@ export type CollabPort = {
   fetchTicket(documentId: string): Promise<string>;
 };
 
-/* -------------------------------------------------------------- 냥이(AI) */
+/* -------------------------------------------------------------- 도우미(AI) */
 
 export type AiPort = {
   /**
@@ -186,7 +186,7 @@ export type EditorPorts = {
   files: FilePort;
   database: DatabasePort;
   mentions: MentionPort;
-  /** 없으면 냥이 항목이 아예 안 뜬다. */
+  /** 없으면 도우미 항목이 아예 안 뜬다. */
   ai: AiPort | null;
   /** 없으면 댓글 UI 가 아예 안 뜬다. */
   comments: CommentsPort | null;

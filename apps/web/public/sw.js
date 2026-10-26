@@ -1,5 +1,5 @@
 /*
- * Nyanotion 서비스 워커.
+ * 도란 서비스 워커.
  *
  * 목적은 딱 둘이다: (1) 서버가 꺼져 있어도 앱 껍데기가 뜨게 하고, (2) 정적 파일을 아껴 받는 것.
  * **문서 내용은 여기서 캐시하지 않는다** — 그건 Yjs 가 IndexedDB 에 들고 있다.
@@ -101,7 +101,7 @@ self.addEventListener("push", (event) => {
     data = {};
   }
 
-  const title = typeof data.title === "string" && data.title !== "" ? data.title : "Nyanotion";
+  const title = typeof data.title === "string" && data.title !== "" ? data.title : "도란";
   const options = {
     body: typeof data.body === "string" ? data.body : "",
     tag: typeof data.tag === "string" && data.tag !== "" ? data.tag : "nyanotion",

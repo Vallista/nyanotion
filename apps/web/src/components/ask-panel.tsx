@@ -118,7 +118,7 @@ export function AskPanel({ initialQuestion }: { initialQuestion: string }) {
             setNotice(
               body.kind === "gaming"
                 ? "지금은 GPU 를 게임이 쓰고 있어요. 조금 뒤에 다시 물어봐 주세요."
-                : (body.message ?? "냥이를 부르지 못했습니다."),
+                : (body.message ?? "도우미를 부르지 못했습니다."),
             );
             setState("busy");
             return;
@@ -232,7 +232,7 @@ export function AskPanel({ initialQuestion }: { initialQuestion: string }) {
           {(answer !== "" || running) && (
             <div>
               <p style={{ fontSize: 12, color: "var(--ink-4)", marginBottom: 6 }}>
-                냥이의 답{!semantic && " (지금은 글자로만 찾았어요)"}
+                도우미의 답{!semantic && " (지금은 글자로만 찾았어요)"}
               </p>
               <p
                 style={{

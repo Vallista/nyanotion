@@ -224,7 +224,7 @@ async function* streamAi(input: {
     }),
   });
   if (!response.ok || response.body === null) {
-    throw new Error(`냥이를 부르지 못했습니다 (${response.status})`);
+    throw new Error(`도우미를 부르지 못했습니다 (${response.status})`);
   }
 
   const reader = response.body.getReader();

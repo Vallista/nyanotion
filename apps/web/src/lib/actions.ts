@@ -117,7 +117,7 @@ export async function moveDocumentAction(
 
 /**
  * `goHome` 이 false 면 제자리에 둔다 — 화면이 먼저 줄을 지우고(낙관적 갱신) 서버는 뒤따르는
- * 경우다. 보고 있던 문서를 지울 때는 화면이 직접 캣타워로 옮겨 간다.
+ * 경우다. 보고 있던 문서를 지울 때는 화면이 직접 홈으로 옮겨 간다.
  */
 export async function archiveDocumentAction(id: string, goHome = true): Promise<void> {
   await assertCanWrite(id);
@@ -132,7 +132,7 @@ export async function restoreDocumentAction(id: string): Promise<void> {
   revalidatePath("/", "layout");
 }
 
-/** 모래상자 비우기 — 내가 들어갈 수 있는 space 들에서만. */
+/** 휴지통 비우기 — 내가 들어갈 수 있는 space 들에서만. */
 export async function emptyTrashAction(): Promise<void> {
   const viewer = await requireViewer();
   const gone = await emptyTrash(viewer.spaceIds);
@@ -142,7 +142,7 @@ export async function emptyTrashAction(): Promise<void> {
     actorName: viewer.name,
     action: "trash.empty",
     spaceId: viewer.personalSpace.id,
-    summary: `모래상자를 비웠다 (${gone}개)`,
+    summary: `휴지통을 비웠다 (${gone}개)`,
   });
   revalidatePath("/", "layout");
 }
@@ -441,7 +441,7 @@ export async function revokePublicLinkAction(documentId: string, linkId: string)
 /* ------------------------------------------------------------ GPU 모드 */
 
 /**
- * 게임이 GPU 를 쓸 때 냥이를 비켜 세운다.
+ * 게임이 GPU 를 쓸 때 도우미를 비켜 세운다.
  *
  * `gaming` 으로 바꾸면 모델을 VRAM 에서 곧바로 내린다 — 토글만 해 두고 메모리가 안 비면
  * 아무 의미가 없다. **문서 편집·동기화·검색은 어느 모드에서도 그대로 돈다.**
@@ -450,12 +450,12 @@ export async function setGpuModeAction(mode: "free" | "gaming"): Promise<void> {
   const viewer = await requireViewer(); // 가족 누구나 바꿀 수 있다 — 집 한 대의 공용 스위치다
   await setGpuMode(mode);
   if (mode === "gaming") await unloadModels();
-  // "그때 왜 냥이가 안 됐지"의 답이 된다.
+  // "그때 왜 도우미가 안 됐지"의 답이 된다.
   await recordAudit({
     actorId: viewer.userId,
     actorName: viewer.name,
     action: "gpu.mode",
-    summary: mode === "gaming" ? "GPU 를 게임에 넘겼다" : "GPU 를 냥이에게 돌려줬다",
+    summary: mode === "gaming" ? "GPU 를 게임에 넘겼다" : "GPU 를 도우미에게 돌려줬다",
     detail: { mode },
   });
   revalidatePath("/", "layout");
@@ -604,7 +604,7 @@ export async function addRowAction(collectionId: string, title = ""): Promise<st
   return documentId;
 }
 
-/** 표에서 빼는 것일 뿐 문서는 남는다. 지우려면 문서를 모래상자로 보낸다. */
+/** 표에서 빼는 것일 뿐 문서는 남는다. 지우려면 문서를 휴지통으로 보낸다. */
 export async function removeRowAction(collectionId: string, documentId: string): Promise<void> {
   await collectionSpace(collectionId);
   await assertCanWrite(documentId);

@@ -238,7 +238,7 @@ export function CommandPalette() {
 
           {canAsk && (
             <>
-              <SectionLabel>냥이에게</SectionLabel>
+              <SectionLabel>도우미에게</SectionLabel>
               <Row
                 active={cursor === askIndex}
                 onMouseEnter={() => setCursor(askIndex)}

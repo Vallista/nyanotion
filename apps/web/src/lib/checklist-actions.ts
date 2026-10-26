@@ -305,8 +305,8 @@ export async function renameChecklistAction(checklistId: string, title: string):
 }
 
 /**
- * 체크리스트를 **모래상자로.** 문서 삭제와 같은 규칙이다 — 하위 문서(구매로 넘긴 살 것)도 같이 가고,
- * 모래상자에서 되돌릴 수 있다. 목록·첫 화면·알림에서 함께 빠진다.
+ * 체크리스트를 **휴지통으로.** 문서 삭제와 같은 규칙이다 — 하위 문서(구매로 넘긴 살 것)도 같이 가고,
+ * 휴지통에서 되돌릴 수 있다. 목록·첫 화면·알림에서 함께 빠진다.
  */
 export async function archiveChecklistAction(checklistId: string): Promise<void> {
   const { documentId } = await checklistGate(checklistId);

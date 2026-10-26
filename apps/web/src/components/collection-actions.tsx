@@ -147,7 +147,7 @@ export function CollectionActions({
                 onClick={() => {
                   setOpen(false);
                   setConfirming(false);
-                  // 기다리지 않고 캣타워로 옮긴다. 지우는 일은 서버가 뒤에서 한다.
+                  // 기다리지 않고 홈으로 옮긴다. 지우는 일은 서버가 뒤에서 한다.
                   router.push("/");
                   deleteCollectionAction(id).catch(console.error);
                 }}

@@ -3,7 +3,7 @@
  *
  *   INSPECT_URL=http://localhost:3100 node apps/web/scripts/e2e-sidebar.mjs
  *
- * 시험 문서 둘을 만들어 모래상자로 보낸다.
+ * 시험 문서 둘을 만들어 휴지통으로 보낸다.
  */
 import { chromium, devices } from "playwright";
 import { BASE, signIn } from "./lib.mjs";
@@ -54,9 +54,9 @@ console.log("\n데스크탑");
   check("지금 연 문서 줄에는 마우스를 안 올려도 ⋯ 가 보인다", await dots.isVisible().catch(() => false));
 
   await row.click({ button: "right" });
-  const del = page.getByRole("button", { name: "모래상자로 보내기 (삭제)" });
+  const del = page.getByRole("button", { name: "휴지통으로 보내기 (삭제)" });
   check("오른쪽 클릭으로 메뉴가 열린다", await del.isVisible().catch(() => false));
-  check("**메뉴의 삭제가 잘리지 않고 눌린다**", await onTop(page, del, "모래상자로"));
+  check("**메뉴의 삭제가 잘리지 않고 눌린다**", await onTop(page, del, "휴지통으로"));
   await del.click();
   await page.waitForTimeout(2000);
   check("지우면 사이드바에서 빠진다", (await page.locator(`nav a[href="/d/${id}"]`).count()) === 0);
@@ -83,9 +83,9 @@ console.log("\n폰");
   const box = await dots.boundingBox().catch(() => null);
   check("손가락으로 누를 크기 (28px)", box !== null && box.width >= 27, JSON.stringify(box));
   await dots.tap();
-  const del = phone.getByRole("button", { name: "모래상자로 보내기 (삭제)" });
+  const del = phone.getByRole("button", { name: "휴지통으로 보내기 (삭제)" });
   check("눌러서 메뉴가 열린다", await del.isVisible().catch(() => false));
-  check("**메뉴의 삭제가 잘리지 않고 눌린다**", await onTop(phone, del, "모래상자로"));
+  check("**메뉴의 삭제가 잘리지 않고 눌린다**", await onTop(phone, del, "휴지통으로"));
   await del.tap();
   await phone.waitForTimeout(2000);
   await phone.goto(`${BASE}/`, { waitUntil: "networkidle" });

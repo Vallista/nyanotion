@@ -48,7 +48,7 @@ export function CalendarFeeds({ feeds, spaces }: { feeds: FeedSummary[]; spaces:
         <h1 style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.02em", marginBottom: 6 }}>캘린더 연결</h1>
         <p style={{ fontSize: 13.5, color: "var(--ink-3)", lineHeight: 1.7 }}>
           가족이 쓰는 캘린더의 iCal 주소를 달면 첫 화면 캘린더에 그 일정이 같이 보여요. 읽기만 합니다 —
-          냥노션이 그 캘린더를 고치지는 않아요. 15분마다 새로 가져옵니다.
+          도란이 그 캘린더를 고치지는 않아요. 15분마다 새로 가져옵니다.
         </p>
       </section>
 

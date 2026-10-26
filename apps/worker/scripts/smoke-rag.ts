@@ -261,13 +261,13 @@ async function main(): Promise<void> {
   });
   check("읽을 수 있는 문서가 없으면 아무것도 안 준다", asNobody.length === 0, asNobody.length);
 
-  // 모래상자로 보낸 문서는 색인에서 사라진다.
+  // 휴지통으로 보낸 문서는 색인에서 사라진다.
   await db
     .update(document)
     .set({ archivedAt: new Date() })
     .where(inArray(document.id, [theirs]));
   const purged = await indexDocument(theirs);
-  check("모래상자로 가면 색인을 지운다", purged.empty && (await chunkCount(theirs)) === 0, purged);
+  check("휴지통으로 가면 색인을 지운다", purged.empty && (await chunkCount(theirs)) === 0, purged);
 
   /* ------------------------------------------------------------ 6. 큐 */
   console.log("\n큐");

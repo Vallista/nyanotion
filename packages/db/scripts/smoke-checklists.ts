@@ -228,7 +228,7 @@ async function main(): Promise<void> {
   check("받으면 체크리스트 항목도 체크된다", (await completeItemsForPurchase(purchaseId, a.userId)) === 1);
   check("체크됐다", (await listChecklistItems(list.id)).find((i) => i.id === milk)?.done === true);
 
-  console.log("\n문서를 모래상자로");
+  console.log("\n문서를 휴지통으로");
   await db.update(document).set({ archivedAt: new Date() }).where(eq(document.id, list.documentId));
   check("목록에서 빠진다", !(await listChecklists([a.spaceId])).some((row) => row.id === list.id));
   check("일정에서도 빠진다", (await agenda([a.spaceId], addDays(today, 7))).length === 0);

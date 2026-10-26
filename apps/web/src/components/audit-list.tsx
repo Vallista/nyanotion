@@ -29,7 +29,7 @@ const LABELS: Record<string, string> = {
   "purchase.approve": "구매 승인",
   "purchase.reject": "구매 거절",
   "purchase.cancel": "주문 취소",
-  "trash.empty": "모래상자 비움",
+  "trash.empty": "휴지통 비움",
   "gpu.mode": "GPU",
 };
 

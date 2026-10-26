@@ -3,7 +3,7 @@
  *
  *   INSPECT_URL=http://localhost:3100 node apps/web/scripts/e2e-sync.mjs
  *
- * 시험 체크리스트를 만들어 쓰고 끝에 모래상자로 보낸다. 만든 토큰은 끝에 끊는다.
+ * 시험 체크리스트를 만들어 쓰고 끝에 휴지통으로 보낸다. 만든 토큰은 끝에 끊는다.
  */
 import { chromium, devices } from "playwright";
 import { BASE, signIn } from "./lib.mjs";
@@ -146,7 +146,7 @@ check("**끊은 토큰은 바로 401**", (await api("/api/sync/me")).status === 
 console.log("\n정리");
 await page.goto(listUrl, { waitUntil: "networkidle" });
 await page.locator('button[aria-label="체크리스트 메뉴"]').click();
-await page.getByRole("menuitem", { name: "모래상자로 보내기" }).click();
+await page.getByRole("menuitem", { name: "휴지통으로 보내기" }).click();
 await page.waitForURL(/\/lists$/, { timeout: 15000 }).catch(() => {});
 
 console.log(`\n${pass}개 통과, ${fail}개 실패`);

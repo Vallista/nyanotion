@@ -125,7 +125,7 @@ export type PublicView = {
 };
 
 /**
- * 공개 링크로 문서 열기. 만료됐거나 문서가 모래상자에 있으면 null.
+ * 공개 링크로 문서 열기. 만료됐거나 문서가 휴지통에 있으면 null.
  * **이 경로는 실효 권한 계산을 건너뛴다** — 대신 그 문서 하나로만 제한된다.
  */
 export async function documentByPublicToken(token: string): Promise<PublicView | null> {

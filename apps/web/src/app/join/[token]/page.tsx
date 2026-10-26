@@ -1,7 +1,7 @@
 import { accountInviteByToken } from "@nyanotion/db";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { CatMark } from "@/components/cat-mark";
+import { BrandMark } from "@/components/brand-mark";
 import { auth } from "@/lib/auth";
 
 export const metadata = { title: "초대" };
@@ -29,9 +29,9 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
     >
       <div style={{ width: "100%", maxWidth: 400 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
-          <CatMark size={30} color="var(--ink)" />
+          <BrandMark size={30} color="var(--ink)" />
           <h1 style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.022em", marginTop: 14 }}>
-            Nyanotion
+            도란
           </h1>
         </div>
 
@@ -63,7 +63,7 @@ export default async function JoinPage({ params }: { params: Promise<{ token: st
                 marginBottom: 26,
               }}
             >
-              Nyanotion 계정을 만들 수 있게 초대받았습니다.
+              도란 계정을 만들 수 있게 초대받았습니다.
             </p>
             <div
               style={{

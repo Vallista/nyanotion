@@ -1,4 +1,4 @@
-import { CatMark } from "@/components/cat-mark";
+import { BrandMark } from "@/components/brand-mark";
 
 /** 서비스 워커가 아무것도 못 찾았을 때 보여 주는 화면. 정적이어야 한다 — DB 를 보지 않는다. */
 export default function OfflinePage() {
@@ -14,7 +14,7 @@ export default function OfflinePage() {
     >
       <div style={{ maxWidth: 380, textAlign: "center" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 18, opacity: 0.5 }}>
-          <CatMark size={44} color="var(--ink-5)" />
+          <BrandMark size={44} color="var(--ink-5)" />
         </div>
         <h1 style={{ fontSize: 17, fontWeight: 600, marginBottom: 8 }}>서버에 닿지 않아요</h1>
         <p style={{ fontSize: 13.5, lineHeight: 1.75, color: "var(--ink-3)" }}>

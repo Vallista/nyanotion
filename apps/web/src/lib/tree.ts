@@ -15,7 +15,7 @@ export function buildTree(nodes: readonly TreeNode[]): TreeItem[] {
     else list.push(node);
   }
 
-  // 부모가 목록에 없는 노드(조상이 모래상자에 있는 경우)는 루트로 끌어올리지 않고 버린다.
+  // 부모가 목록에 없는 노드(조상이 휴지통에 있는 경우)는 루트로 끌어올리지 않고 버린다.
   const known = new Set(nodes.map((n) => n.id));
 
   function collect(parentId: string | null, depth: number): TreeItem[] {

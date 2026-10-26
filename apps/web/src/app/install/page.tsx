@@ -1,10 +1,10 @@
 import { publicKey } from "@nyanotion/notify";
 import Link from "next/link";
-import { CatMark } from "@/components/cat-mark";
+import { BrandMark } from "@/components/brand-mark";
 import { NotificationsButton } from "@/components/notifications-button";
 import { PersistStorageButton } from "@/components/persist-storage-button";
 
-export const metadata = { title: "Nyanotion 설치하기" };
+export const metadata = { title: "도란 설치하기" };
 
 // 알림 공개키를 빌드에 구우면 키를 바꿨을 때 옛 값이 남는다. 요청마다 읽는다.
 export const dynamic = "force-dynamic";
@@ -29,7 +29,7 @@ export default async function InstallPage() {
             marginBottom: 28,
           }}
         >
-          <CatMark size={26} color="var(--ink)" />
+          <BrandMark size={26} color="var(--ink)" />
           <h1
             style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.02em" }}
           >
@@ -65,7 +65,7 @@ export default async function InstallPage() {
             목록을 아래로 내려 <Key>홈 화면에 추가</Key> 를 고릅니다.
           </Step>
           <Step n={4}>
-            오른쪽 위 <Key>추가</Key> 를 누르면 끝. 홈 화면에 고양이 아이콘이
+            오른쪽 위 <Key>추가</Key> 를 누르면 끝. 홈 화면에 도란 아이콘이
             생깁니다.
           </Step>
         </Section>

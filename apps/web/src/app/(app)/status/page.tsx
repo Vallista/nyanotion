@@ -5,7 +5,7 @@ import { formatWhen } from "@/lib/format";
 import { requireViewer } from "@/lib/session";
 import { AuditList } from "@/components/audit-list";
 
-export const metadata = { title: "상태 — Nyanotion" };
+export const metadata = { title: "상태 — 도란" };
 
 /** 지금 이 순간의 값이다. 구울 것이 하나도 없다. */
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 /**
  * 서버가 지금 어떤지.
  *
- * **가족이 "왜 느리지", "왜 냥이가 안 되지" 를 스스로 확인할 수 있어야 한다.** 그래서
+ * **가족이 "왜 느리지", "왜 도우미가 안 되지" 를 스스로 확인할 수 있어야 한다.** 그래서
  * 관리자 전용으로 두지 않았다 — 여기 있는 것은 전부 "이 집 서버 한 대의 상태"이고,
  * 남의 문서 내용은 한 글자도 나오지 않는다. 감사 로그만 **내가 들어갈 수 있는 공간**으로 좁힌다.
  */
@@ -43,7 +43,7 @@ export default async function StatusPage() {
             gap: 30,
           }}
         >
-          <Section title="냥이 (로컬 LLM)">
+          <Section title="도우미 (로컬 LLM)">
             <Row
               label="GPU"
               value={ai.mode === "gaming" ? "게임에 넘김 — 생성은 기다립니다" : "쓸 수 있음"}

@@ -23,7 +23,7 @@ export const document = pgTable(
     spaceId: text("space_id")
       .notNull()
       .references(() => space.id, { onDelete: "cascade" }),
-    /** 하위 트리는 부모가 하드 삭제될 때 같이 사라진다 (모래상자 비우기). */
+    /** 하위 트리는 부모가 하드 삭제될 때 같이 사라진다 (휴지통 비우기). */
     parentId: text("parent_id").references((): AnyPgColumn => document.id, { onDelete: "cascade" }),
     /** 형제 사이 정렬. fractional index — 끼워 넣을 때 다른 행을 건드리지 않는다. */
     /**
@@ -54,7 +54,7 @@ export const document = pgTable(
       .references(() => user.id),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-    /** 모래상자. 삭제는 이것으로만 한다. */
+    /** 휴지통. 삭제는 이것으로만 한다. */
     archivedAt: timestamp("archived_at", { withTimezone: true }),
     isTemplate: boolean("is_template").notNull().default(false),
   },

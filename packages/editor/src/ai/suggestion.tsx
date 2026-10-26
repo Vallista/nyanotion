@@ -1,7 +1,7 @@
 "use client";
 
 import { TASK_LABELS, type AiTask } from "@nyanotion/shared";
-import { CatMark } from "../cat-mark";
+import { AssistantMark } from "../brand-mark";
 
 export type NyanState = {
   task: AiTask;
@@ -15,7 +15,7 @@ export type NyanState = {
 };
 
 /**
- * 냥이의 답은 **제안으로만 보여 준다** — 사람이 수락해야 문서에 들어간다.
+ * 도우미의 답은 **제안으로만 보여 준다** — 사람이 수락해야 문서에 들어간다.
  * 글을 대신 고쳐 놓고 되돌리게 하는 것보다, 보여 주고 고르게 하는 편이 낫다 (시안 06b).
  */
 export function NyanSuggestion({
@@ -36,7 +36,7 @@ export function NyanSuggestion({
 
   return (
     <section
-      aria-label="냥이 제안"
+      aria-label="도우미 제안"
       style={{
         marginTop: 20,
         background: "var(--card)",
@@ -48,7 +48,7 @@ export function NyanSuggestion({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
         <span style={{ display: "flex", color: "var(--ink-3)" }}>
-          <CatMark size={16} color="currentColor" />
+          <AssistantMark size={16} color="currentColor" />
         </span>
         <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)" }}>
           {headline(state)}
@@ -77,7 +77,7 @@ export function NyanSuggestion({
         </p>
       ) : state.status === "failed" ? (
         <p style={{ fontSize: 13, lineHeight: 1.75, color: "var(--ink-2)" }}>
-          {state.message ?? "냥이를 부르지 못했어요."}
+          {state.message ?? "도우미를 부르지 못했어요."}
         </p>
       ) : (
         <p
@@ -115,13 +115,13 @@ export function NyanSuggestion({
 function headline(state: NyanState): string {
   switch (state.status) {
     case "gaming":
-      return "냥이는 잠시 후";
+      return "도우미는 잠시 후";
     case "failed":
-      return "냥이가 답하지 못했어요";
+      return "도우미가 답하지 못했어요";
     case "empty":
-      return "냥이";
+      return "도우미";
     default:
-      return `냥이가 ${TASK_LABELS[state.task]}`;
+      return `도우미가 ${TASK_LABELS[state.task]}`;
   }
 }
 

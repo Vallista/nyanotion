@@ -11,7 +11,7 @@ import {
   renameDocumentAction,
 } from "@/lib/actions";
 import { buildTree, displayTitle, flattenVisible, subtreeIds, type TreeItem } from "@/lib/tree";
-import { CatMark } from "./cat-mark";
+import { BrandMark } from "./brand-mark";
 import { GpuModeToggle } from "./gpu-mode-toggle";
 import { openCommandPalette } from "./command-palette";
 import { NewFamilyButton } from "./new-family-button";
@@ -342,7 +342,7 @@ export function Sidebar({
             }}
             onArchive={() => {
               setMenuFor(null);
-              // 보고 있던 문서(또는 그 조상)를 지우면 기다리지 않고 캣타워로 옮긴다.
+              // 보고 있던 문서(또는 그 조상)를 지우면 기다리지 않고 홈으로 옮긴다.
               const leaving = activeId !== null && subtreeIds(nodes, item.id).has(activeId);
               if (leaving) router.push("/");
               startTransition(async () => {
@@ -380,8 +380,8 @@ export function Sidebar({
           padding: "0 8px 0 14px",
         }}
       >
-        <CatMark size={19} color="var(--ink)" />
-        <span style={{ fontSize: 13.5, fontWeight: 600, letterSpacing: "-0.012em" }}>Nyanotion</span>
+        <BrandMark size={19} color="var(--ink)" />
+        <span style={{ fontSize: 13.5, fontWeight: 600, letterSpacing: "-0.012em" }}>도란</span>
       </div>
 
       <div style={{ padding: "0 8px", display: "flex", flexDirection: "column", gap: 1 }}>
@@ -537,7 +537,7 @@ export function Sidebar({
         <SideLink
           href="/trash"
           icon={<LitterBoxIcon />}
-          label="모래상자"
+          label="휴지통"
           trailing={archivedCount > 0 ? String(archivedCount) : undefined}
         />
         <SideLink href="/ask" icon={<AskIcon />} label="물어보기" />
@@ -828,7 +828,7 @@ function Row({
           <MenuItem onClick={onStartRename}>이름 변경</MenuItem>
           <MenuItem onClick={onAddChild}>안에 새 문서</MenuItem>
           <div style={{ height: 1, background: "var(--line-soft)", margin: "4px 0" }} />
-          <MenuItem onClick={onArchive}>모래상자로 보내기 (삭제)</MenuItem>
+          <MenuItem onClick={onArchive}>휴지통으로 보내기 (삭제)</MenuItem>
           <MenuItem onClick={onCloseMenu} muted>
             닫기
           </MenuItem>

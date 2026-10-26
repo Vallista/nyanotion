@@ -107,7 +107,7 @@ function dayOfMonth(day: string | null): number | null {
 
 /**
  * 체크리스트 목록. **space 로 좁힌다** — 문서와 같은 경계다 (`listItems` 와 같은 규칙).
- * 모래상자에 간 문서의 체크리스트는 안 보인다.
+ * 휴지통에 간 문서의 체크리스트는 안 보인다.
  */
 export async function listChecklists(spaceIds: readonly string[]): Promise<ChecklistSummary[]> {
   if (spaceIds.length === 0) return [];
@@ -767,7 +767,7 @@ export async function deleteFolder(folderId: string): Promise<void> {
 /* ------------------------------------------------------------------ 동기화 (0019) */
 
 /**
- * 동기화로 오가는 모양. **Bento 가 아는 것만** 싣는다 — 반복·담당·구매는 냥노션에만 있는 값이라
+ * 동기화로 오가는 모양. **Bento 가 아는 것만** 싣는다 — 반복·담당·구매는 도란에만 있는 값이라
  * Bento 가 보내지 않고, 받아 가서도 덮어쓰지 않는다(그 칸이 없으므로).
  */
 export type SyncFolder = {

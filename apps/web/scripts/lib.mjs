@@ -3,7 +3,7 @@
  *
  * **이 스크립트들은 실제 문서를 연다. 편집을 남기지 말 것** —
  * Enter 로 블록을 쪼개지 말고, 친 글자는 반드시 Backspace 로 되돌린다.
- * 새로 만들어도 되는 것은 e2e-editor.mjs 처럼 임시 문서를 만들어 쓰고 모래상자로 보낸다.
+ * 새로 만들어도 되는 것은 e2e-editor.mjs 처럼 임시 문서를 만들어 쓰고 휴지통으로 보낸다.
  */
 
 export const BASE = process.env.INSPECT_URL ?? "http://localhost:3000";
@@ -33,7 +33,7 @@ export async function signIn(page, { base = BASE, email = EMAIL, password = PASS
   await page.waitForTimeout(300);
 
   const name = page.locator('input[name="name"]');
-  if ((await name.count()) > 0) await name.fill("캣타워");
+  if ((await name.count()) > 0) await name.fill("홈");
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
   await page.click('button[type="submit"]');

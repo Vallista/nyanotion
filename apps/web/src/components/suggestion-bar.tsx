@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { acceptSuggestionAction, dismissSuggestionAction } from "@/lib/ask-actions";
 
 /**
- * 냥이가 낸 제목·태그 제안.
+ * 도우미가 낸 제목·태그 제안.
  *
  * **수락해야 반영된다.** 그래서 이 줄은 문서 위에 얹혀 있을 뿐이고, 누르기 전까지 문서는
  * 한 글자도 바뀌지 않는다. 제목만 받고 태그는 버릴 수 있다 — 둘을 묶으면 사람은
@@ -56,7 +56,7 @@ export function SuggestionBar({
         color: "var(--ink-2)",
       }}
     >
-      <span style={{ color: "var(--ink-4)" }}>냥이 제안</span>
+      <span style={{ color: "var(--ink-4)" }}>도우미 제안</span>
       {title !== "" && <span>제목 “{title}”</span>}
       {tags.length > 0 && (
         <span style={{ color: "var(--ink-2)" }}>{tags.map((tag) => `#${tag}`).join(" ")}</span>

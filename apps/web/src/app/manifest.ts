@@ -6,9 +6,9 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Nyanotion",
-    short_name: "Nyanotion",
-    description: "가족 문서 서버",
+    name: "도란",
+    short_name: "도란",
+    description: "우리 집 일정 · 체크리스트 · 기록",
     id: "/",
     start_url: "/",
     scope: "/",

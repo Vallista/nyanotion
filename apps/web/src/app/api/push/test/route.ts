@@ -13,7 +13,7 @@ export async function POST(): Promise<NextResponse> {
 
   try {
     const result = await sendToUser(viewer.userId, {
-      title: "Nyanotion",
+      title: "도란",
       body: "알림이 잘 옵니다. 구매 승인이 필요해지면 이렇게 알려 드릴게요.",
       url: "/install",
       tag: "test",

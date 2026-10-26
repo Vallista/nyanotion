@@ -4,7 +4,7 @@ import { requireViewer } from "@/lib/session";
 import { take, tooManyRequests } from "@/lib/rate-limit";
 
 /**
- * 냥이가 글자를 흘려보내는 길. **LLM 호출은 `packages/ai` 게이트웨이만 통과한다** —
+ * 도우미가 글자를 흘려보내는 길. **LLM 호출은 `packages/ai` 게이트웨이만 통과한다** —
  * 여기서 Ollama 를 직접 부르지 않는다.
  *
  * 문서에 쓰는 일이므로 읽기 권한으로는 부족하다 — `canWrite` 를 본다.
@@ -22,7 +22,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const verdict = take("write", viewer.userId);
-  if (!verdict.ok) return tooManyRequests(verdict, "냥이 부르기");
+  if (!verdict.ok) return tooManyRequests(verdict, "도우미 부르기");
 
   const input = body as { task?: unknown; selection?: unknown; context?: unknown; documentId?: unknown };
   if (!isAiTask(input.task)) return Response.json({ error: "모르는 작업입니다" }, { status: 400 });
@@ -62,7 +62,7 @@ export async function POST(request: Request): Promise<Response> {
         if (error instanceof AiBusyError) {
           send("busy", { kind: error.reason.kind, message: error.message });
         } else {
-          send("busy", { kind: "unreachable", message: "냥이를 부르지 못했습니다." });
+          send("busy", { kind: "unreachable", message: "도우미를 부르지 못했습니다." });
         }
       } finally {
         controller.close();

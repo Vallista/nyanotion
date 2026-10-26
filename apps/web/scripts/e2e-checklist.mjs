@@ -3,7 +3,7 @@
  *
  *   INSPECT_URL=http://localhost:3100 node apps/web/scripts/e2e-checklist.mjs
  *
- * 임시 체크리스트를 만들어 쓰고 끝에 모래상자로 보낸다 (구매로 넘긴 살 것은 그 아래 문서라 같이 간다).
+ * 임시 체크리스트를 만들어 쓰고 끝에 휴지통으로 보낸다 (구매로 넘긴 살 것은 그 아래 문서라 같이 간다).
  */
 import { chromium, devices } from "playwright";
 import { BASE, signIn } from "./lib.mjs";
@@ -129,7 +129,7 @@ check("문서에서 체크리스트로 돌아갈 길이 있다", (await page.loc
 
 console.log("\n탑바의 … 메뉴");
 await page.locator('button[aria-label="더 보기"]').first().click();
-const docTrash = page.locator("button", { hasText: "모래상자로 보내기" }).first();
+const docTrash = page.locator("button", { hasText: "휴지통으로 보내기" }).first();
 const tb = await docTrash.boundingBox().catch(() => null);
 // 보이기만 하는 게 아니라 **그 자리에서 눌리는가** — 잘리거나 다른 것에 덮이면 거기 있는 건 다른 요소다.
 const onTop =
@@ -139,7 +139,7 @@ const onTop =
         ([x, y]) => document.elementFromPoint(x, y)?.closest("button")?.textContent ?? "",
         [tb.x + tb.width / 2, tb.y + tb.height / 2],
       );
-check("**문서의 … 를 누르면 메뉴가 잘리지 않고 위에 뜬다**", onTop.includes("모래상자로"), JSON.stringify(tb));
+check("**문서의 … 를 누르면 메뉴가 잘리지 않고 위에 뜬다**", onTop.includes("휴지통으로"), JSON.stringify(tb));
 
 console.log("\n폰 화면");
 {
@@ -157,7 +157,7 @@ console.log("\n폰 화면");
 await page.goto(listUrl, { waitUntil: "networkidle" });
 await page.screenshot({ path: "apps/web/scripts/e-checklist.png", fullPage: true });
 
-console.log("\n체크리스트 … — 이름 바꾸기 · 모래상자로");
+console.log("\n체크리스트 … — 이름 바꾸기 · 휴지통으로");
 await page.goto(listUrl, { waitUntil: "networkidle" });
 const RENAMED = `${NAME} 바꿈`;
 page.once("dialog", (d) => d.accept(RENAMED));
@@ -167,10 +167,10 @@ await page.waitForTimeout(1800);
 check("이름이 바뀐다", (await page.locator("h1").innerText()).includes(RENAMED));
 page.once("dialog", (d) => d.accept());
 await page.locator('button[aria-label="체크리스트 메뉴"]').click();
-await page.getByRole("menuitem", { name: "모래상자로 보내기" }).click();
+await page.getByRole("menuitem", { name: "휴지통으로 보내기" }).click();
 await page.waitForURL(/\/lists$/, { timeout: 15000 }).catch(() => {});
 await page.waitForTimeout(1000);
-check("모래상자로 보내면 목록에서 빠진다", (await page.locator("a", { hasText: NAME }).count()) === 0);
+check("휴지통으로 보내면 목록에서 빠진다", (await page.locator("a", { hasText: NAME }).count()) === 0);
 const gone = await page.goto(listUrl, { waitUntil: "networkidle" });
 check("보낸 체크리스트는 주소로도 안 열린다", gone?.status() === 404, gone?.status());
 

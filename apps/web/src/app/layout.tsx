@@ -18,9 +18,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Nyanotion", template: "%s · Nyanotion" },
-  description: "가족 문서 서버",
-  applicationName: "Nyanotion",
+  title: { default: "도란", template: "%s · 도란" },
+  description: "우리 집 일정 · 체크리스트 · 기록",
+  applicationName: "도란",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    title: "Nyanotion",
+    title: "도란",
     statusBarStyle: "default",
   },
   formatDetection: { telephone: false },

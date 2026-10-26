@@ -3,7 +3,7 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { document } from "./document";
 
 /**
- * 냥이가 낸 제목·태그 제안. **문서 하나에 하나만** 둔다 (새 제안이 옛 제안을 덮는다).
+ * 도우미가 낸 제목·태그 제안. **문서 하나에 하나만** 둔다 (새 제안이 옛 제안을 덮는다).
  *
  * 왜 따로 표를 두는가 — **수락해야 반영된다**는 것이 이 기능의 규칙이다
  * (`docs/02-roadmap.md` M6). 문서의 제목을 모델이 조용히 바꾸면 사람은 자기가 쓴 제목이

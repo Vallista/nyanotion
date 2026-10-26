@@ -98,7 +98,7 @@ export function DocumentActions({
             <button
               onClick={() => {
                 setMenuOpen(false);
-                // 기다리지 않고 캣타워로 옮긴다. 모래상자로 보내는 일은 서버가 뒤에서 한다.
+                // 기다리지 않고 홈으로 옮긴다. 휴지통으로 보내는 일은 서버가 뒤에서 한다.
                 router.push("/");
                 archiveDocumentAction(id, false).catch(console.error);
               }}
@@ -115,7 +115,7 @@ export function DocumentActions({
               <span style={{ display: "flex", color: "var(--ink-4)" }}>
                 <LitterBoxIcon size={14} />
               </span>
-              모래상자로 보내기
+              휴지통으로 보내기
             </button>
             <span
               style={{
@@ -125,7 +125,7 @@ export function DocumentActions({
                 padding: "4px 8px 6px",
               }}
             >
-              하위 문서도 같이 들어갑니다. 모래상자에서 되돌릴 수 있어요.
+              하위 문서도 같이 들어갑니다. 휴지통에서 되돌릴 수 있어요.
             </span>
           </span>
         </>

@@ -1,5 +1,5 @@
 import { documentByPublicToken } from "@nyanotion/db";
-import { CatMark } from "@/components/cat-mark";
+import { BrandMark } from "@/components/brand-mark";
 import { ReadOnlyBlocks } from "@/components/read-only-blocks";
 import { formatWhen } from "@/lib/format";
 import { displayTitle } from "@/lib/tree";
@@ -29,7 +29,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
       >
         <div style={{ textAlign: "center", maxWidth: 360 }}>
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, opacity: 0.5 }}>
-            <CatMark size={40} color="var(--ink-5)" />
+            <BrandMark size={40} color="var(--ink-5)" />
           </div>
           <p style={{ fontSize: 15, color: "var(--ink-2)", marginBottom: 6 }}>
             열 수 없는 링크입니다
@@ -55,7 +55,7 @@ export default async function PublicPage({ params }: { params: Promise<{ token: 
           borderBottom: "1px solid var(--line)",
         }}
       >
-        <CatMark size={18} color="var(--ink-3)" />
+        <BrandMark size={18} color="var(--ink-3)" />
         <span style={{ fontSize: 12.5, color: "var(--ink-3)" }}>공유된 문서 · 읽기 전용</span>
       </header>
 

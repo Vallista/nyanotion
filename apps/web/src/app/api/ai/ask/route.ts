@@ -113,7 +113,7 @@ export async function POST(request: Request): Promise<Response> {
         if (error instanceof AiBusyError) {
           send("busy", { kind: error.reason.kind, message: error.message });
         } else {
-          send("busy", { kind: "unreachable", message: "냥이를 부르지 못했습니다." });
+          send("busy", { kind: "unreachable", message: "도우미를 부르지 못했습니다." });
         }
       } finally {
         controller.close();

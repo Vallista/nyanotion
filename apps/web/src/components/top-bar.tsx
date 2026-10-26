@@ -20,7 +20,7 @@ export function TopBar({
         padding: "0 18px 0 14px",
         borderBottom: "1px solid var(--line)",
         background: "var(--paper)",
-        // **넘침을 자르지 않는다.** 여기를 자르면 오른쪽 `…` 메뉴(모래상자로 보내기 등)가 46px 아래로
+        // **넘침을 자르지 않는다.** 여기를 자르면 오른쪽 `…` 메뉴(휴지통으로 보내기 등)가 46px 아래로
         // 펼쳐지다 잘려 안 보인다. 긴 빵가루는 아래 칸이 자른다. 메뉴가 본문 위에 뜨도록 쌓임 순서도 올린다.
         position: "relative",
         zIndex: 20,

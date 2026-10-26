@@ -6,7 +6,7 @@ import { archiveChecklistAction, renameChecklistAction } from "@/lib/checklist-a
 import { DotsIcon, LitterBoxIcon } from "./icons";
 import { Spinner } from "./pending";
 
-/** 체크리스트 화면 탑바의 `…` — 이름 바꾸기 · 모래상자로. 문서의 `…` 와 같은 모양. */
+/** 체크리스트 화면 탑바의 `…` — 이름 바꾸기 · 휴지통으로. 문서의 `…` 와 같은 모양. */
 export function ChecklistMenu({ checklistId, title }: { checklistId: string; title: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -81,8 +81,8 @@ export function ChecklistMenu({ checklistId, title }: { checklistId: string; tit
               style={item}
               onClick={() => {
                 setOpen(false);
-                if (!window.confirm(`"${title}" 체크리스트를 모래상자로 보낼까요? 모래상자에서 되돌릴 수 있어요.`)) return;
-                // 기다리지 않고 목록으로 옮긴다. 모래상자로 보내는 일은 서버가 뒤에서 한다.
+                if (!window.confirm(`"${title}" 체크리스트를 휴지통으로 보낼까요? 휴지통에서 되돌릴 수 있어요.`)) return;
+                // 기다리지 않고 목록으로 옮긴다. 휴지통으로 보내는 일은 서버가 뒤에서 한다.
                 router.push("/lists");
                 archiveChecklistAction(checklistId)
                   .then(() => router.refresh())
@@ -92,7 +92,7 @@ export function ChecklistMenu({ checklistId, title }: { checklistId: string; tit
               <span style={{ display: "flex", color: "var(--ink-4)" }}>
                 <LitterBoxIcon size={14} />
               </span>
-              모래상자로 보내기
+              휴지통으로 보내기
             </button>
           </span>
         </>

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth-client";
-import { CatMark } from "./cat-mark";
+import { BrandMark } from "./brand-mark";
 
 /**
  * 로그인, 그리고 **초대 링크를 타고 왔거나 이 서버의 첫 계정일 때만** 가입.
@@ -70,11 +70,11 @@ export function LoginForm({ bootstrap = false }: { bootstrap?: boolean }) {
             marginBottom: 40,
           }}
         >
-          <CatMark size={30} color="var(--ink)" />
+          <BrandMark size={30} color="var(--ink)" />
           <h1 style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.022em", marginTop: 14 }}>
-            Nyanotion
+            도란
           </h1>
-          <p style={{ fontSize: 13, color: "var(--ink-3)", marginTop: 6 }}>가족 문서 서버</p>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", marginTop: 6 }}>우리 집 일정 · 체크리스트 · 기록</p>
         </div>
 
         <form onSubmit={onSubmit}>

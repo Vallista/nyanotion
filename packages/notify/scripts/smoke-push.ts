@@ -72,7 +72,7 @@ async function main(): Promise<void> {
 
     console.log("\n죽은 구독 정리");
     const result = await sendToUser(owner.id, {
-      title: "Nyanotion 점검",
+      title: "도란 점검",
       body: "가짜 구독입니다 — 푸시 서비스가 거절해야 정상입니다.",
       url: "/",
       tag: "smoke",

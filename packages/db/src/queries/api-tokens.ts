@@ -29,7 +29,7 @@ export async function createApiToken(
 ): Promise<{ id: string; token: string }> {
   const clean = name.trim().slice(0, 60);
   if (clean === "") throw new Error("토큰 이름을 적어 주세요 (예: 맥북 Bento).");
-  // 32바이트 = 256비트. 앞의 nyt_ 는 어디서 새 나왔을 때 "냥노션 토큰"인 줄 알아보게.
+  // 32바이트 = 256비트. 앞의 nyt_ 는 어디서 새 나왔을 때 "도란 토큰"인 줄 알아보게.
   const token = `nyt_${randomBytes(32).toString("base64url")}`;
   const id = newId();
   await db.insert(apiToken).values({
